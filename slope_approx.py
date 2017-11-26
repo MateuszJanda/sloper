@@ -10,7 +10,7 @@ cv2.line(img,(0,0),(511,511),(255,0,0),5)
 # cv2.putText(img, "Hello world!", )
 x = 0
 y = 100
-cv2.putText(img,"Hello World!!!", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
+cv2.putText(img,"Hello  World!!!", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
 
 cv2.imshow('image',img)
 cv2.waitKey(0)
