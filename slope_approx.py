@@ -42,6 +42,8 @@ def roof_pos(img, upos1, upos2):
 
     print('Roof pos: ', roof)
 
+    # cv2.line(img, (roof[0], roof[1]), (img.shape[1], roof[1]), (0, 0, 0), 1)
+
     return roof
 
 
@@ -65,8 +67,15 @@ def separator_high(img, upos1, upos2):
 
     # print roof
 
+    # cv2.line(img, (roof[0], roof[1]), (img.shape[1], roof[1]), (0, 0, 0), 1)
+    # cv2.line(img, (upos2[0], upos2[1]), (img.shape[1], upos2[1]), (0, 0, 0), 1)
+    # cv2.line(img, (upos2[0], upos2[1]), (img.shape[1], upos2[1]), (0, 0, 0), 1)
+
     print('Second roof pos: ', roof)
-    high = roof[1] - upos2[1] + 1
+    high = roof[1] - upos2[1]
+
+    # cv2.line(img, (upos1[0], upos2[1] + high), (img.shape[1], upos2[1] + high), (0, 0, 0), 1)
+
     print('Separator high: ', high)
     return high
 
@@ -76,7 +85,7 @@ def separator_high(img, upos1, upos2):
 def debug_fill(img, pt, width, high):
     for x in range(pt[0], pt[0] + width):
         for y in range(pt[1], pt[1] + high):
-            img[y, x] ^= 128
+            img[y, x] ^= 58
 
 
 def debug_cross_net(img, center, width, high):
@@ -94,11 +103,11 @@ def cell_size(img):
     sep_high = separator_high(img, upos1, upos2)
 
     width = width = upos2[0] - upos1[0] + 1
-    high = upos2[1] - roof[1] + 1 + sep_high
+    high = upos2[1] - roof[1] + sep_high
 
     print('Cell size: ', (width, high))
 
-    center_pt = (upos2[0] + 1, upos2[1] + 1)
+    center_pt = (upos1[0], upos2[1] - high)
     debug_fill(img, center_pt, width, high)
     debug_cross_net(img, center_pt, width, high)
 
