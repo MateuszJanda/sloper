@@ -1,14 +1,19 @@
+import collections as col
 import numpy as np
 import cv2
 
-MAX = 40
+
+CALIBRATION_AREA_SIZE = 40
+
+Point = col.namedtuple('Point', ['x', 'y'])
+
 
 def underscore_pos(img):
     pt1 = None
-    for x in range(MAX):
-        for y in range(MAX):
+    for x in range(CALIBRATION_AREA_SIZE):
+        for y in range(CALIBRATION_AREA_SIZE):
             if img[y, x] != 255:
-                pt1 = (x, y)
+                pt1 = Point(x, y)
                 break
         if pt1:
             break
@@ -16,16 +21,16 @@ def underscore_pos(img):
     print('Underscore top left: ', pt1)
 
     tmp = None
-    for x in range(pt1[0], MAX):
-        if img[pt1[1], x] == 255:
+    for x in range(pt1.x, CALIBRATION_AREA_SIZE):
+        if img[pt1.y, x] == 255:
             break
-        tmp = (x, pt1[1])
+        tmp = Point(x, pt1.y)
 
     pt2 = None
-    for y in range(tmp[1], MAX):
-        if img[y, tmp[0]] == 255:
+    for y in range(tmp.y, CALIBRATION_AREA_SIZE):
+        if img[y, tmp.x] == 255:
             break
-        pt2 = (tmp[0], y)
+        pt2 = Point(tmp.x, y)
 
     print('Underscore bottom right: ', pt2)
 
@@ -33,32 +38,32 @@ def underscore_pos(img):
 
 
 def roof_pos(img, upos1, upos2):
-    roof = (0, MAX)
-    width = upos2[0] - upos1[0] + 1
-    for x in range(upos2[0] + 1, upos2[0] + width):
-        for y in range(MAX):
-            if img[y, x] != 255 and y < roof[1]:
-                roof = (x, y)
+    roof = Point(0, CALIBRATION_AREA_SIZE)
+    width = upos2.x - upos1.x + 1
+    for x in range(upos2.x + 1, upos2.x + width):
+        for y in range(CALIBRATION_AREA_SIZE):
+            if img[y, x] != 255 and y < roof.y:
+                roof = Point(x, y)
 
     print('Roof pos: ', roof)
 
-    # cv2.line(img, (roof[0], roof[1]), (img.shape[1], roof[1]), (0, 0, 0), 1)
+    # cv2.line(img, (roof.x, roof.y), (img.shape[1], roof.y), (0, 0, 0), 1)
 
     return roof
 
 
 def separator_high(img, upos1, upos2):
-    roof = (0, MAX)
+    roof = Point(0, CALIBRATION_AREA_SIZE)
 
-    width = upos2[0] - upos1[0] + 1
-    for x in range(upos1[0], upos1[0] + width):
-        for y in range(upos2[1] + 1, MAX):
+    width = upos2.x - upos1.x + 1
+    for x in range(upos1.x, upos1.x + width):
+        for y in range(upos2.y + 1, CALIBRATION_AREA_SIZE):
 
             # print x, y
-            # print y - upos2[1]
-            if img[y, x] != 255 and y < roof[1]:
+            # print y - upos2.y
+            if img[y, x] != 255 and y < roof.y:
                 # print y
-                roof = (x, y)
+                roof = Point(x, y)
 
             # if img[y, x] != 255:
                 # break
@@ -67,14 +72,14 @@ def separator_high(img, upos1, upos2):
 
     # print roof
 
-    # cv2.line(img, (roof[0], roof[1]), (img.shape[1], roof[1]), (0, 0, 0), 1)
-    # cv2.line(img, (upos2[0], upos2[1]), (img.shape[1], upos2[1]), (0, 0, 0), 1)
-    # cv2.line(img, (upos2[0], upos2[1]), (img.shape[1], upos2[1]), (0, 0, 0), 1)
+    # cv2.line(img, (roof.x, roof.y), (img.shape.y, roof.y), (0, 0, 0), 1)
+    # cv2.line(img, (upos2.x, upos2.y), (img.shape.y, upos2.y), (0, 0, 0), 1)
+    # cv2.line(img, (upos2.x, upos2.y), (img.shape.y, upos2.y), (0, 0, 0), 1)
 
     print('Second roof pos: ', roof)
-    high = roof[1] - upos2[1]
+    high = roof.y - upos2.y
 
-    # cv2.line(img, (upos1[0], upos2[1] + high), (img.shape[1], upos2[1] + high), (0, 0, 0), 1)
+    # cv2.line(img, (upos1.x, upos2.y + high), (img.shape[1], upos2.y + high), (0, 0, 0), 1)
 
     print('Separator high: ', high)
     return high
@@ -82,18 +87,18 @@ def separator_high(img, upos1, upos2):
 # Create a black image
 # img = np.zeros((512,512,3), np.uint8)
 
-def debug_fill(img, pt, width, high):
-    for x in range(pt[0], pt[0] + width):
-        for y in range(pt[1], pt[1] + high):
+def debug_fill_cell(img, pt, width, high):
+    for x in range(pt.x, pt.x + width):
+        for y in range(pt.y, pt.y + high):
             img[y, x] ^= 58
 
 
 def debug_cross_net(img, center, width, high):
-    for x in range(center[0], img.shape[1], width):
-        cv2.line(img, (x, center[1]), (x, img.shape[0]), (0, 0, 0), 1)
+    for x in range(center.x, img.shape[1], width):
+        cv2.line(img, (x, center.y), (x, img.shape[0]), (0, 0, 0), 1)
 
-    for y in range(center[1], img.shape[0], high):
-        cv2.line(img, (center[0], y), (img.shape[1], y), (0, 0, 0), 1)
+    for y in range(center.y, img.shape[0], high):
+        cv2.line(img, (center.x, y), (img.shape[1], y), (0, 0, 0), 1)
 
 
 def cell_size(img):
@@ -102,13 +107,13 @@ def cell_size(img):
     roof = roof_pos(img, upos1, upos2)
     sep_high = separator_high(img, upos1, upos2)
 
-    width = width = upos2[0] - upos1[0] + 1
-    high = upos2[1] - roof[1] + sep_high
+    width = width = upos2.x - upos1.x + 1
+    high = upos2.y - roof.y + sep_high
 
     print('Cell size: ', (width, high))
 
-    center_pt = (upos1[0], upos2[1] - high)
-    debug_fill(img, center_pt, width, high)
+    center_pt = Point(upos1.x, upos2.y - high)
+    debug_fill_cell(img, center_pt, width, high)
     debug_cross_net(img, center_pt, width, high)
 
     return center_pt, width, high
