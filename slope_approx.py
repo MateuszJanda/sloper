@@ -1,5 +1,6 @@
 import collections as col
 import numpy as np
+from matplotlib import pyplot as plt
 import cv2
 
 
@@ -113,14 +114,58 @@ def cell_size(img):
     print('Cell size: ', (width, high))
 
     center_pt = Point(upos1.x, upos2.y - high)
-    debug_fill_cell(img, center_pt, width, high)
-    debug_cross_net(img, center_pt, width, high)
+    # debug_fill_cell(img, center_pt, width, high)
+    # debug_cross_net(img, center_pt, width, high)
 
     return center_pt, width, high
 
 
+def erase_calibration_area(img):
+    pass
 
 
+def convexity_defects(img):
+    """
+    https://docs.opencv.org/3.0-beta/doc/py_tutorials/py_imgproc/py_contours/py_contours_more_functions/py_contours_more_functions.html#contours-more-functions
+    """
+    ret, thresh = cv2.threshold(img, 127, 255,0)
+    _, contours,hierarchy = cv2.findContours(thresh,2,1)
+    cnt = contours[0]
+
+    hull = cv2.convexHull(cnt,returnPoints = False)
+    defects = cv2.convexityDefects(cnt,hull)
+
+    for i in range(defects.shape[0]):
+        s,e,f,d = defects[i,0]
+        start = tuple(cnt[s][0])
+        end = tuple(cnt[e][0])
+        far = tuple(cnt[f][0])
+        cv2.line(img,start,end,[0,255,0],2)
+        cv2.circle(img,far,5,[0,0,255],-1)
+
+
+def morphological_transformations(img):
+    kernel = np.ones((5,5),np.uint8)
+    kernel = np.ones((55,55),np.uint8)
+
+
+    erosion = cv2.erode(img,kernel,iterations = 1)
+    # dilation = cv2.dilate(img,kernel,iterations = 1)
+    # pass
+
+def canny_edge_detection(img):
+    """
+    https://docs.opencv.org/3.1.0/da/d22/tutorial_py_canny.html
+    """
+    # img = cv2.imread('messi5.jpg',0)
+    edges = cv2.Canny(img,100,200)
+
+    plt.subplot(121),plt.imshow(img,cmap = 'gray')
+    plt.title('Original Image'), plt.xticks([]), plt.yticks([])
+    plt.subplot(122),plt.imshow(edges,cmap = 'gray')
+    plt.title('Edge Image'), plt.xticks([]), plt.yticks([])
+
+    plt.show()
 
 img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
 
@@ -135,8 +180,13 @@ img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
 print img.shape
 
 cell_size(img)
+erase_calibration_area(img)
 
+# convexity_defects(img)
+# morphological_transformations(img)
+canny_edge_detection(img)
 
+# img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 
 
 
