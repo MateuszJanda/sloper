@@ -167,6 +167,64 @@ def canny_edge_detection(img):
 
     plt.show()
 
+
+def find_if_close(cnt1,cnt2):
+    row1,row2 = cnt1.shape[0],cnt2.shape[0]
+    for i in xrange(row1):
+        for j in xrange(row2):
+            dist = np.linalg.norm(cnt1[i]-cnt2[j])
+            if abs(dist) < 10 :
+                return True
+            elif i==row1-1 and j==row2-1:
+                return False
+
+def connect_nearby_contours(img):
+    """
+    https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
+    """
+    gray = cv2.bitwise_not(img)
+
+    _, thresh = cv2.threshold(src=gray, thresh=127, maxval=255, type=0)
+    im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    cv2.imshow('debug', im2)
+
+    LENGTH = len(contours)
+    status = np.zeros((LENGTH,1))
+
+    for i, cnt1 in enumerate(contours):
+        x = i
+        if i != LENGTH-1:
+            for j, cnt2 in enumerate(contours[i+1:]):
+                x = x+1
+                dist = find_if_close(cnt1,cnt2)
+                if dist == True:
+                    val = min(status[i],status[x])
+                    status[x] = status[i] = val
+                else:
+                    if status[x]==status[i]:
+                        status[x] = i+1
+
+    unified = []
+    maximum = int(status.max())+1
+    for i in xrange(maximum):
+        pos = np.where(status==i)[0]
+        if pos.size != 0:
+            cont = np.vstack(contours[i] for i in pos)
+            hull = cv2.convexHull(cont)
+            unified.append(hull)
+
+    cv2.drawContours(img,unified,-1,(0,255,0),2)
+    cv2.drawContours(thresh,unified,-1,255,-1)
+
+    # print len(contours)
+    # print cv2.CHAIN_APPROX_SIMPLE
+
+
+    # img = thresh
+
+
+# -----------------------
+
 img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
 
 # Draw a diagonal blue line with thickness of 5 px
@@ -184,7 +242,8 @@ erase_calibration_area(img)
 
 # convexity_defects(img)
 # morphological_transformations(img)
-canny_edge_detection(img)
+# canny_edge_detection(img)
+connect_nearby_contours(img)
 
 # img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 
