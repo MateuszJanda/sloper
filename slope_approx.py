@@ -173,18 +173,21 @@ def find_if_close(cnt1,cnt2):
     for i in xrange(row1):
         for j in xrange(row2):
             dist = np.linalg.norm(cnt1[i]-cnt2[j])
-            if abs(dist) < 10 :
+            if abs(dist) < 5:
                 return True
             elif i==row1-1 and j==row2-1:
                 return False
 
-def connect_nearby_contours(img):
+def connect_nearby_contours(gray_img):
     """
     https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
+    http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
     """
-    gray = cv2.bitwise_not(img)
+    # gray = cv2.bitwise_not(img)
 
-    _, thresh = cv2.threshold(src=gray, thresh=127, maxval=255, type=0)
+    _, thresh = cv2.threshold(src=gray_img, thresh=7, maxval=255, type=cv2.THRESH_BINARY)
+    cv2.imshow('debug1', thresh)
+
     im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     cv2.imshow('debug', im2)
 
@@ -196,6 +199,7 @@ def connect_nearby_contours(img):
         if i != LENGTH-1:
             for j, cnt2 in enumerate(contours[i+1:]):
                 x = x+1
+                print x, j+1
                 dist = find_if_close(cnt1,cnt2)
                 if dist == True:
                     val = min(status[i],status[x])
@@ -227,6 +231,9 @@ def connect_nearby_contours(img):
 
 img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
 
+gray_img = cv2.bitwise_not(img)
+gray_img = cv2.dilate(src=gray_img, kernel=np.ones((5, 15)), iterations=1)
+
 # Draw a diagonal blue line with thickness of 5 px
 # cv2.line(img, (0, 0), (40, 40), (0, 0, 0), 1)
 
@@ -235,15 +242,15 @@ img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
 # y = 10
 # cv2.putText(img,"Hello  World!!!", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
 
-print img.shape
+print('Image shape:', img.shape)
 
 cell_size(img)
-erase_calibration_area(img)
+# erase_calibration_area(img)
 
 # convexity_defects(img)
 # morphological_transformations(img)
 # canny_edge_detection(img)
-connect_nearby_contours(img)
+connect_nearby_contours(gray_img)
 
 # img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
 
