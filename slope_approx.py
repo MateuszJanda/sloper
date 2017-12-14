@@ -271,7 +271,7 @@ def connect_nearby_contours(gray_img):
 
 img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
 
-gray_img = cv2.bitwise_not(img)
+
 # gray_img = cv2.dilate(src=gray_img, kernel=np.ones((5, 15)), iterations=1)
 
 # Draw a diagonal blue line with thickness of 5 px
@@ -285,6 +285,11 @@ gray_img = cv2.bitwise_not(img)
 print('Image shape:', img.shape)
 
 cell_size(img)
+
+cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), 255, cv2.FILLED)
+
+gray_img = cv2.bitwise_not(img)
+
 # erase_calibration_area(img)
 
 # convexity_defects(img)
