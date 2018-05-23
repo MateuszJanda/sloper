@@ -129,13 +129,15 @@ def convexity_defects(img):
 
 
 def morphological_transformations(img):
-    kernel = np.ones((5,5),np.uint8)
-    kernel = np.ones((55,55),np.uint8)
+    kernel = np.ones((5, 5), np.uint8)
+    kernel = np.ones((55, 55), np.uint8)
+    kernel = np.ones((8, 8), np.uint8)
+    kernel = np.ones((10, 8), np.uint8)
+    kernel2 = np.ones((8, 5), np.uint8)
 
-
-    erosion = cv2.erode(img,kernel,iterations = 1)
-    # dilation = cv2.dilate(img,kernel,iterations = 1)
-    # pass
+    dilation_img = cv2.dilate(img, kernel, iterations=1)
+    erosion_img = cv2.erode(dilation_img, kernel2, iterations=1)
+    cv2.imshow('erosion_img', erosion_img)
 
 
 def canny_edge_detection(img):
@@ -175,13 +177,15 @@ def connect_nearby_contours(gray_img):
     https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
     http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
     """
-    # gray = cv2.bitwise_not(img)
-
-    _, thresh = cv2.threshold(src=gray_img, thresh=7, maxval=255, type=cv2.THRESH_BINARY)
+    _, thresh_img = cv2.threshold(src=gray_img, thresh=7, maxval=255, type=cv2.THRESH_BINARY)
+    # cv2.imshow('debug0', gray_img)
     # cv2.imshow('debug1', thresh)
 
-    im2, contours, hierarchy = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    im2, contours, hierarchy = cv2.findContours(thresh_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     # cv2.imshow('debug', im2)
+
+    print type(contours[0])
+    print contours[0]
 
     LENGTH = len(contours)
     status = np.zeros((LENGTH,1))
@@ -263,10 +267,9 @@ def main():
     # draw_net(orig_img, start_pt, width, high)
 
     # convexity_defects(orig_img)
-    # morphological_transformations(orig_img)
+    # morphological_transformations(gray_img)
     # canny_edge_detection(orig_img)
     connect_nearby_contours(gray_img)
-
     cv2.imshow('gray_img', gray_img)
 
     cv2.waitKey(0)
