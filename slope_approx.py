@@ -8,6 +8,7 @@ import cv2
 
 
 CALIBRATION_AREA_SIZE = 40
+BLACK = 0
 WHITE = 255
 
 Point = co.namedtuple('Point', ['x', 'y'])
@@ -34,19 +35,19 @@ def underscore_pos(img):
     """ Calculate underscore "_" position [top-left point, bottom-right point]"""
     pt1 = None
     for x, y in it.product(range(CALIBRATION_AREA_SIZE), range(CALIBRATION_AREA_SIZE)):
-        if img[y, x] != WHITE:
+        if img[y, x] != BLACK:
             pt1 = Point(x, y)
             break
 
     tmp = None
     for x in range(pt1.x, CALIBRATION_AREA_SIZE):
-        if img[pt1.y, x] == WHITE:
+        if img[pt1.y, x] == BLACK:
             break
         tmp = Point(x, pt1.y)
 
     pt2 = None
     for y in range(tmp.y, CALIBRATION_AREA_SIZE):
-        if img[y, tmp.x] == WHITE:
+        if img[y, tmp.x] == BLACK:
             break
         pt2 = Point(tmp.x, y)
 
@@ -59,9 +60,10 @@ def roof_pos(img, under_pos1, under_pos2):
     """ Calculate roof sign "^" position - only the pick """
     roof = Point(0, CALIBRATION_AREA_SIZE)
     width = under_pos2.x - under_pos1.x + 1
+
     for x in range(under_pos2.x + 1, under_pos2.x + width):
         for y in range(CALIBRATION_AREA_SIZE):
-            if img[y, x] != WHITE and y < roof.y:
+            if img[y, x] != BLACK and y < roof.y:
                 roof = Point(x, y)
 
     print('Roof pos: ', roof)
@@ -69,13 +71,13 @@ def roof_pos(img, under_pos1, under_pos2):
 
 
 def separator_high(img, under_pos1, under_pos2):
-    """ Calculate sperator area between underscore "_" and bottom roof sign "^" """
+    """ Calculate separator area between underscore "_" and bottom roof sign "^" """
     roof = Point(0, CALIBRATION_AREA_SIZE)
-
     width = under_pos2.x - under_pos1.x + 1
+
     for x in range(under_pos1.x, under_pos1.x + width):
         for y in range(under_pos2.y + 1, CALIBRATION_AREA_SIZE):
-            if img[y, x] != 255 and y < roof.y:
+            if img[y, x] != BLACK and y < roof.y:
                 roof = Point(x, y)
 
     high = roof.y - under_pos2.y
@@ -84,22 +86,26 @@ def separator_high(img, under_pos1, under_pos2):
     return high
 
 
-def debug_fill_cell(img, pt, width, high):
-    for x in range(pt.x, pt.x + width):
-        for y in range(pt.y, pt.y + high):
+def draw_filled_cell(img, start_pt, width, high):
+    """ Just for debug purpose, will cell with color """
+    for x in range(start_pt.x, start_pt.x + width):
+        for y in range(start_pt.y, start_pt.y + high):
             img[y, x] ^= 58
 
 
-def debug_cross_net(img, center, width, high):
-    for x in range(center.x, img.shape[1], width):
-        cv2.line(img, (x, center.y), (x, img.shape[0]), (0, 0, 0), 1)
+def draw_net(img, start_pt, width, high):
+    """ Just for debug purpose draw net """
+    black = (0, 0, 0)
+    for x in range(start_pt.x, img.shape[1], width):
+        cv2.line(img, (x, start_pt.y), (x, img.shape[0]), black, 1)
 
-    for y in range(center.y, img.shape[0], high):
-        cv2.line(img, (center.x, y), (img.shape[1], y), (0, 0, 0), 1)
+    for y in range(start_pt.y, img.shape[0], high):
+        cv2.line(img, (start_pt.x, y), (img.shape[1], y), black, 1)
 
 
 def erase_calibration_area(img):
-    cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), 255, cv2.FILLED)
+    """ Erase calibration are from image """
+    cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK, cv2.FILLED)
 
 
 def convexity_defects(img):
@@ -164,7 +170,7 @@ def find_if_close(cnt1, cnt2):
                 return False
 
 
-def connect_nearby_contours(origin_img, gray_img):
+def connect_nearby_contours(gray_img):
     """
     https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
     http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
@@ -206,10 +212,8 @@ def connect_nearby_contours(origin_img, gray_img):
             #     if status[x]==status[i]:
             #         status[x] = i+1
 
-
-
     # print contours[0]
-    print len(contours)
+    # print len(contours)
 
     unified = []
     # maximum = int(status.max())+1
@@ -231,7 +235,7 @@ def connect_nearby_contours(origin_img, gray_img):
     cont = np.vstack(contours[i] for i in range(len(contours)))
     # hull = cv2.convexHull(cont)
     unified.append(cont)
-    cv2.drawContours(origin_img, unified,-1,(0,255,0),2)
+    cv2.drawContours(gray_img, unified, -1, WHITE, 2)
 
     # cont = np.vstack(contours[i] for i in range(len(contours)))
     # hull = cv2.convexHull(cont)
@@ -247,44 +251,24 @@ def connect_nearby_contours(origin_img, gray_img):
     # img = thresh
 
 
-# -----------------------
-
 def main():
-    img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
+    orig_img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
+    cv2.imshow('orig_img', orig_img)
+    # Image should have white characters and black background
+    gray_img = cv2.bitwise_not(orig_img)
 
+    start_pt, width, high = calibration_area(gray_img)
+    erase_calibration_area(gray_img)
+    # draw_filled_cell(orig_img, start_pt, width, high)
+    # draw_net(orig_img, start_pt, width, high)
 
-    # gray_img = cv2.dilate(src=gray_img, kernel=np.ones((5, 15)), iterations=1)
+    # convexity_defects(orig_img)
+    # morphological_transformations(orig_img)
+    # canny_edge_detection(orig_img)
+    connect_nearby_contours(gray_img)
 
-    # Draw a diagonal blue line with thickness of 5 px
-    # cv2.line(img, (0, 0), (40, 40), (0, 0, 0), 1)
+    cv2.imshow('gray_img', gray_img)
 
-    # cv2.putText(img, "Hello world!", )
-    # x = 0
-    # y = 10
-    # cv2.putText(img,"Hello  World!!!", (x,y), cv2.FONT_HERSHEY_SIMPLEX, 2, 255)
-
-    print('Image shape:', img.shape)
-
-    calibration_area(img)
-    # debug_fill_cell(img, start_pt, width, high)
-    # debug_cross_net(img, start_pt, width, high)
-    erase_calibration_area(img)
-
-
-
-    gray_img = cv2.bitwise_not(img)
-
-    # erase_calibration_area(img)
-
-    # convexity_defects(img)
-    # morphological_transformations(img)
-    # canny_edge_detection(img)
-    connect_nearby_contours(img, gray_img)
-
-    # img_gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-
-
-    cv2.imshow('image', img)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
