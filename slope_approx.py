@@ -156,118 +156,49 @@ def canny_edge_detection(img):
     plt.show()
 
 
-def find_if_close(cnt1, cnt2):
-    # print cnt1
-    # print cnt2
-    # print cnt1[1]
-    # print cnt2[1]
-    # print cnt1[1] - cnt2[1]
-    # print cnt1.shape[0]
+def find_closest(head_cnt, contours, dbg=False):
+    minimal_dist = 15
+    best_cnt = None
+    for cnt in contours:
+        for head_pos, cnt_pos in it.product(head_cnt, cnt):
+            dist = np.linalg.norm(head_pos-cnt_pos)
 
-    # for p in cnt1:
-        # print p
+            if abs(dist) < minimal_dist:
+                minimal_dist = abs(dist)
+                best_cnt = cnt
 
-    # row1,row2 = cnt1.shape[0], cnt2.shape[0]
-    # for i in xrange(row1):
-        # for j in xrange(row2):
-    for c1, c2 in it.product(cnt1, cnt2):
-            # print cnt1[i]-cnt2[j]
-        dist = np.linalg.norm(c1-c2)
-        print dist
-            # import sys
-            # sys.exit()
-
-        if abs(dist) < 7:
-            return True
-        # elif i==row1-1 and j==row2-1:
-        #     return False
-
-    return False
+    return best_cnt
 
 def connect_nearby_contours(gray_img):
     """
     https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
     http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
     """
-    # _, thresh_img = cv2.threshold(src=gray_img, thresh=7, maxval=255, type=cv2.THRESH_BINARY)
-    # cv2.imshow('debug0', gray_img)
-    # cv2.imshow('debug1', thresh)
-
     im2, contours, hierarchy = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    # cv2.imshow('debug', im2)
 
-    # print type(contours[0])
-    # print contours[0]
+    last = contours.pop(0)
+    chain = [last]
 
-    LENGTH = len(contours)
-    status = np.zeros((LENGTH,1))
+    while len(contours) > 0:
+        cnt = find_closest(last, contours)
 
-    chain = [0]
+        if cnt is None:
+            print 'len', len(contours)
+            print 'Error'
+            exit()
 
-    # for i, cnt1 in enumerate(contours):
-    #     x = i
-    #     if i != LENGTH-1:
-    #         for j, cnt2 in enumerate(contours[i+1:]):
-    #             x = x+1
-    #             # print x, j+1
-    #             dist = find_if_close(cnt1,cnt2)
-    #             if dist == True:
-    #                 val = min(status[i],status[x])
-    #                 status[x] = status[i] = val
-    #             else:
-    #                 if status[x]==status[i]:
-    #                     status[x] = i+1
-
-    contours = contours[:2]
-
-    for i, cnt1 in enumerate(contours):
-        for j, cnt2 in enumerate(contours[i+1:]):
-            dist = find_if_close(cnt1, cnt2)
-            if dist == True:
-                # status[x] = status[i] = val
-                chain.append(j)
-            # else:
-            #     if status[x]==status[i]:
-            #         status[x] = i+1
-
-    # print contours[0]
-    # print len(contours)
-
-    unified = []
-    # maximum = int(status.max())+1
-    # for i in xrange(maximum):
-    #     pos = np.where(status==i)[0]
-    #     if pos.size != 0:
-    #         cont = np.vstack(contours[i] for i in pos)
-    #         hull = cv2.convexHull(cont)
-    #         unified.append(hull)
-
-    # for c in contours:
-    # for i in range(4):
-
-    # cont = np.vstack(contours[i] for i in range(4))
-    # hull = cv2.convexHull(cont)
-    # unified.append(hull)
-    # cv2.drawContours(img,unified,-1,(0,255,0),2)
-
-    cont = np.vstack(contours[i] for i in range(len(contours)))
-    cont = np.vstack(contours[i] for i in range(2))
-    # hull = cv2.convexHull(cont)
-    unified.append(cont)
-    cv2.drawContours(gray_img, unified, -1, WHITE, 2)
-
-    # cont = np.vstack(contours[i] for i in range(len(contours)))
-    # hull = cv2.convexHull(cont)
-    # unified.append(hull)
-    # cv2.polylines(gray_img, cont, True, WHITE, 2)
-
-    # cv2.drawContours(thresh,unified,-1,255,-1)
-
-    # print len(contours)
-    # print cv2.CHAIN_APPROX_SIMPLE
+        chain.append(cnt)
+        for i in range(len(contours)):
+            if np.all(cnt == contours[i]):
+                contours.pop(i)
+                break
+        last = cnt
 
 
-    # img = thresh
+    cont = np.vstack(chain[i] for i in range(len(chain[:2])))
+    # cont = np.vstack(c for c in contours[:2])
+    # cont = np.vstack(contours[i] for i in len(contours))
+    cv2.drawContours(gray_img, cont, -1, WHITE, 2)
 
 
 def main():
