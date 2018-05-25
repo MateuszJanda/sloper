@@ -90,17 +90,18 @@ def draw_filled_cell(img, start_pt, width, high):
     """ Just for debug purpose, will cell with color """
     for x in range(start_pt.x, start_pt.x + width):
         for y in range(start_pt.y, start_pt.y + high):
-            img[y, x] ^= 58
+            img[y, x] ^= 158
 
 
 def draw_net(img, start_pt, width, high):
     """ Just for debug purpose draw net """
-    black = (0, 0, 0)
+    # black = (0, 0, 0)
+    # white = (255, 255, 255)
     for x in range(start_pt.x, img.shape[1], width):
-        cv2.line(img, (x, start_pt.y), (x, img.shape[0]), black, 1)
+        cv2.line(img, (x, start_pt.y), (x, img.shape[0]), WHITE, 1)
 
     for y in range(start_pt.y, img.shape[0], high):
-        cv2.line(img, (start_pt.x, y), (img.shape[1], y), black, 1)
+        cv2.line(img, (start_pt.x, y), (img.shape[1], y), WHITE, 1)
 
 
 def erase_calibration_area(img):
@@ -184,8 +185,8 @@ def connect_nearby_contours(gray_img):
     im2, contours, hierarchy = cv2.findContours(thresh_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     # cv2.imshow('debug', im2)
 
-    print type(contours[0])
-    print contours[0]
+    # print type(contours[0])
+    # print contours[0]
 
     LENGTH = len(contours)
     status = np.zeros((LENGTH,1))
@@ -257,9 +258,10 @@ def connect_nearby_contours(gray_img):
 
 def main():
     orig_img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
-    cv2.imshow('orig_img', orig_img)
     # Image should have white characters and black background
-    gray_img = cv2.bitwise_not(orig_img)
+    # gray_img = cv2.bitwise_not(orig_img)
+    _, gray_img= cv2.threshold(src=orig_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
+    # cv2.imshow('asdf', gray_img)
 
     start_pt, width, high = calibration_area(gray_img)
     erase_calibration_area(gray_img)
@@ -270,6 +272,8 @@ def main():
     # morphological_transformations(gray_img)
     # canny_edge_detection(orig_img)
     connect_nearby_contours(gray_img)
+
+    cv2.imshow('orig_img', orig_img)
     cv2.imshow('gray_img', gray_img)
 
     cv2.waitKey(0)
