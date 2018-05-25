@@ -158,20 +158,31 @@ def canny_edge_detection(img):
 
 def find_if_close(cnt1, cnt2):
     # print cnt1
-    row1,row2 = cnt1.shape[0], cnt2.shape[0]
-    for i in xrange(row1):
-        for j in xrange(row2):
+    # print cnt2
+    # print cnt1[1]
+    # print cnt2[1]
+    # print cnt1[1] - cnt2[1]
+    # print cnt1.shape[0]
+
+    # for p in cnt1:
+        # print p
+
+    # row1,row2 = cnt1.shape[0], cnt2.shape[0]
+    # for i in xrange(row1):
+        # for j in xrange(row2):
+    for c1, c2 in it.product(cnt1, cnt2):
             # print cnt1[i]-cnt2[j]
-            dist = np.linalg.norm(cnt1[i]-cnt2[j])
-            # print dist
+        dist = np.linalg.norm(c1-c2)
+        print dist
             # import sys
             # sys.exit()
 
-            if abs(dist) < 15:
-                return True
-            elif i==row1-1 and j==row2-1:
-                return False
+        if abs(dist) < 7:
+            return True
+        # elif i==row1-1 and j==row2-1:
+        #     return False
 
+    return False
 
 def connect_nearby_contours(gray_img):
     """
@@ -207,6 +218,8 @@ def connect_nearby_contours(gray_img):
     #                 if status[x]==status[i]:
     #                     status[x] = i+1
 
+    contours = contours[:2]
+
     for i, cnt1 in enumerate(contours):
         for j, cnt2 in enumerate(contours[i+1:]):
             dist = find_if_close(cnt1, cnt2)
@@ -238,6 +251,7 @@ def connect_nearby_contours(gray_img):
     # cv2.drawContours(img,unified,-1,(0,255,0),2)
 
     cont = np.vstack(contours[i] for i in range(len(contours)))
+    cont = np.vstack(contours[i] for i in range(2))
     # hull = cv2.convexHull(cont)
     unified.append(cont)
     cv2.drawContours(gray_img, unified, -1, WHITE, 2)
@@ -245,7 +259,7 @@ def connect_nearby_contours(gray_img):
     # cont = np.vstack(contours[i] for i in range(len(contours)))
     # hull = cv2.convexHull(cont)
     # unified.append(hull)
-    # cv2.polylines(img, cont, True, (0,255,255), 2)
+    # cv2.polylines(gray_img, cont, True, WHITE, 2)
 
     # cv2.drawContours(thresh,unified,-1,255,-1)
 
