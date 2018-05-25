@@ -178,11 +178,11 @@ def connect_nearby_contours(gray_img):
     https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
     http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
     """
-    _, thresh_img = cv2.threshold(src=gray_img, thresh=7, maxval=255, type=cv2.THRESH_BINARY)
+    # _, thresh_img = cv2.threshold(src=gray_img, thresh=7, maxval=255, type=cv2.THRESH_BINARY)
     # cv2.imshow('debug0', gray_img)
     # cv2.imshow('debug1', thresh)
 
-    im2, contours, hierarchy = cv2.findContours(thresh_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    im2, contours, hierarchy = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     # cv2.imshow('debug', im2)
 
     # print type(contours[0])
