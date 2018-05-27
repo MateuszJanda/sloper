@@ -28,7 +28,7 @@ def calibration_area(img):
     high = under_pos2.y - roof.y + sep_high
     start_pt = Point(under_pos1.x, under_pos2.y - high)
 
-    print('Cell size: ', start_pt, (width, high))
+    print('Cell top-left: ' + str(start_pt) + ', size: ' + str((width, high)))
     return start_pt, width, high
 
 
@@ -157,30 +157,29 @@ def canny_edge_detection(img):
     plt.show()
 
 
-def find_closest(head_cnt, contours, dbg=False):
-    minimal_dist = 15
+def find_closest(head_cnt, contours, min_dist=15):
     best_cnt = None
     for cnt in contours:
         for head_pos, cnt_pos in it.product(head_cnt, cnt):
             dist = np.linalg.norm(head_pos-cnt_pos)
 
-            if abs(dist) < minimal_dist:
-                minimal_dist = abs(dist)
+            if abs(dist) < min_dist:
+                min_dist = abs(dist)
                 best_cnt = cnt
 
     return best_cnt
+
 
 def connect_nearby_contours(gray_img):
     """
     https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
     http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
     """
-    im2, contours, hierarchy = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    _, contours, _ = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    backup = copy.copy(contours)
+    # Typically we start from the bottom
     last = contours.pop(0)
     chain = [last]
-
     while len(contours) > 0:
         cnt = find_closest(last, contours)
 
