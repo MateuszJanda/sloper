@@ -196,16 +196,8 @@ def connect_nearby_contours(gray_img):
                 break
         last = cnt
 
-
-    # cont = np.vstack(chain[i] for i in range(2))
-    # cont = np.vstack(c for c in chain[2:3])
-    # cont = np.vstack(c for c in contours[:2])
-    # cont = np.vstack(backup[i] for i in range(2))
-    cont = np.vstack(backup)
-    # cont = []
-    # cont = backup
-    # cont = np.vstack(backup[i] for i in range(len(backup)))
-    cv2.drawContours(gray_img, cont, -1, WHITE, 2)
+    unified = [np.vstack(chain)]
+    cv2.drawContours(gray_img, unified, -1, WHITE, 1)
 
 
 def main():
