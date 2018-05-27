@@ -4,6 +4,7 @@
 import collections as co
 import itertools as it
 import numpy as np
+import copy
 import cv2
 
 
@@ -176,6 +177,7 @@ def connect_nearby_contours(gray_img):
     """
     im2, contours, hierarchy = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
+    backup = copy.copy(contours)
     last = contours.pop(0)
     chain = [last]
 
@@ -195,9 +197,14 @@ def connect_nearby_contours(gray_img):
         last = cnt
 
 
-    cont = np.vstack(chain[i] for i in range(len(chain[:2])))
+    # cont = np.vstack(chain[i] for i in range(2))
+    # cont = np.vstack(c for c in chain[2:3])
     # cont = np.vstack(c for c in contours[:2])
-    # cont = np.vstack(contours[i] for i in len(contours))
+    # cont = np.vstack(backup[i] for i in range(2))
+    cont = np.vstack(backup)
+    # cont = []
+    # cont = backup
+    # cont = np.vstack(backup[i] for i in range(len(backup)))
     cv2.drawContours(gray_img, cont, -1, WHITE, 2)
 
 
