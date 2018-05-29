@@ -101,12 +101,17 @@ def draw_filled_cell(img, start_pt, cell_size):
 def draw_net(img, start_pt, cell_size):
     """ Just for debug purpose draw net """
     BLUE = (255, 0, 0)
-    height, width, _ = img.shape
-    for x in range(start_pt.x, width, cell_size.width):
-        cv2.line(img, (x, start_pt.y), (x, height), BLUE, 1)
+    end_y = start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height
+    end_x = start_pt.x + ((img.shape[1] - start_pt.x) // cell_size.width) * cell_size.width
+    print end_x, img.shape[1]
+    for x in range(start_pt.x, end_x + 1, cell_size.width):
+        # print x
+        cv2.line(img, (x, start_pt.y), (x, end_y), BLUE, 1)
+    # cv2.line(img, (253, start_pt.y), (253, height), BLUE, 1)
 
-    for y in range(start_pt.y, height, cell_size.height):
-        cv2.line(img, (start_pt.x, y), (width, y), BLUE, 1)
+    for y in range(start_pt.y, end_y + 1, cell_size.height):
+        cv2.line(img, (start_pt.x, y), (end_x, y), BLUE, 1)
+    # cv2.line(img, (start_pt.x, 10), (253, 10), BLUE, 1)
 
 
 def draw_dots(img, start_pt, cell_size):
@@ -199,7 +204,7 @@ def main():
     color_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     draw_filled_cell(color_img, start_pt, cell_size)
     draw_net(color_img, start_pt, cell_size)
-    draw_dots(color_img, start_pt, cell_size)
+    # draw_dots(color_img, start_pt, cell_size)
     cv2.imshow('color_img', color_img)
 
     cv2.imshow('orig_img', orig_img)
