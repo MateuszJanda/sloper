@@ -23,13 +23,13 @@ def calibration_data(img):
         top-left point where cell start
         cell size (width, height)
     """
-    under_pos1, under_pos2 = underscore_pos(img)
-    roof = roof_pos(img, under_pos1, under_pos2)
-    sep_height = separator_height(img, under_pos1, under_pos2)
+    under_tl, under_br = underscore_pos(img)
+    roof = roof_pos(img, under_tl, under_br)
+    sep_height = separator_height(img, under_tl, under_br)
 
-    width = width = under_pos2.x - under_pos1.x + 1
-    height = under_pos2.y - roof.y + sep_height
-    start_pt = Point(under_pos1.x, under_pos2.y - height)
+    width = width = under_br.x - under_tl.x + 1
+    height = under_br.y - roof.y + sep_height
+    start_pt = Point(under_tl.x, under_br.y - height)
 
     cell_size = Size(width, height)
     print('Cell top-left: ' + str(start_pt) + ', cell size: ' + str(cell_size))
@@ -38,27 +38,27 @@ def calibration_data(img):
 
 def underscore_pos(img):
     """ Calculate underscore "_" position [top-left point, bottom-right point] """
-    pt1 = None
+    under_tl = None
     for x, y in it.product(range(CALIBRATION_AREA_SIZE), range(CALIBRATION_AREA_SIZE)):
         if img[y, x] != BLACK:
-            pt1 = Point(x, y)
+            under_tl = Point(x, y)
             break
 
     tmp = None
-    for x in range(pt1.x, CALIBRATION_AREA_SIZE):
-        if img[pt1.y, x] == BLACK:
+    for x in range(under_tl.x, CALIBRATION_AREA_SIZE):
+        if img[under_tl.y, x] == BLACK:
             break
-        tmp = Point(x, pt1.y)
+        tmp = Point(x, under_tl.y)
 
-    pt2 = None
+    under_rb = None
     for y in range(tmp.y, CALIBRATION_AREA_SIZE):
         if img[y, tmp.x] == BLACK:
             break
-        pt2 = Point(tmp.x, y)
+        under_rb = Point(tmp.x, y)
 
-    print('Underscore top left: ', pt1)
-    print('Underscore bottom right: ', pt2)
-    return pt1, pt2
+    print('Underscore top left: ', under_tl)
+    print('Underscore bottom right: ', under_rb)
+    return under_tl, under_rb
 
 
 def roof_pos(img, under_pos1, under_pos2):
@@ -101,14 +101,39 @@ def draw_filled_cell(img, start_pt, cell_size):
 def draw_net(img, start_pt, cell_size):
     """ Just for debug purpose draw net """
     BLUE = (255, 0, 0)
-    for x in range(start_pt.x, img.shape[1], cell_size.width):
-        cv2.line(img, (x, start_pt.y), (x, img.shape[0]), BLUE, 1)
+    height, width, _ = img.shape
+    for x in range(start_pt.x, width, cell_size.width):
+        cv2.line(img, (x, start_pt.y), (x, height), BLUE, 1)
 
-    for y in range(start_pt.y, img.shape[0], cell_size.height):
-        cv2.line(img, (start_pt.x, y), (img.shape[1], y), BLUE, 1)
+    for y in range(start_pt.y, height, cell_size.height):
+        cv2.line(img, (start_pt.x, y), (width, y), BLUE, 1)
 
 
 def draw_dots(img, start_pt, cell_size):
+    count = 0
+    braille_cell_size = Size(2.0, 4.0)
+    field_size = Size(cell_size.width/braille_cell_size.width, cell_size.height/braille_cell_size.height)
+
+    height, width, _ = img.shape
+    new_width = ((width - start_pt.x) // cell_size.width) * cell_size.width
+    stepx = (new_width / cell_size.width) * braille_cell_size.width
+
+    new_height = ((height - start_pt.y) // cell_size.height) * cell_size.height
+    stepy = (new_height / cell_size.height) * braille_cell_size.height
+
+    for x in np.linspace(start_pt.x, width, stepx):
+        for y in np.linspace(start_pt.y, height, stepy):
+            # print x, y
+            # if count % 2 == 0:
+            if True:
+                # roi = img[y:y+field_size.height, x:x+field_size.width]
+                print str(int(x)) + '  ' + str(int(x+field_size.width)) + ' - ' + str(int(y)) + ' ' + str( int(y+field_size.height))
+                img[int(y):int(y+field_size.height), int(x):int(x+field_size.width)] ^= 69
+
+            count += 1
+
+
+
     pass
 
 
