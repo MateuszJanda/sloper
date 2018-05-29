@@ -13,27 +13,31 @@ BLACK = 0
 WHITE = 255
 
 Point = co.namedtuple('Point', ['x', 'y'])
+Size = co.namedtuple('Size', ['width', 'height'])
 
 
 def calibration_data(img):
     """
-    Calculate calibration area.
-    Return top-left point where cell start, cell width, cell hight
+    Calculate calibration data .
+    Return:
+        top-left point where cell start
+        cell size (width, height)
     """
     under_pos1, under_pos2 = underscore_pos(img)
     roof = roof_pos(img, under_pos1, under_pos2)
-    sep_high = separator_high(img, under_pos1, under_pos2)
+    sep_height = separator_height(img, under_pos1, under_pos2)
 
     width = width = under_pos2.x - under_pos1.x + 1
-    high = under_pos2.y - roof.y + sep_high
-    start_pt = Point(under_pos1.x, under_pos2.y - high)
+    height = under_pos2.y - roof.y + sep_height
+    start_pt = Point(under_pos1.x, under_pos2.y - height)
 
-    print('Cell top-left: ' + str(start_pt) + ', size: ' + str((width, high)))
-    return start_pt, width, high
+    cell_size = Size(width, height)
+    print('Cell top-left: ' + str(start_pt) + ', cell size: ' + str(cell_size))
+    return start_pt, cell_size
 
 
 def underscore_pos(img):
-    """ Calculate underscore "_" position [top-left point, bottom-right point]"""
+    """ Calculate underscore "_" position [top-left point, bottom-right point] """
     pt1 = None
     for x, y in it.product(range(CALIBRATION_AREA_SIZE), range(CALIBRATION_AREA_SIZE)):
         if img[y, x] != BLACK:
@@ -71,7 +75,7 @@ def roof_pos(img, under_pos1, under_pos2):
     return roof
 
 
-def separator_high(img, under_pos1, under_pos2):
+def separator_height(img, under_pos1, under_pos2):
     """ Calculate separator area between underscore "_" and bottom roof sign "^" """
     roof = Point(0, CALIBRATION_AREA_SIZE)
     width = under_pos2.x - under_pos1.x + 1
@@ -81,27 +85,31 @@ def separator_high(img, under_pos1, under_pos2):
             if img[y, x] != BLACK and y < roof.y:
                 roof = Point(x, y)
 
-    high = roof.y - under_pos2.y
+    height = roof.y - under_pos2.y
 
-    print('Separator high: ', high)
-    return high
+    print('Separator height: ', height)
+    return height
 
 
-def draw_filled_cell(img, start_pt, width, high):
+def draw_filled_cell(img, start_pt, cell_size):
     """ Just for debug purpose, will cell with color """
-    for x in range(start_pt.x, start_pt.x + width):
-        for y in range(start_pt.y, start_pt.y + high):
+    for x in range(start_pt.x, start_pt.x + cell_size.width):
+        for y in range(start_pt.y, start_pt.y + cell_size.height):
             img[y, x] ^= 158
 
 
-def draw_net(img, start_pt, width, high):
+def draw_net(img, start_pt, cell_size):
     """ Just for debug purpose draw net """
     BLUE = (255, 0, 0)
-    for x in range(start_pt.x, img.shape[1], width):
+    for x in range(start_pt.x, img.shape[1], cell_size.width):
         cv2.line(img, (x, start_pt.y), (x, img.shape[0]), BLUE, 1)
 
-    for y in range(start_pt.y, img.shape[0], high):
+    for y in range(start_pt.y, img.shape[0], cell_size.height):
         cv2.line(img, (start_pt.x, y), (img.shape[1], y), BLUE, 1)
+
+
+def draw_dots(img, start_pt, cell_size):
+    pass
 
 
 def erase_calibration_area(img):
@@ -158,14 +166,15 @@ def main():
     # Image should have white characters and black background
     _, gray_img= cv2.threshold(src=orig_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
 
-    start_pt, width, high = calibration_data(gray_img)
+    start_pt, cell_size = calibration_data(gray_img)
     erase_calibration_area(gray_img)
 
     connect_nearby_contours(gray_img)
 
     color_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    draw_filled_cell(color_img, start_pt, width, high)
-    draw_net(color_img, start_pt, width, high)
+    draw_filled_cell(color_img, start_pt, cell_size)
+    draw_net(color_img, start_pt, cell_size)
+    draw_dots(color_img, start_pt, cell_size)
     cv2.imshow('color_img', color_img)
 
     cv2.imshow('orig_img', orig_img)
