@@ -29,11 +29,14 @@ def calibration_data(img):
 
     width = width = under_br.x - under_tl.x + 1
     height = under_br.y - roof.y + sep_height
-    start_pt = Point(under_tl.x, under_br.y - height)
-
     cell_size = Size(width, height)
-    print('Cell top-left: ' + str(start_pt) + ', cell size: ' + str(cell_size))
-    return start_pt, cell_size
+
+    start_pt = Point(under_tl.x, under_br.y - height)
+    end_pt = Point(start_pt.x + ((img.shape[1] - start_pt.x) // cell_size.width) * cell_size.width,
+        start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height)
+
+    print('Cell top-left: ' + str(start_pt) + ', bottom-right: ' +  str(end_pt) + 'cell size: ' + str(cell_size))
+    return start_pt, end_pt, cell_size
 
 
 def underscore_pos(img):
@@ -98,16 +101,14 @@ def draw_filled_cell(img, start_pt, cell_size):
             img[y, x] ^= 158
 
 
-def draw_net(img, start_pt, cell_size):
+def draw_net(img, start_pt, end_pt, cell_size):
     """ Just for debug purpose draw net """
     BLUE = (255, 0, 0)
-    end_y = start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height
-    end_x = start_pt.x + ((img.shape[1] - start_pt.x) // cell_size.width) * cell_size.width
-    for x in range(start_pt.x, end_x + 1, cell_size.width):
-        cv2.line(img, (x, start_pt.y), (x, end_y), BLUE, 1)
+    for x in range(start_pt.x, end_pt.x + 1, cell_size.width):
+        cv2.line(img, (x, start_pt.y), (x, end_pt.y), BLUE, 1)
 
-    for y in range(start_pt.y, end_y + 1, cell_size.height):
-        cv2.line(img, (start_pt.x, y), (end_x, y), BLUE, 1)
+    for y in range(start_pt.y, end_pt.y + 1, cell_size.height):
+        cv2.line(img, (start_pt.x, y), (end_pt.x, y), BLUE, 1)
 
 
 def draw_dots(img, start_pt, cell_size):
@@ -136,6 +137,14 @@ def draw_dots(img, start_pt, cell_size):
 
 
     pass
+
+
+def chars(img, start_pt, cell_size):
+    for x in range(start_pt.x, end_x + 1, cell_size.width):
+        cv2.line(img, (x, start_pt.y), (x, end_y), BLUE, 1)
+
+    for y in range(start_pt.y, end_y + 1, cell_size.height):
+        cv2.line(img, (start_pt.x, y), (end_x, y), BLUE, 1)
 
 
 def erase_calibration_area(img):
@@ -192,14 +201,14 @@ def main():
     # Image should have white characters and black background
     _, gray_img= cv2.threshold(src=orig_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
 
-    start_pt, cell_size = calibration_data(gray_img)
+    start_pt, end_pt, cell_size = calibration_data(gray_img)
     erase_calibration_area(gray_img)
 
     connect_nearby_contours(gray_img)
 
     color_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     draw_filled_cell(color_img, start_pt, cell_size)
-    draw_net(color_img, start_pt, cell_size)
+    draw_net(color_img, start_pt, end_pt, cell_size)
     # draw_dots(color_img, start_pt, cell_size)
     cv2.imshow('color_img', color_img)
 
