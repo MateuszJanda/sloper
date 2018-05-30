@@ -27,15 +27,17 @@ def calibration_data(img):
     roof = roof_pos(img, under_tl, under_br)
     sep_height = separator_height(img, under_tl, under_br)
 
-    width = width = under_br.x - under_tl.x + 1
+    width = under_br.x - under_tl.x + 1
     height = under_br.y - roof.y + sep_height
     cell_size = Size(width, height)
 
-    start_pt = Point(under_tl.x, under_br.y - height)
+    start_pt = Point(under_tl.x, under_br.y - height + 1)
     end_pt = Point(start_pt.x + ((img.shape[1] - start_pt.x) // cell_size.width) * cell_size.width,
         start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height)
 
-    print('Cell top-left: ' + str(start_pt) + ', bottom-right: ' +  str(end_pt) + ', cell size: ' + str(cell_size))
+    print('Cell top-left: ' + str(start_pt))
+    print('Cell bottom-right: ' +  str(end_pt))
+    print('Cell size: ' + str(cell_size))
     return start_pt, end_pt, cell_size
 
 
@@ -64,12 +66,12 @@ def underscore_pos(img):
     return under_tl, under_rb
 
 
-def roof_pos(img, under_pos1, under_pos2):
+def roof_pos(img, under_tl, under_br):
     """ Calculate roof sign "^" position - only the pick """
     roof = Point(0, CALIBRATION_AREA_SIZE)
-    width = under_pos2.x - under_pos1.x + 1
+    width = under_br.x - under_tl.x + 1
 
-    for x in range(under_pos2.x + 1, under_pos2.x + width):
+    for x in range(under_br.x + 1, under_br.x + width):
         for y in range(CALIBRATION_AREA_SIZE):
             if img[y, x] != BLACK and y < roof.y:
                 roof = Point(x, y)
@@ -139,12 +141,12 @@ def draw_dots(img, start_pt, cell_size):
     pass
 
 
-def chars(img, out_img, start_pt, end_pt, cell_size):
+def chars(in_img, out_img, start_pt, end_pt, cell_size):
     for x in range(start_pt.x, end_pt.x, cell_size.width):
         for y in range(start_pt.y, end_pt.y, cell_size.height):
-            roi = img[y:y+cell_size.height, x:x+cell_size.width]
+            roi = in_img[y:y+cell_size.height, x:x+cell_size.width]
             if roi.any():
-                draw_filled_cell(img, Point(x, y), cell_size)
+                draw_filled_cell(out_img, Point(x, y), cell_size)
 
 
 def erase_calibration_area(img):
@@ -166,13 +168,14 @@ def find_nearest(head_cnt, contours, min_dist=15):
     return best_cnt
 
 
-def connect_nearby_contours(gray_img):
+def connect_nearby_contours(img):
     """
     Connect nearby contours (ASCII characters)
     See also:
     https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
     http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
     """
+    gray_img = copy.copy(img)
     _, contours, _ = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # Countours start from the bottom
@@ -191,8 +194,12 @@ def connect_nearby_contours(gray_img):
                 break
         last = cnt
 
+    # print gray_img.dtype
+    cont_img = np.zeros(gray_img.shape, gray_img.dtype)
     unified = [np.vstack(chain)]
-    cv2.drawContours(gray_img, unified, -1, WHITE, 1)
+    cv2.drawContours(cont_img, unified, -1, WHITE, 1)
+
+    return cont_img
 
 
 def main():
@@ -204,17 +211,17 @@ def main():
     start_pt, end_pt, cell_size = calibration_data(gray_img)
     erase_calibration_area(gray_img)
 
-    connect_nearby_contours(gray_img)
+    cont_img = connect_nearby_contours(gray_img)
 
     color_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    draw_filled_cell(color_img, start_pt, cell_size)
-    draw_net(color_img, start_pt, end_pt, cell_size)
+    draw_filled_cell(orig_img, start_pt, cell_size)
+    # draw_net(color_img, start_pt, end_pt, cell_size)
     chars(gray_img, color_img, start_pt, end_pt, cell_size)
     # draw_dots(color_img, start_pt, cell_size)
     cv2.imshow('color_img', color_img)
 
     cv2.imshow('orig_img', orig_img)
-    cv2.imshow('gray_img', gray_img)
+    cv2.imshow('cont_img', cont_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
