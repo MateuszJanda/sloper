@@ -35,7 +35,7 @@ def calibration_data(img):
     end_pt = Point(start_pt.x + ((img.shape[1] - start_pt.x) // cell_size.width) * cell_size.width,
         start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height)
 
-    print('Cell top-left: ' + str(start_pt) + ', bottom-right: ' +  str(end_pt) + 'cell size: ' + str(cell_size))
+    print('Cell top-left: ' + str(start_pt) + ', bottom-right: ' +  str(end_pt) + ', cell size: ' + str(cell_size))
     return start_pt, end_pt, cell_size
 
 
@@ -94,10 +94,10 @@ def separator_height(img, under_pos1, under_pos2):
     return height
 
 
-def draw_filled_cell(img, start_pt, cell_size):
+def draw_filled_cell(img, pt, cell_size):
     """ Just for debug purpose, will cell with color """
-    for x in range(start_pt.x, start_pt.x + cell_size.width):
-        for y in range(start_pt.y, start_pt.y + cell_size.height):
+    for x in range(pt.x, pt.x + cell_size.width):
+        for y in range(pt.y, pt.y + cell_size.height):
             img[y, x] ^= 158
 
 
@@ -139,12 +139,12 @@ def draw_dots(img, start_pt, cell_size):
     pass
 
 
-def chars(img, start_pt, cell_size):
-    for x in range(start_pt.x, end_x + 1, cell_size.width):
-        cv2.line(img, (x, start_pt.y), (x, end_y), BLUE, 1)
-
-    for y in range(start_pt.y, end_y + 1, cell_size.height):
-        cv2.line(img, (start_pt.x, y), (end_x, y), BLUE, 1)
+def chars(img, out_img, start_pt, end_pt, cell_size):
+    for x in range(start_pt.x, end_pt.x, cell_size.width):
+        for y in range(start_pt.y, end_pt.y, cell_size.height):
+            roi = img[y:y+cell_size.height, x:x+cell_size.width]
+            if roi.any():
+                draw_filled_cell(img, Point(x, y), cell_size)
 
 
 def erase_calibration_area(img):
@@ -209,6 +209,7 @@ def main():
     color_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     draw_filled_cell(color_img, start_pt, cell_size)
     draw_net(color_img, start_pt, end_pt, cell_size)
+    chars(gray_img, color_img, start_pt, end_pt, cell_size)
     # draw_dots(color_img, start_pt, cell_size)
     cv2.imshow('color_img', color_img)
 
