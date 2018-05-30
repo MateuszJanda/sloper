@@ -96,6 +96,11 @@ def separator_height(img, under_pos1, under_pos2):
     return height
 
 
+def erase_calibration_area(img):
+    """ Erase calibration are from image """
+    cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK, cv2.FILLED)
+
+
 def draw_filled_cell(img, pt, cell_size):
     """ Just for debug purpose, will cell with color """
     for x in range(pt.x, pt.x + cell_size.width):
@@ -113,6 +118,15 @@ def draw_net(img, start_pt, end_pt, cell_size):
         cv2.line(img, (start_pt.x, y), (end_pt.x, y), BLUE, 1)
 
 
+def draw_chars_areas(in_img, out_img, start_pt, end_pt, cell_size):
+    """ Mark areas (with dimensions of braille dot field) if any part of chars is in this area """
+    for x in range(start_pt.x, end_pt.x, cell_size.width):
+        for y in range(start_pt.y, end_pt.y, cell_size.height):
+            sector = in_img[y:y+cell_size.height, x:x+cell_size.width]
+            if sector.any():
+                draw_braille_fields(in_img, out_img, Point(x, y), cell_size)
+
+
 def draw_braille_fields(in_img, out_img, pt, cell_size):
     """ Just for debug purpose - draw braille (dots) fields in cell if any pixel in field is none zero
     (is part of character).
@@ -127,34 +141,6 @@ def draw_braille_fields(in_img, out_img, pt, cell_size):
             sector = in_img[y1:y2, x1:x2]
             if sector.any():
                 out_img[y1:y2, x1:x2] = (255, 250, 0)
-
-
-def draw_chars_areas(in_img, out_img, start_pt, end_pt, cell_size):
-    """ Mark areas (with dimensions of braille dot field) if any part of chars is in this area """
-    for x in range(start_pt.x, end_pt.x, cell_size.width):
-        for y in range(start_pt.y, end_pt.y, cell_size.height):
-            sector = in_img[y:y+cell_size.height, x:x+cell_size.width]
-            if sector.any():
-                draw_braille_fields(in_img, out_img, Point(x, y), cell_size)
-
-
-def erase_calibration_area(img):
-    """ Erase calibration are from image """
-    cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK, cv2.FILLED)
-
-
-def find_nearest(head_cnt, contours, min_dist=15):
-    """ Find nearest contour to current head contour """
-    best_cnt = None
-    for cnt in contours:
-        for head_pos, cnt_pos in it.product(head_cnt, cnt):
-            dist = np.linalg.norm(head_pos-cnt_pos)
-
-            if abs(dist) < min_dist:
-                min_dist = abs(dist)
-                best_cnt = cnt
-
-    return best_cnt
 
 
 def connect_nearby_contours(img):
@@ -188,6 +174,20 @@ def connect_nearby_contours(img):
     cv2.drawContours(cont_img, unified, -1, WHITE, 1)
 
     return cont_img
+
+
+def find_nearest(head_cnt, contours, min_dist=15):
+    """ Find nearest contour to current head contour """
+    best_cnt = None
+    for cnt in contours:
+        for head_pos, cnt_pos in it.product(head_cnt, cnt):
+            dist = np.linalg.norm(head_pos-cnt_pos)
+
+            if abs(dist) < min_dist:
+                min_dist = abs(dist)
+                best_cnt = cnt
+
+    return best_cnt
 
 
 def approximate_slope(img, start_pt, end_pt, cell_size):
