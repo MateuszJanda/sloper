@@ -182,7 +182,7 @@ def connect_nearby_contours(img):
                 break
         last = cnt
 
-    cont_img = np.zeros(gray_img.shape, gray_img.dtype)
+    cont_img = np.zeros_like(gray_img)
     unified = [np.vstack(chain)]
     cv2.drawContours(cont_img, unified, -1, WHITE, 1)
 
