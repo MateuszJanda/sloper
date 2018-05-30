@@ -61,8 +61,8 @@ def underscore_pos(img):
             break
         under_rb = Point(tmp.x, y)
 
-    print('Underscore top left: ', under_tl)
-    print('Underscore bottom right: ', under_rb)
+    print('Underscore top-left: ' + str(under_tl))
+    print('Underscore bottom-right: ' + str(under_rb))
     return under_tl, under_rb
 
 
@@ -76,7 +76,7 @@ def roof_pos(img, under_tl, under_br):
             if img[y, x] != BLACK and y < roof.y:
                 roof = Point(x, y)
 
-    print('Roof pos: ', roof)
+    print('Roof pos: ' + str(roof))
     return roof
 
 
@@ -92,7 +92,7 @@ def separator_height(img, under_pos1, under_pos2):
 
     height = roof.y - under_pos2.y
 
-    print('Separator height: ', height)
+    print('Separator height: ' + str(height))
     return height
 
 
@@ -114,7 +114,9 @@ def draw_net(img, start_pt, end_pt, cell_size):
 
 
 def draw_braille_fields(in_img, out_img, pt, cell_size):
-    """ Just for debug purpose - draw braille fields in cell if any pixel in field is none zero """
+    """ Just for debug purpose - draw braille (dots) fields in cell if any pixel in field is none zero
+    (is part of character).
+    """
     braille_cell = Size(2.0, 4.0)
     dot_size = Size(cell_size.width/braille_cell.width, cell_size.height/braille_cell.height)
 
@@ -127,13 +129,12 @@ def draw_braille_fields(in_img, out_img, pt, cell_size):
                 out_img[y1:y2, x1:x2] = (255, 250, 0)
 
 
-def mark_cells_with_chars(in_img, out_img, start_pt, end_pt, cell_size):
-    """ Mark cell with chars """
+def draw_chars_areas(in_img, out_img, start_pt, end_pt, cell_size):
+    """ Mark areas (with dimensions of braille dot field) if any part of chars is in this area """
     for x in range(start_pt.x, end_pt.x, cell_size.width):
         for y in range(start_pt.y, end_pt.y, cell_size.height):
             roi = in_img[y:y+cell_size.height, x:x+cell_size.width]
             if roi.any():
-                # draw_filled_cell(out_img, Point(x, y), cell_size)
                 draw_braille_fields(in_img, out_img, Point(x, y), cell_size)
 
 
@@ -202,7 +203,7 @@ def main():
 
     color_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(orig_img, start_pt, cell_size)
-    mark_cells_with_chars(gray_img, color_img, start_pt, end_pt, cell_size)
+    draw_chars_areas(gray_img, color_img, start_pt, end_pt, cell_size)
     # for y in range(start_pt.y + cell_size.height * 8):
         # print 'value ' +str(y) + ' ' + str(color_img[y, 7])
     # print 'value 6:' +str(y) + ' ' + str(color_img[126, 6])
