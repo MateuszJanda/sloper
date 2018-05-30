@@ -113,40 +113,28 @@ def draw_net(img, start_pt, end_pt, cell_size):
         cv2.line(img, (start_pt.x, y), (end_pt.x, y), BLUE, 1)
 
 
-def draw_dots(img, start_pt, cell_size):
-    count = 0
-    braille_cell_size = Size(2.0, 4.0)
-    field_size = Size(cell_size.width/braille_cell_size.width, cell_size.height/braille_cell_size.height)
+def draw_braille_fields(in_img, out_img, pt, cell_size):
+    """ Just for debug purpose - draw braille fields in cell if any pixel in field is none zero """
+    braille_cell = Size(2.0, 4.0)
+    dot_size = Size(cell_size.width/braille_cell.width, cell_size.height/braille_cell.height)
 
-    height, width, _ = img.shape
-    new_width = ((width - start_pt.x) // cell_size.width) * cell_size.width
-    stepx = (new_width / cell_size.width) * braille_cell_size.width
-
-    new_height = ((height - start_pt.y) // cell_size.height) * cell_size.height
-    stepy = (new_height / cell_size.height) * braille_cell_size.height
-
-    for x in np.linspace(start_pt.x, width, stepx):
-        for y in np.linspace(start_pt.y, height, stepy):
-            # print x, y
-            # if count % 2 == 0:
-            if True:
-                # roi = img[y:y+field_size.height, x:x+field_size.width]
-                print str(int(x)) + '  ' + str(int(x+field_size.width)) + ' - ' + str(int(y)) + ' ' + str( int(y+field_size.height))
-                img[int(y):int(y+field_size.height), int(x):int(x+field_size.width)] ^= 69
-
-            count += 1
+    for x in np.linspace(pt.x, pt.x + cell_size.width, braille_cell.width, endpoint=False):
+        for y in np.linspace(pt.y, pt.y + cell_size.height, braille_cell.height, endpoint=False):
+            y1, y2 = int(y), int(y+dot_size.height)
+            x1, x2 = int(x), int(x+dot_size.width)
+            roi = in_img[y1:y2, x1:x2]
+            if roi.any():
+                out_img[y1:y2, x1:x2] = (255, 250, 0)
 
 
-
-    pass
-
-
-def chars(in_img, out_img, start_pt, end_pt, cell_size):
+def mark_cells_with_chars(in_img, out_img, start_pt, end_pt, cell_size):
+    """ Mark cell with chars """
     for x in range(start_pt.x, end_pt.x, cell_size.width):
         for y in range(start_pt.y, end_pt.y, cell_size.height):
             roi = in_img[y:y+cell_size.height, x:x+cell_size.width]
             if roi.any():
-                draw_filled_cell(out_img, Point(x, y), cell_size)
+                # draw_filled_cell(out_img, Point(x, y), cell_size)
+                draw_braille_fields(in_img, out_img, Point(x, y), cell_size)
 
 
 def erase_calibration_area(img):
@@ -194,7 +182,6 @@ def connect_nearby_contours(img):
                 break
         last = cnt
 
-    # print gray_img.dtype
     cont_img = np.zeros(gray_img.shape, gray_img.dtype)
     unified = [np.vstack(chain)]
     cv2.drawContours(cont_img, unified, -1, WHITE, 1)
@@ -214,11 +201,15 @@ def main():
     cont_img = connect_nearby_contours(gray_img)
 
     color_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    draw_filled_cell(orig_img, start_pt, cell_size)
-    # draw_net(color_img, start_pt, end_pt, cell_size)
-    chars(gray_img, color_img, start_pt, end_pt, cell_size)
-    # draw_dots(color_img, start_pt, cell_size)
+    # draw_filled_cell(orig_img, start_pt, cell_size)
+    mark_cells_with_chars(gray_img, color_img, start_pt, end_pt, cell_size)
+    # for y in range(start_pt.y + cell_size.height * 8):
+        # print 'value ' +str(y) + ' ' + str(color_img[y, 7])
+    # print 'value 6:' +str(y) + ' ' + str(color_img[126, 6])
+    draw_net(color_img, start_pt, end_pt, cell_size)
+    # draw_braille_fields(gray_img, color_img, start_pt, cell_size)
     cv2.imshow('color_img', color_img)
+
 
     cv2.imshow('orig_img', orig_img)
     cv2.imshow('cont_img', cont_img)
