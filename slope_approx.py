@@ -124,8 +124,8 @@ def draw_braille_fields(in_img, out_img, pt, cell_size):
         for y in np.linspace(pt.y, pt.y + cell_size.height, braille_cell.height, endpoint=False):
             y1, y2 = int(y), int(y+dot_size.height)
             x1, x2 = int(x), int(x+dot_size.width)
-            roi = in_img[y1:y2, x1:x2]
-            if roi.any():
+            sector = in_img[y1:y2, x1:x2]
+            if sector.any():
                 out_img[y1:y2, x1:x2] = (255, 250, 0)
 
 
@@ -133,8 +133,8 @@ def draw_chars_areas(in_img, out_img, start_pt, end_pt, cell_size):
     """ Mark areas (with dimensions of braille dot field) if any part of chars is in this area """
     for x in range(start_pt.x, end_pt.x, cell_size.width):
         for y in range(start_pt.y, end_pt.y, cell_size.height):
-            roi = in_img[y:y+cell_size.height, x:x+cell_size.width]
-            if roi.any():
+            sector = in_img[y:y+cell_size.height, x:x+cell_size.width]
+            if sector.any():
                 draw_braille_fields(in_img, out_img, Point(x, y), cell_size)
 
 
@@ -190,6 +190,15 @@ def connect_nearby_contours(img):
     return cont_img
 
 
+def approximate_slope(img, start_pt, end_pt, cell_size):
+    for x in range(start_pt.x, end_pt.x, cell_size.width):
+        for y in range(start_pt.y, end_pt.y, cell_size.height):
+            sector = img[y:y+cell_size.height, x:x+cell_size.width]
+            if sector.any():
+                # draw_braille_fields(in_img, out_img, Point(x, y), cell_size)
+                pass
+
+
 def main():
     orig_img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
 
@@ -200,6 +209,7 @@ def main():
     erase_calibration_area(gray_img)
 
     cont_img = connect_nearby_contours(gray_img)
+    approximate_slope(cont_img, start_pt, end_pt, cell_size)
 
     color_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(orig_img, start_pt, cell_size)
