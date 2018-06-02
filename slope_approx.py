@@ -137,26 +137,28 @@ def draw_braille_dots(out_img, in_img, pt, cell_size):
 
     for x in np.linspace(pt.x, pt.x + cell_size.width, BRAILLE_CELL_SIZE.width, endpoint=False):
         for y in np.linspace(pt.y, pt.y + cell_size.height, BRAILLE_CELL_SIZE.height, endpoint=False):
-            y1, y2 = int(y), int(y+dot_field_size.height)
-            x1, x2 = int(x), int(x+dot_field_size.width)
+            y1, y2 = int(y), int(y)+dot_field_size.height
+            x1, x2 = int(x), int(x)+dot_field_size.width
             field = in_img[y1:y2, x1:x2]
             if field.any():
                 center = Point(x1 + int(dot_field_size.width//2), y1 + int(dot_field_size.height//2))
                 cv2.circle(out_img, center, 2, (0, 0, 255), -1)
 
 
-def braille_array(cont_img, start_pt, end_pt, cell_size):
+def braille_array(img, start_pt, end_pt, cell_size):
     """ Extract braille data - dots that cover chars in all cell """
     height = ((end_pt.y - start_pt.y) // cell_size.height) * BRAILLE_CELL_SIZE.height
     width = ((end_pt.x - start_pt.x) // cell_size.width) * BRAILLE_CELL_SIZE.width
-    braille_arr = np.zeros(shape=[height, width], dtype=cont_img.dtype)
+    braille_arr = np.zeros(shape=[height, width], dtype=img.dtype)
 
     for bx, x in enumerate(range(start_pt.x, end_pt.x, cell_size.width)):
         for by, y in enumerate(range(start_pt.y, end_pt.y, cell_size.height)):
-            cell = cont_img[y:y+cell_size.height, x:x+cell_size.width]
+            cell = img[y:y+cell_size.height, x:x+cell_size.width]
 
             braille_cell = braille_in_cell(cell, cell_size)
-            np.put(braille_arr, bx + by * BRAILLE_CELL_SIZE.height, braille_cell)
+            x1, x2 = bx*BRAILLE_CELL_SIZE.width, bx*BRAILLE_CELL_SIZE.width+BRAILLE_CELL_SIZE.width
+            y1, y2 = by*BRAILLE_CELL_SIZE.height, by*BRAILLE_CELL_SIZE.height+BRAILLE_CELL_SIZE.height
+            braille_arr[y1:y2, x1:x2] = braille_cell
 
     return braille_arr
 
@@ -168,16 +170,14 @@ def braille_in_cell(cell, cell_size):
 
     for bx, x in enumerate(np.linspace(0, cell_size.width, BRAILLE_CELL_SIZE.width, endpoint=False)):
         for by, y in enumerate(np.linspace(0, cell_size.height, BRAILLE_CELL_SIZE.height, endpoint=False)):
-            y1, y2 = int(y), int(y+dot_field_size.height)
-            x1, x2 = int(x), int(x+dot_field_size.width)
+            y1, y2 = int(y), int(y)+dot_field_size.height
+            x1, x2 = int(x), int(x)+dot_field_size.width
             dot_field = cell[y1:y2, x1:x2]
 
             if dot_field.any():
                 braille_cell[by, bx] = WHITE
             else:
                 braille_cell[by, bx] = BLACK
-
-            print braille_cell[by, bx]
 
     return braille_cell
 
@@ -251,7 +251,7 @@ def main():
     erase_calibration_area(gray_img)
 
     cont_img = connect_nearby_contours(gray_img)
-    braille_arr = braille_array(cont_img, start_pt, end_pt, cell_size)
+    braille_arr = braille_array(gray_img, start_pt, end_pt, cell_size)
     export_contour_img(file_name, cont_img, start_pt, end_pt)
     export_braille_data(file_name, braille_arr)
     cv2.imshow('braille_arr', braille_arr)
