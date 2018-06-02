@@ -120,7 +120,7 @@ def draw_net(img, start_pt, end_pt, cell_size):
         cv2.line(img, (start_pt.x, y), (end_pt.x, y), BLUE, 1)
 
 
-def draw_chars_areas(out_img, in_img, start_pt, end_pt, cell_size):
+def draw_braille(out_img, in_img, start_pt, end_pt, cell_size):
     """ Mark areas (with dimensions of braille dot field) if any part of chars is in this area """
     for x in range(start_pt.x, end_pt.x, cell_size.width):
         for y in range(start_pt.y, end_pt.y, cell_size.height):
@@ -133,7 +133,7 @@ def draw_braille_dots(out_img, in_img, pt, cell_size):
     """ Just for debug purpose - draw braille dots in cell if any pixel in dot field is none zero
     (is part of character).
     """
-    dot_field_size = Size(cell_size.width/BRAILLE_CELL_SIZE.width, cell_size.height/BRAILLE_CELL_SIZE.height)
+    dot_field_size = Size(cell_size.width//BRAILLE_CELL_SIZE.width, cell_size.height//BRAILLE_CELL_SIZE.height)
 
     for x in np.linspace(pt.x, pt.x + cell_size.width, BRAILLE_CELL_SIZE.width, endpoint=False):
         for y in np.linspace(pt.y, pt.y + cell_size.height, BRAILLE_CELL_SIZE.height, endpoint=False):
@@ -141,13 +141,14 @@ def draw_braille_dots(out_img, in_img, pt, cell_size):
             x1, x2 = int(x), int(x+dot_field_size.width)
             field = in_img[y1:y2, x1:x2]
             if field.any():
-                center = Point(x1 + int(dot_field_size.width/2), y1 + int(dot_field_size.height/2))
+                center = Point(x1 + int(dot_field_size.width//2), y1 + int(dot_field_size.height//2))
                 cv2.circle(out_img, center, 2, (0, 0, 255), -1)
 
 
 def braille_array(cont_img, start_pt, end_pt, cell_size):
-    height = ((end_pt.y - start_pt.y) / cell_size.height) * BRAILLE_CELL_SIZE.height
-    width = ((end_pt.x - start_pt.x) / cell_size.width) * BRAILLE_CELL_SIZE.width
+    """ Extract braille data - dots that cover chars in all cell """
+    height = ((end_pt.y - start_pt.y) // cell_size.height) * BRAILLE_CELL_SIZE.height
+    width = ((end_pt.x - start_pt.x) // cell_size.width) * BRAILLE_CELL_SIZE.width
     braille_arr = np.zeros(shape=[height, width], dtype=cont_img.dtype)
 
     for bx, x in enumerate(range(start_pt.x, end_pt.x, cell_size.width)):
@@ -161,7 +162,8 @@ def braille_array(cont_img, start_pt, end_pt, cell_size):
 
 
 def braille_in_cell(cell, cell_size):
-    dot_field_size = Size(cell_size.width/BRAILLE_CELL_SIZE.width, cell_size.height/BRAILLE_CELL_SIZE.height)
+    """ Extract braille data - dots that cover chars in cell """
+    dot_field_size = Size(cell_size.width//BRAILLE_CELL_SIZE.width, cell_size.height//BRAILLE_CELL_SIZE.height)
     braille_cell = np.zeros([BRAILLE_CELL_SIZE.height, BRAILLE_CELL_SIZE.width], dtype=cell.dtype)
 
     for bx, x in enumerate(np.linspace(0, cell_size.width, BRAILLE_CELL_SIZE.width, endpoint=False)):
@@ -174,6 +176,8 @@ def braille_in_cell(cell, cell_size):
                 braille_cell[by, bx] = WHITE
             else:
                 braille_cell[by, bx] = BLACK
+
+            print braille_cell[by, bx]
 
     return braille_cell
 
@@ -231,37 +235,16 @@ def export_contour_img(file_name, img, start_pt, end_pt):
     np.savetxt(file_name+'.contour', out_img, fmt='%02x')
 
 
-def export_braille_data():
-    pass
+def export_braille_data(file_name, braille_arr):
+    """ Export braille data to file """
+    np.savetxt(file_name+'.braille', braille_arr, fmt='%02x')
 
-
-def approximate_slope(img, start_pt, end_pt, cell_size):
-    for x in range(start_pt.x, end_pt.x, cell_size.width):
-        for y in range(start_pt.y, end_pt.y, cell_size.height):
-            cell = img[y:y+cell_size.height, x:x+cell_size.width]
-            if cell.any():
-                # draw_braille_dots(in_img, out_img, Point(x, y), cell_size)
-                pass
-
-
-def aaa(img, pt, cell_size):
-    braille_cell = Size(2.0, 4.0)
-    dot_size = Size(cell_size.width/braille_cell.width, cell_size.height/braille_cell.height)
-
-    for x in np.linspace(pt.x, pt.x + cell_size.width, braille_cell.width, endpoint=False):
-        for y in np.linspace(pt.y, pt.y + cell_size.height, braille_cell.height, endpoint=False):
-            y1, y2 = int(y), int(y+dot_size.height)
-            x1, x2 = int(x), int(x+dot_size.width)
-            sector = img[y1:y2, x1:x2]
-            if sector.any():
-                pass
-                # out_img[y1:y2, x1:x2] = (255, 250, 0)
 
 def main():
     file_name = 'ascii_fig.png'
     orig_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
 
-    # Image should have white characters and black background
+    # Processing should be on the image with a black background and white foreground
     _, gray_img= cv2.threshold(src=orig_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
 
     start_pt, end_pt, cell_size = calibration_data(gray_img)
@@ -270,21 +253,15 @@ def main():
     cont_img = connect_nearby_contours(gray_img)
     braille_arr = braille_array(cont_img, start_pt, end_pt, cell_size)
     export_contour_img(file_name, cont_img, start_pt, end_pt)
-    # export_braille_data(braille_arr)
-
-    approximate_slope(cont_img, start_pt, end_pt, cell_size)
+    export_braille_data(file_name, braille_arr)
+    cv2.imshow('braille_arr', braille_arr)
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(orig_img, start_pt, cell_size)
-    draw_chars_areas(debug_img, gray_img, start_pt, end_pt, cell_size)
-    # for y in range(start_pt.y + cell_size.height * 8):
-        # print 'value ' +str(y) + ' ' + str(debug_img[y, 7])
-    # print 'value 6:' +str(y) + ' ' + str(debug_img[126, 6])
+    draw_braille(debug_img, gray_img, start_pt, end_pt, cell_size)
     draw_net(debug_img, start_pt, end_pt, cell_size)
-    # draw_braille_dots(gray_img, debug_img, start_pt, cell_size)
+
     cv2.imshow('debug_img', debug_img)
-
-
     cv2.imshow('orig_img', orig_img)
     cv2.imshow('cont_img', cont_img)
 
