@@ -120,33 +120,22 @@ def draw_net(img, start_pt, end_pt, cell_size):
         cv2.line(img, (start_pt.x, y), (end_pt.x, y), BLUE, 1)
 
 
-def draw_braille(out_img, in_img, start_pt, end_pt, cell_size):
-    """ Mark areas (with dimensions of braille dot field) if any part of chars is in this area """
-    for x in range(start_pt.x, end_pt.x, cell_size.width):
-        for y in range(start_pt.y, end_pt.y, cell_size.height):
-            cell = in_img[y:y+cell_size.height, x:x+cell_size.width]
-            if cell.any():
-                draw_braille_dots(out_img, in_img, Point(x, y), cell_size)
-
-
-def draw_braille_dots(out_img, in_img, pt, cell_size):
-    """ Just for debug purpose - draw braille dots in cell if any pixel in dot field is none zero
-    (is part of character).
-    """
+def draw_braille_dots(out_img, braille_arr, start_pt, end_pt, cell_size):
+    """ Just for debug purpose - draw braille dots in cell """
     dot_field_size = Size(cell_size.width//BRAILLE_CELL_SIZE.width, cell_size.height//BRAILLE_CELL_SIZE.height)
 
-    for x in np.linspace(pt.x, pt.x + cell_size.width, BRAILLE_CELL_SIZE.width, endpoint=False):
-        for y in np.linspace(pt.y, pt.y + cell_size.height, BRAILLE_CELL_SIZE.height, endpoint=False):
-            y1, y2 = int(y), int(y)+dot_field_size.height
-            x1, x2 = int(x), int(x)+dot_field_size.width
-            field = in_img[y1:y2, x1:x2]
-            if field.any():
-                center = Point(x1 + int(dot_field_size.width//2), y1 + int(dot_field_size.height//2))
-                cv2.circle(out_img, center, 2, (0, 0, 255), -1)
+    for cx, x in enumerate(range(start_pt.x, end_pt.x, cell_size.width)):
+        for cy, y in enumerate(range(start_pt.y, end_pt.y, cell_size.height)):
+
+            for bx, by in it.product(range(BRAILLE_CELL_SIZE.width), range(BRAILLE_CELL_SIZE.height)):
+                if braille_arr[cy*BRAILLE_CELL_SIZE.height + by, cx*BRAILLE_CELL_SIZE.width + bx]:
+                    center = Point(x+dot_field_size.width*bx + dot_field_size.width//2,
+                        y+dot_field_size.height*by + dot_field_size.height//2)
+                    cv2.circle(out_img, center, 2, (0, 0, 255), -1)
 
 
 def braille_array(img, start_pt, end_pt, cell_size):
-    """ Extract braille data - dots that cover chars in all cell """
+    """ Extract braille data - dots that cover chars (any pixel in dot field is none zero) in all cell """
     height = ((end_pt.y - start_pt.y) // cell_size.height) * BRAILLE_CELL_SIZE.height
     width = ((end_pt.x - start_pt.x) // cell_size.width) * BRAILLE_CELL_SIZE.width
     braille_arr = np.zeros(shape=[height, width], dtype=img.dtype)
@@ -254,11 +243,10 @@ def main():
     braille_arr = braille_array(gray_img, start_pt, end_pt, cell_size)
     export_contour_img(file_name, cont_img, start_pt, end_pt)
     export_braille_data(file_name, braille_arr)
-    cv2.imshow('braille_arr', braille_arr)
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(orig_img, start_pt, cell_size)
-    draw_braille(debug_img, gray_img, start_pt, end_pt, cell_size)
+    draw_braille_dots(debug_img, braille_arr, start_pt, end_pt, cell_size)
     draw_net(debug_img, start_pt, end_pt, cell_size)
 
     cv2.imshow('debug_img', debug_img)
