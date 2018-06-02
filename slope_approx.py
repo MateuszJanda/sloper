@@ -192,6 +192,11 @@ def find_nearest(head_cnt, contours, min_dist=15):
     return best_cnt
 
 
+def export_contour_img(file_name, img, start_pt, end_pt):
+    out_img = img[start_pt.y:end_pt.y, start_pt.x:end_pt.x]
+    np.savetxt(file_name+'.contour', out_img, fmt='%02x')
+
+
 def approximate_slope(img, start_pt, end_pt, cell_size):
     for x in range(start_pt.x, end_pt.x, cell_size.width):
         for y in range(start_pt.y, end_pt.y, cell_size.height):
@@ -215,7 +220,8 @@ def aaa(img, pt, cell_size):
                 # out_img[y1:y2, x1:x2] = (255, 250, 0)
 
 def main():
-    orig_img = cv2.imread('ascii_fig.png', cv2.IMREAD_GRAYSCALE)
+    file_name = 'ascii_fig.png'
+    orig_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
 
     # Image should have white characters and black background
     _, gray_img= cv2.threshold(src=orig_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
@@ -224,6 +230,8 @@ def main():
     erase_calibration_area(gray_img)
 
     cont_img = connect_nearby_contours(gray_img)
+    export_contour_img(file_name, cont_img, start_pt, end_pt)
+
     approximate_slope(cont_img, start_pt, end_pt, cell_size)
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
