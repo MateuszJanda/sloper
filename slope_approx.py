@@ -218,6 +218,52 @@ def find_nearest(head_cnt, contours, min_dist=15):
     return best_cnt
 
 
+def contour_moor_neighborhood(cont_img, start_pt, end_pt):
+    """
+    https://en.wikipedia.org/wiki/Moore_neighborhood
+    """
+    for y, x in it.product(reversed(range(start_pt.y, end_pt.y)), range(start_pt.x, end_pt.x)):
+        if cont_img[y, x] == WHITE:
+            start = Point(x, y)
+            break
+        else:
+            backtrack = Point(x, y)
+
+    contour = [start]
+    current_boundry = start
+    current = next_clockwise(current_boundry, backtrack)
+
+    while current != start:
+        if cont_img[current.y, current.x] == WHITE:
+            contour.append(current)
+            backtrack = current_boundry
+            current_boundry = current
+            current = next_clockwise(current_boundry, backtrack)
+        else:
+            backtrack = current
+            current = next_clockwise(current_boundry, backtrack)
+
+    return contour
+
+
+def next_clockwise(current_boundry, backtrack):
+    if backtrack.x < current_boundry.x:
+        if backtrack.y >= current_boundry.y:
+            return Point(backtrack.x, backtrack.y-1)
+        else:
+            return Point(backtrack.x+1, backtrack.y)
+    elif backtrack.x == current_boundry.x:
+        if backtrack.y < current_boundry.y:
+            return Point(backtrack.x+1, backtrack.y)
+        else:
+            return Point(backtrack.x-1, backtrack.y)
+    else:
+        if backtrack.y <= current_boundry.y:
+            return Point(backtrack.x, backtrack.y+1)
+        else:
+            return Point(backtrack.x-1, backtrack.y)
+
+
 def export_contour_img(file_name, img, start_pt, end_pt):
     """ Export contour image to file """
     out_img = img[start_pt.y:end_pt.y, start_pt.x:end_pt.x]
@@ -240,6 +286,7 @@ def main():
     erase_calibration_area(gray_img)
 
     cont_img = connect_nearby_contours(gray_img)
+    contour_moor_neighborhood(cont_img, start_pt, end_pt)
     braille_arr = braille_array(gray_img, start_pt, end_pt, cell_size)
     export_contour_img(file_name, cont_img, start_pt, end_pt)
     export_braille_data(file_name, braille_arr)
