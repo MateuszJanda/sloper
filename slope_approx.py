@@ -264,6 +264,20 @@ def next_clockwise(current_boundry, backtrack):
             return Point(backtrack.x-1, backtrack.y)
 
 
+def aprox(contour, delta=2):
+    return
+
+    for i, c in enumerate(contour):
+        points = [c,contour[i+3]]
+        x_coords, y_coords = zip(*points)
+        A = np.vstack([x_coords, np.ones(len(x_coords))]).T
+        # y = ax + b
+        a, b = np.linalg.lstsq(A, y_coords)[0]
+        # perpendicular vector v=[A, B] to line Ax + By + C = 0
+        vec = [a, 1]
+        # normalize
+    pass
+
 def export_contour_img(file_name, img, start_pt, end_pt):
     """ Export contour image to file """
     out_img = img[start_pt.y:end_pt.y, start_pt.x:end_pt.x]
@@ -286,9 +300,13 @@ def main():
     erase_calibration_area(gray_img)
 
     cont_img = connect_nearby_contours(gray_img)
-    contour_moor_neighborhood(cont_img, start_pt, end_pt)
-    braille_arr = braille_array(gray_img, start_pt, end_pt, cell_size)
     export_contour_img(file_name, cont_img, start_pt, end_pt)
+
+    contour = contour_moor_neighborhood(cont_img, start_pt, end_pt)
+    aprox(contour)
+
+
+    braille_arr = braille_array(gray_img, start_pt, end_pt, cell_size)
     export_braille_data(file_name, braille_arr)
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
