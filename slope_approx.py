@@ -227,7 +227,8 @@ def find_nearest(head_cnt, contours, min_dist=15):
     return best_cnt
 
 
-def contour_points(cont_img, start_pt, end_pt):
+def contour_points(img, start_pt, end_pt):
+    cont_img = copy.copy(img)
     _, contours, _ = cv2.findContours(cont_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
@@ -244,10 +245,13 @@ def aprox(contour, delta=2):
             b = 1.0
 
         # normalized perpendicular vector to line (ax + by + c = 0) is equal to v = [-a, b]
-        mag = math.sqrt((points[1].x - points[0].x)**2 + (points[1].y - points[0].y)**2)
-        print -a, b
-        vec = [-a/mag, b/mag]
-        print vec
+        mag = math.sqrt(a**2 + b**2)
+
+        if points[0].x < points[1].x:
+            norm_vec = [-a/mag, b/mag]
+        else:
+            norm_vec = [a/mag, -b/mag]
+
         return
 
 
