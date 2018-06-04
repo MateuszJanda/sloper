@@ -134,6 +134,14 @@ def draw_braille_dots(out_img, braille_arr, start_pt, end_pt, cell_size):
                     cv2.circle(out_img, center, 2, (0, 0, 255), -1)
 
 
+def draw_contour(img, contour):
+    out = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
+    for c in contour:
+        out[c.y, c.x] = (0, 0, 255)
+
+    cv2.imshow('out', out)
+
+
 def braille_array(img, start_pt, end_pt, cell_size):
     """ Extract braille data - dots that cover chars (any pixel in dot field is none zero) in all cell """
     height = ((end_pt.y - start_pt.y) // cell_size.height) * BRAILLE_CELL_SIZE.height
@@ -218,50 +226,9 @@ def find_nearest(head_cnt, contours, min_dist=15):
     return best_cnt
 
 
-def contour_moor_neighborhood(cont_img, start_pt, end_pt):
-    """
-    https://en.wikipedia.org/wiki/Moore_neighborhood
-    """
-    for y, x in it.product(reversed(range(start_pt.y, end_pt.y)), range(start_pt.x, end_pt.x)):
-        if cont_img[y, x] == WHITE:
-            start = Point(x, y)
-            break
-        else:
-            backtrack = Point(x, y)
-
-    contour = [start]
-    current_boundry = start
-    current = next_clockwise(current_boundry, backtrack)
-
-    while current != start:
-        if cont_img[current.y, current.x] == WHITE:
-            contour.append(current)
-            backtrack = current_boundry
-            current_boundry = current
-            current = next_clockwise(current_boundry, backtrack)
-        else:
-            backtrack = current
-            current = next_clockwise(current_boundry, backtrack)
-
-    return contour
-
-
-def next_clockwise(current_boundry, backtrack):
-    if backtrack.x < current_boundry.x:
-        if backtrack.y >= current_boundry.y:
-            return Point(backtrack.x, backtrack.y-1)
-        else:
-            return Point(backtrack.x+1, backtrack.y)
-    elif backtrack.x == current_boundry.x:
-        if backtrack.y < current_boundry.y:
-            return Point(backtrack.x+1, backtrack.y)
-        else:
-            return Point(backtrack.x-1, backtrack.y)
-    else:
-        if backtrack.y <= current_boundry.y:
-            return Point(backtrack.x, backtrack.y+1)
-        else:
-            return Point(backtrack.x-1, backtrack.y)
+def contour_points(cont_img, start_pt, end_pt):
+    _, contours, _ = cv2.findContours(cont_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
 
 def aprox(contour, delta=2):
@@ -302,9 +269,9 @@ def main():
     cont_img = connect_nearby_contours(gray_img)
     export_contour_img(file_name, cont_img, start_pt, end_pt)
 
-    contour = contour_moor_neighborhood(cont_img, start_pt, end_pt)
+    contour = contour_points(cont_img, start_pt, end_pt)
+    draw_contour(orig_img, contour)
     aprox(contour)
-
 
     braille_arr = braille_array(gray_img, start_pt, end_pt, cell_size)
     export_braille_data(file_name, braille_arr)
