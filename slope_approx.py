@@ -4,6 +4,7 @@
 import collections as co
 import itertools as it
 import numpy as np
+import math
 import copy
 import cv2
 
@@ -232,18 +233,23 @@ def contour_points(cont_img, start_pt, end_pt):
 
 
 def aprox(contour, delta=2):
-    return
+    for i in range(len(contour)):
+        points = [contour[i], contour[(i+delta)%len(contour)]]
+        # calculation tangent line (ax + by + c = 0) to points
+        if points[1].x - points[0].x == 0:
+            a = 1.0
+            b = 0.0
+        else:
+            a = (points[1].y - points[0].y)/float(points[1].x - points[0].x)
+            b = 1.0
 
-    for i, c in enumerate(contour):
-        points = [c,contour[i+3]]
-        x_coords, y_coords = zip(*points)
-        A = np.vstack([x_coords, np.ones(len(x_coords))]).T
-        # y = ax + b
-        a, b = np.linalg.lstsq(A, y_coords)[0]
-        # perpendicular vector v=[A, B] to line Ax + By + C = 0
-        vec = [a, 1]
-        # normalize
-    pass
+        # normalized perpendicular vector to line (ax + by + c = 0) is equal to v = [-a, b]
+        mag = math.sqrt((points[1].x - points[0].x)**2 + (points[1].y - points[0].y)**2)
+        print -a, b
+        vec = [-a/mag, b/mag]
+        print vec
+        return
+
 
 def export_contour_img(file_name, img, start_pt, end_pt):
     """ Export contour image to file """
