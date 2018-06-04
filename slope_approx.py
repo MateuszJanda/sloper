@@ -111,8 +111,8 @@ def draw_filled_cell(img, pt, cell_size):
             img[y, x] ^= 158
 
 
-def draw_net(img, start_pt, end_pt, cell_size):
-    """ Just for debug purpose draw net """
+def draw_grid(img, start_pt, end_pt, cell_size):
+    """ Just for debug purpose draw grid that separate cells """
     BLUE = (255, 0, 0)
     for x in range(start_pt.x, end_pt.x + 1, cell_size.width):
         cv2.line(img, (x, start_pt.y), (x, end_pt.y), BLUE, 1)
@@ -289,7 +289,7 @@ def main():
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(orig_img, start_pt, cell_size)
     draw_braille_dots(debug_img, braille_arr, start_pt, end_pt, cell_size)
-    draw_net(debug_img, start_pt, end_pt, cell_size)
+    draw_grid(debug_img, start_pt, end_pt, cell_size)
 
     cv2.imshow('debug_img', debug_img)
     cv2.imshow('orig_img', orig_img)
