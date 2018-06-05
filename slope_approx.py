@@ -246,6 +246,7 @@ def aprox(contour, start_pt, end_pt, cell_size):
         if in_dot_boundry(first_point, c, start_pt, cell_size):
             last_point = c
         elif last_point:
+            print 'jest'
             norm_vec = calculate_norm_vector(first_point, last_point)
             pos = array_pos(first_point, start_pt, cell_size)
             vector_arr[pos.y, pos.x] = norm_vec
@@ -255,11 +256,19 @@ def aprox(contour, start_pt, end_pt, cell_size):
 
 
 def in_dot_boundry(pt, test_pt, start_pt, cell_size):
-    tl_pt = Point(((pt.x - start_pt.x)//cell_size.width) * cell_size.width,
-        ((pt.y - start_pt.y)//cell_size.height) * cell_size.height)
-    br_pt = Point(tl_pt.x + BRAILLE_CELL_SIZE.width, tl_pt.y + BRAILLE_CELL_SIZE.height)
+    w = cell_size.width/float(BRAILLE_CELL_SIZE.width)
+    h = cell_size.height/float(BRAILLE_CELL_SIZE.height)
+    x = start_pt.x + ((pt.x - start_pt.x)//w) * w
+    y = start_pt.y + ((pt.y - start_pt.y)//h) * h
+    tl_pt = Point(int(x), int(y))
+    br_pt = Point(int(x + w), int(y + h))
+    print tl_pt, br_pt, test_pt
 
-    return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y > br_pt.y
+    if tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y:
+        print 'ok'
+    else:
+        print 'nie ok'
+    return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
 
 def calculate_norm_vector(pt1, pt2):
@@ -280,9 +289,13 @@ def calculate_norm_vector(pt1, pt2):
 
 
 def array_pos(pt, start_pt, cell_size):
-    x = ((pt.x - start_pt.x)//cell_size.width) * BRAILLE_CELL_SIZE.width + (pt.x - start_pt.x)%BRAILLE_CELL_SIZE.width
-    y = ((pt.y - start_pt.y)//cell_size.height) * BRAILLE_CELL_SIZE.height + (pt.y - start_pt.y)%BRAILLE_CELL_SIZE.height
-    return Point(x, y)
+    # x = ((pt.x - start_pt.x)//cell_size.width) * BRAILLE_CELL_SIZE.width + (pt.x - start_pt.x)%BRAILLE_CELL_SIZE.width
+    # y = ((pt.y - start_pt.y)//cell_size.height) * BRAILLE_CELL_SIZE.height + (pt.y - start_pt.y)%BRAILLE_CELL_SIZE.height
+    w = cell_size.width/float(BRAILLE_CELL_SIZE.width)
+    h = cell_size.height/float(BRAILLE_CELL_SIZE.height)
+    x = (pt.x - start_pt.x)//w
+    y = (pt.y - start_pt.y)//h
+    return Point(int(x), int(y))
 
 
 def export_contour_img(file_name, img, start_pt, end_pt):
