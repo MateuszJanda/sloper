@@ -233,26 +233,56 @@ def contour_points(img, start_pt, end_pt):
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
 
-def aprox(contour, delta=2):
-    for i in range(len(contour)):
-        points = [contour[i], contour[(i+delta)%len(contour)]]
-        # calculation tangent line (ax + by + c = 0) to points
-        if points[1].x - points[0].x == 0:
-            a = 1.0
-            b = 0.0
-        else:
-            a = (points[1].y - points[0].y)/float(points[1].x - points[0].x)
-            b = 1.0
+def aprox(contour, start_pt, end_pt, cell_size):
+    height = ((end_pt.y - start_pt.y)//cell_size.height) * BRAILLE_CELL_SIZE.height
+    width = ((end_pt.x - start_pt.x)//cell_size.width) * BRAILLE_CELL_SIZE.width
+    vector_arr = np.zeros(shape=[height, width, 2], dtype=np.float32)
 
-        # normalized perpendicular vector to line (ax + by + c = 0) is equal to v = [-a, b]
-        mag = math.sqrt(a**2 + b**2)
+    first_point, last_point = None, None
+    for c in contour:
+        if not first_point:
+            first_point = c
 
-        if points[0].x < points[1].x:
-            norm_vec = [-a/mag, b/mag]
-        else:
-            norm_vec = [a/mag, -b/mag]
+        if in_dot_boundry(first_point, c, start_pt, cell_size):
+            last_point = c
+        elif last_point:
+            norm_vec = calculate_norm_vector(first_point, last_point)
+            pos = array_pos(first_point, start_pt, cell_size)
+            vector_arr[pos.y, pos.x] = norm_vec
 
-        return
+            first_point = c
+            last_point = None
+
+
+def in_dot_boundry(pt, test_pt, start_pt, cell_size):
+    tl_pt = Point(((pt.x - start_pt.x)//cell_size.width) * cell_size.width,
+        ((pt.y - start_pt.y)//cell_size.height) * cell_size.height)
+    br_pt = Point(tl_pt.x + BRAILLE_CELL_SIZE.width, tl_pt.y + BRAILLE_CELL_SIZE.height)
+
+    return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y > br_pt.y
+
+
+def calculate_norm_vector(pt1, pt2):
+    # calculation tangent line (ax + by + c = 0) to points
+    if pt2.x - pt1.x == 0:
+        a = 1.0
+        b = 0.0
+    else:
+        a = (pt2.y - pt1.y)/float(pt2.x - pt1.x)
+        b = 1.0
+
+    # normalized perpendicular vector to line (ax + by + c = 0) equal to v = [-a, b]
+    mag = math.sqrt(a**2 + b**2)
+    if pt1.x <= pt2.x or pt1.y < pt2.y:
+        return np.array([-a/mag, b/mag])
+
+    return np.array([a/mag, -b/mag])
+
+
+def array_pos(pt, start_pt, cell_size):
+    x = ((pt.x - start_pt.x)//cell_size.width) * BRAILLE_CELL_SIZE.width + (pt.x - start_pt.x)%BRAILLE_CELL_SIZE.width
+    y = ((pt.y - start_pt.y)//cell_size.height) * BRAILLE_CELL_SIZE.height + (pt.y - start_pt.y)%BRAILLE_CELL_SIZE.height
+    return Point(x, y)
 
 
 def export_contour_img(file_name, img, start_pt, end_pt):
@@ -281,7 +311,7 @@ def main():
 
     contour = contour_points(cont_img, start_pt, end_pt)
     draw_contour(orig_img, contour)
-    aprox(contour)
+    aprox(contour, start_pt, end_pt, cell_size)
 
     braille_arr = braille_array(gray_img, start_pt, end_pt, cell_size)
     export_braille_data(file_name, braille_arr)
