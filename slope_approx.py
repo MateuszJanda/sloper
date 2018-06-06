@@ -244,6 +244,7 @@ def aprox(contour, grid):
     for c in contour:
         if not first_point:
             first_point = c
+            continue
 
         if in_dot_boundry(first_point, c, grid):
             last_point = c
@@ -255,21 +256,24 @@ def aprox(contour, grid):
 
             first_point = c
             last_point = None
+        else:
+            print 'ups'
 
 
 def in_dot_boundry(pt, test_pt, grid):
     w = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
     h = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
-    x = grid.start.x + ((pt.x - grid.start.x)//w) * w
-    y = grid.start.y + ((pt.y - grid.start.y)//h) * h
+    x = grid.start.x + math.ceil((pt.x - grid.start.x)/w) * w
+    y = grid.start.y + math.ceil((pt.y - grid.start.y)/h) * h
+
+    if test_pt.x < int(x):
+        x -= w
+    if test_pt.y < int(y):
+        y -= h
+
     tl_pt = Point(int(x), int(y))
     br_pt = Point(int(x + w), int(y + h))
-    print tl_pt, br_pt, test_pt
 
-    if tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y:
-        print 'ok'
-    else:
-        print 'nie ok'
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
 
