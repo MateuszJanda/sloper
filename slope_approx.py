@@ -11,6 +11,7 @@ import cv2
 
 Point = co.namedtuple('Point', ['x', 'y'])
 Size = co.namedtuple('Size', ['width', 'height'])
+Grid = co.namedtuple('Grid', ['start', 'end', 'cell_size'])
 
 
 CALIBRATION_AREA_SIZE = 40
@@ -38,10 +39,11 @@ def calibration_data(img):
     end_pt = Point(start_pt.x + ((img.shape[1] - start_pt.x) // cell_size.width) * cell_size.width,
         start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height)
 
-    print('Cell top-left: ' + str(start_pt))
-    print('Cell bottom-right: ' +  str(end_pt))
-    print('Cell size: ' + str(cell_size))
-    return start_pt, end_pt, cell_size
+    grid = Grid(start_pt, end_pt, cell_size)
+    print('Cell top-left: ' + str(grid.start))
+    print('Cell bottom-right: ' +  str(grid.end))
+    print('Cell size: ' + str(grid.cell_size))
+    return grid
 
 
 def underscore_pos(img):
@@ -111,22 +113,22 @@ def draw_filled_cell(img, pt, cell_size):
             img[y, x] ^= 158
 
 
-def draw_grid(img, start_pt, end_pt, cell_size):
+def draw_grid(img, grid):
     """ Just for debug purpose draw grid that separate cells """
     BLUE = (255, 0, 0)
-    for x in range(start_pt.x, end_pt.x + 1, cell_size.width):
-        cv2.line(img, (x, start_pt.y), (x, end_pt.y), BLUE, 1)
+    for x in range(grid.start.x, grid.end.x + 1, grid.cell_size.width):
+        cv2.line(img, (x, grid.start.y), (x, grid.end.y), BLUE, 1)
 
-    for y in range(start_pt.y, end_pt.y + 1, cell_size.height):
-        cv2.line(img, (start_pt.x, y), (end_pt.x, y), BLUE, 1)
+    for y in range(grid.start.y, grid.end.y + 1, grid.cell_size.height):
+        cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE, 1)
 
 
-def draw_braille_dots(out_img, braille_arr, start_pt, end_pt, cell_size):
+def draw_braille_dots(out_img, braille_arr, grid):
     """ Just for debug purpose - draw braille dots in cell """
-    dot_field_size = Size(cell_size.width//BRAILLE_CELL_SIZE.width, cell_size.height//BRAILLE_CELL_SIZE.height)
+    dot_field_size = Size(grid.cell_size.width//BRAILLE_CELL_SIZE.width, grid.cell_size.height//BRAILLE_CELL_SIZE.height)
 
-    for cx, x in enumerate(range(start_pt.x, end_pt.x, cell_size.width)):
-        for cy, y in enumerate(range(start_pt.y, end_pt.y, cell_size.height)):
+    for cx, x in enumerate(range(grid.start.x, grid.end.x, grid.cell_size.width)):
+        for cy, y in enumerate(range(grid.start.y, grid.end.y, grid.cell_size.height)):
 
             for bx, by in it.product(range(BRAILLE_CELL_SIZE.width), range(BRAILLE_CELL_SIZE.height)):
                 if braille_arr[cy*BRAILLE_CELL_SIZE.height + by, cx*BRAILLE_CELL_SIZE.width + bx]:
@@ -143,17 +145,17 @@ def draw_contour(img, contour):
     cv2.imshow('out', out)
 
 
-def braille_array(img, start_pt, end_pt, cell_size):
+def braille_array(img, grid):
     """ Extract braille data - dots that cover chars (any pixel in dot field is none zero) in all cell """
-    height = ((end_pt.y - start_pt.y) // cell_size.height) * BRAILLE_CELL_SIZE.height
-    width = ((end_pt.x - start_pt.x) // cell_size.width) * BRAILLE_CELL_SIZE.width
+    height = ((grid.end.y - grid.start.y) // grid.cell_size.height) * BRAILLE_CELL_SIZE.height
+    width = ((grid.end.x - grid.start.x) // grid.cell_size.width) * BRAILLE_CELL_SIZE.width
     braille_arr = np.zeros(shape=[height, width], dtype=img.dtype)
 
-    for bx, x in enumerate(range(start_pt.x, end_pt.x, cell_size.width)):
-        for by, y in enumerate(range(start_pt.y, end_pt.y, cell_size.height)):
-            cell = img[y:y+cell_size.height, x:x+cell_size.width]
+    for bx, x in enumerate(range(grid.start.x, grid.end.x, grid.cell_size.width)):
+        for by, y in enumerate(range(grid.start.y, grid.end.y, grid.cell_size.height)):
+            cell = img[y:y+grid.cell_size.height, x:x+grid.cell_size.width]
 
-            braille_cell = braille_in_cell(cell, cell_size)
+            braille_cell = braille_in_cell(cell, grid)
             x1, x2 = bx*BRAILLE_CELL_SIZE.width, bx*BRAILLE_CELL_SIZE.width+BRAILLE_CELL_SIZE.width
             y1, y2 = by*BRAILLE_CELL_SIZE.height, by*BRAILLE_CELL_SIZE.height+BRAILLE_CELL_SIZE.height
             braille_arr[y1:y2, x1:x2] = braille_cell
@@ -161,13 +163,13 @@ def braille_array(img, start_pt, end_pt, cell_size):
     return braille_arr
 
 
-def braille_in_cell(cell, cell_size):
+def braille_in_cell(cell, grid):
     """ Extract braille data - dots that cover chars in cell """
-    dot_field_size = Size(cell_size.width//BRAILLE_CELL_SIZE.width, cell_size.height//BRAILLE_CELL_SIZE.height)
+    dot_field_size = Size(grid.cell_size.width//BRAILLE_CELL_SIZE.width, grid.cell_size.height//BRAILLE_CELL_SIZE.height)
     braille_cell = np.zeros([BRAILLE_CELL_SIZE.height, BRAILLE_CELL_SIZE.width], dtype=cell.dtype)
 
-    for bx, x in enumerate(np.linspace(0, cell_size.width, BRAILLE_CELL_SIZE.width, endpoint=False)):
-        for by, y in enumerate(np.linspace(0, cell_size.height, BRAILLE_CELL_SIZE.height, endpoint=False)):
+    for bx, x in enumerate(np.linspace(0, grid.cell_size.width, BRAILLE_CELL_SIZE.width, endpoint=False)):
+        for by, y in enumerate(np.linspace(0, grid.cell_size.height, BRAILLE_CELL_SIZE.height, endpoint=False)):
             y1, y2 = int(y), int(y)+dot_field_size.height
             x1, x2 = int(x), int(x)+dot_field_size.width
             dot_field = cell[y1:y2, x1:x2]
@@ -227,15 +229,15 @@ def find_nearest(head_cnt, contours, min_dist=15):
     return best_cnt
 
 
-def contour_points(img, start_pt, end_pt):
+def contour_points(img):
     cont_img = copy.copy(img)
     _, contours, _ = cv2.findContours(cont_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
 
-def aprox(contour, start_pt, end_pt, cell_size):
-    height = ((end_pt.y - start_pt.y)//cell_size.height) * BRAILLE_CELL_SIZE.height
-    width = ((end_pt.x - start_pt.x)//cell_size.width) * BRAILLE_CELL_SIZE.width
+def aprox(contour, grid):
+    height = ((grid.end.y - grid.start.y)//grid.cell_size.height) * BRAILLE_CELL_SIZE.height
+    width = ((grid.end.x - grid.start.x)//grid.cell_size.width) * BRAILLE_CELL_SIZE.width
     vector_arr = np.zeros(shape=[height, width, 2], dtype=np.float32)
 
     first_point, last_point = None, None
@@ -243,23 +245,23 @@ def aprox(contour, start_pt, end_pt, cell_size):
         if not first_point:
             first_point = c
 
-        if in_dot_boundry(first_point, c, start_pt, cell_size):
+        if in_dot_boundry(first_point, c, grid):
             last_point = c
         elif last_point:
             print 'jest'
             norm_vec = calculate_norm_vector(first_point, last_point)
-            pos = array_pos(first_point, start_pt, cell_size)
+            pos = array_pos(first_point, grid)
             vector_arr[pos.y, pos.x] = norm_vec
 
             first_point = c
             last_point = None
 
 
-def in_dot_boundry(pt, test_pt, start_pt, cell_size):
-    w = cell_size.width/float(BRAILLE_CELL_SIZE.width)
-    h = cell_size.height/float(BRAILLE_CELL_SIZE.height)
-    x = start_pt.x + ((pt.x - start_pt.x)//w) * w
-    y = start_pt.y + ((pt.y - start_pt.y)//h) * h
+def in_dot_boundry(pt, test_pt, grid):
+    w = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
+    h = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
+    x = grid.start.x + ((pt.x - grid.start.x)//w) * w
+    y = grid.start.y + ((pt.y - grid.start.y)//h) * h
     tl_pt = Point(int(x), int(y))
     br_pt = Point(int(x + w), int(y + h))
     print tl_pt, br_pt, test_pt
@@ -288,19 +290,19 @@ def calculate_norm_vector(pt1, pt2):
     return np.array([a/mag, -b/mag])
 
 
-def array_pos(pt, start_pt, cell_size):
+def array_pos(pt, grid):
     # x = ((pt.x - start_pt.x)//cell_size.width) * BRAILLE_CELL_SIZE.width + (pt.x - start_pt.x)%BRAILLE_CELL_SIZE.width
     # y = ((pt.y - start_pt.y)//cell_size.height) * BRAILLE_CELL_SIZE.height + (pt.y - start_pt.y)%BRAILLE_CELL_SIZE.height
-    w = cell_size.width/float(BRAILLE_CELL_SIZE.width)
-    h = cell_size.height/float(BRAILLE_CELL_SIZE.height)
-    x = (pt.x - start_pt.x)//w
-    y = (pt.y - start_pt.y)//h
+    w = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
+    h = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
+    x = (pt.x - grid.start.x)//w
+    y = (pt.y - grid.start.y)//h
     return Point(int(x), int(y))
 
 
-def export_contour_img(file_name, img, start_pt, end_pt):
+def export_contour_img(file_name, img, grid):
     """ Export contour image to file """
-    out_img = img[start_pt.y:end_pt.y, start_pt.x:end_pt.x]
+    out_img = img[grid.start.y:grid.end.y, grid.start.x:grid.end.x]
     np.savetxt(file_name+'.contour', out_img, fmt='%02x')
 
 
@@ -316,23 +318,23 @@ def main():
     # Processing should be on the image with a black background and white foreground
     _, gray_img= cv2.threshold(src=orig_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
 
-    start_pt, end_pt, cell_size = calibration_data(gray_img)
+    grid = calibration_data(gray_img)
     erase_calibration_area(gray_img)
 
     cont_img = connect_nearby_contours(gray_img)
-    export_contour_img(file_name, cont_img, start_pt, end_pt)
+    export_contour_img(file_name, cont_img, grid)
 
-    contour = contour_points(cont_img, start_pt, end_pt)
+    contour = contour_points(cont_img)
     draw_contour(orig_img, contour)
-    aprox(contour, start_pt, end_pt, cell_size)
+    aprox(contour, grid)
 
-    braille_arr = braille_array(gray_img, start_pt, end_pt, cell_size)
+    braille_arr = braille_array(gray_img, grid)
     export_braille_data(file_name, braille_arr)
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(orig_img, start_pt, cell_size)
-    draw_braille_dots(debug_img, braille_arr, start_pt, end_pt, cell_size)
-    draw_grid(debug_img, start_pt, end_pt, cell_size)
+    draw_braille_dots(debug_img, braille_arr, grid)
+    draw_grid(debug_img, grid)
 
     cv2.imshow('debug_img', debug_img)
     cv2.imshow('orig_img', orig_img)
