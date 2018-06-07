@@ -248,46 +248,46 @@ def contour_points(img):
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
 
-def aprox(contour, grid):
+def approx_surface_slope(contour, grid):
     height = ((grid.end.y - grid.start.y)//grid.cell_size.height) * BRAILLE_CELL_SIZE.height
     width = ((grid.end.x - grid.start.x)//grid.cell_size.width) * BRAILLE_CELL_SIZE.width
-    vector_arr = np.zeros(shape=[height, width, 2], dtype=np.float32)
+    norm_vec_arr = np.zeros(shape=[height, width, 2], dtype=np.float32)
 
-    first_point, last_point = None, None
+    first_pt, last_pt = None, None
     for c in contour:
-        if not first_point:
-            first_point = c
+        if not first_pt:
+            first_pt = c
             continue
 
-        if in_dot_boundry(first_point, c, grid):
-            last_point = c
-        elif last_point:
+        if in_dot_field(first_pt, c, grid):
+            last_pt = c
+        elif last_pt:
             print 'jest'
-            norm_vec = calculate_norm_vector(first_point, last_point)
-            pos = array_pos(first_point, grid)
-            vector_arr[pos.y, pos.x] = norm_vec
+            norm_vec = calculate_norm_vector(first_pt, last_pt)
+            pos = array_pos(first_pt, grid)
+            norm_vec_arr[pos.y, pos.x] = norm_vec
 
-            first_point = c
-            last_point = None
+            first_pt = c
+            last_pt = None
         else:
             print 'ups'
 
-    return vector_arr
+    return norm_vec_arr
 
 
-def in_dot_boundry(pt, test_pt, grid):
-    w = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
-    h = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
-    x = grid.start.x + math.ceil((pt.x - grid.start.x)/w) * w
-    y = grid.start.y + math.ceil((pt.y - grid.start.y)/h) * h
+def in_dot_field(first_pt, test_pt, grid):
+    width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
+    height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
+    x = grid.start.x + math.ceil((first_pt.x - grid.start.x)/width) * width
+    y = grid.start.y + math.ceil((first_pt.y - grid.start.y)/height) * height
 
     if test_pt.x < int(x):
-        x -= w
+        x -= width
     if test_pt.y < int(y):
-        y -= h
+        y -= height
 
     tl_pt = Point(int(x), int(y))
-    br_pt = Point(int(x + w), int(y + h))
+    br_pt = Point(int(x + width), int(y + height))
 
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
@@ -310,12 +310,10 @@ def calculate_norm_vector(pt1, pt2):
 
 
 def array_pos(pt, grid):
-    # x = ((pt.x - start_pt.x)//cell_size.width) * BRAILLE_CELL_SIZE.width + (pt.x - start_pt.x)%BRAILLE_CELL_SIZE.width
-    # y = ((pt.y - start_pt.y)//cell_size.height) * BRAILLE_CELL_SIZE.height + (pt.y - start_pt.y)%BRAILLE_CELL_SIZE.height
-    w = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
-    h = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
-    x = (pt.x - grid.start.x)//w
-    y = (pt.y - grid.start.y)//h
+    width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
+    height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
+    x = (pt.x - grid.start.x)//width
+    y = (pt.y - grid.start.y)//height
     return Point(int(x), int(y))
 
 
@@ -344,7 +342,7 @@ def main():
     # export_contour_img(file_name, cont_img, grid)
 
     contour = contour_points(cont_img)
-    norm_vec_arr = aprox(contour, grid)
+    norm_vec_arr = approx_surface_slope(contour, grid)
 
     braille_arr = braille_array(gray_img, grid)
     export_braille_data(file_name, braille_arr)
@@ -359,7 +357,6 @@ def main():
     cv2.imshow('debug_img', debug_img)
     cv2.imshow('orig_img', orig_img)
     cv2.imshow('cont_img', cont_img)
-
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
