@@ -107,10 +107,10 @@ def erase_calibration_area(img):
     cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK, cv2.FILLED)
 
 
-def draw_filled_cell(img, pt, cell_size):
-    """ Just for debug purpose, will cell with color """
-    for x in range(pt.x, pt.x + cell_size.width):
-        for y in range(pt.y, pt.y + cell_size.height):
+def draw_filled_cell(img, pt, grid):
+    """ Just for debug purpose, fill cell with color """
+    for x in range(pt.x, pt.x + grid.cell_size.width):
+        for y in range(pt.y, pt.y + grid.cell_size.height):
             img[y, x] ^= 158
 
 
@@ -124,52 +124,24 @@ def draw_grid(img, grid):
         cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE, 1)
 
 
-def draw_braille_dots(img, braille_arr, grid):
-    """ Just for debug purpose - draw braille dots in cell """
-    dot_field_size = Size(grid.cell_size.width//BRAILLE_CELL_SIZE.width, grid.cell_size.height//BRAILLE_CELL_SIZE.height)
-
-    for cx, x in enumerate(range(grid.start.x, grid.end.x, grid.cell_size.width)):
-        for cy, y in enumerate(range(grid.start.y, grid.end.y, grid.cell_size.height)):
-
-            for bx, by in it.product(range(BRAILLE_CELL_SIZE.width), range(BRAILLE_CELL_SIZE.height)):
-                if braille_arr[cy*BRAILLE_CELL_SIZE.height + by, cx*BRAILLE_CELL_SIZE.width + bx]:
-                    center = Point(x+dot_field_size.width*bx + dot_field_size.width//2,
-                        y+dot_field_size.height*by + dot_field_size.height//2)
-                    cv2.circle(img, center, 2, (0, 0, 255), -1)
-
-
-# def draw_braille_dots2(img, norm_vec_arr, grid):
-#     dot_field_size = Size(grid.cell_size.width//BRAILLE_CELL_SIZE.width, grid.cell_size.height//BRAILLE_CELL_SIZE.height)
-
-#     for cx, x in enumerate(range(grid.start.x, grid.end.x, grid.cell_size.width)):
-#         for cy, y in enumerate(range(grid.start.y, grid.end.y, grid.cell_size.height)):
-
-#             for bx, by in it.product(range(BRAILLE_CELL_SIZE.width), range(BRAILLE_CELL_SIZE.height)):
-#                 if (norm_vec_arr[cy*BRAILLE_CELL_SIZE.height + by, cx*BRAILLE_CELL_SIZE.width + bx] != 0).any():
-#                     center = Point(x+dot_field_size.width*bx + dot_field_size.width//2,
-#                         y+dot_field_size.height*by + dot_field_size.height//2)
-#                     cv2.circle(img, center, 2, (0, 0, 255), -1)
-
-
-def draw_braille_dots2(img, norm_vec_arr, grid):
+def draw_braille_dots(img, arr, grid):
+    """ Just for debug purpose - if array element of corresponding braille dot is not zero, draw it """
     RED = (0, 0, 255)
-    dot_field_size = Size(((grid.end.x - grid.start.x)/grid.cell_size.width) * float(BRAILLE_CELL_SIZE.width),
-                          ((grid.end.y - grid.start.y)/grid.cell_size.height) * float(BRAILLE_CELL_SIZE.height))
+    x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * float(BRAILLE_CELL_SIZE.width)
+    y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * float(BRAILLE_CELL_SIZE.height)
+    dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
+                          grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
 
-    for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, dot_field_size.width, endpoint=False)):
-        for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, dot_field_size.height, endpoint=False)):
-            print x, y
-            if (norm_vec_arr[by, bx] != 0).any():
+    for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
+        for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
+            if (arr[by, bx] != 0).any():
                 center = Point(int(x + dot_field_size.width//2), int(y + dot_field_size.height//2))
                 cv2.circle(img, center, radius=2, color=RED, thickness=-1)
 
 
 def draw_contour(img, contour):
-    # out = cv2.cvtColor(img, cv2.COLOR_GRAY2RGB)
     for c in contour:
         img[c.y, c.x] = (0, 255, 255)
-
-    # cv2.imshow('out', out)
 
 
 def braille_array(img, grid):
@@ -276,7 +248,7 @@ def approx_surface_slope(contour, grid):
         if in_dot_field(first_pt, c, grid):
             last_pt = c
         elif last_pt:
-            print 'jest'
+            # print 'jest'
             norm_vec = calculate_norm_vector(first_pt, last_pt)
             pos = array_pos(first_pt, grid)
             norm_vec_arr[pos.y, pos.x] = norm_vec
@@ -284,7 +256,8 @@ def approx_surface_slope(contour, grid):
             first_pt = c
             last_pt = None
         else:
-            print 'ups'
+            # print 'ups'
+            pass
 
     return norm_vec_arr
 
@@ -356,10 +329,9 @@ def main():
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(orig_img, start_pt, cell_size)
-    # draw_braille_dots(debug_img, braille_arr, grid)
-    draw_braille_dots2(debug_img, norm_vec_arr, grid)
-    draw_grid(debug_img, grid)
-    draw_contour(debug_img, contour)
+    draw_braille_dots(debug_img, norm_vec_arr, grid)
+    # draw_grid(debug_img, grid)
+    # draw_contour(debug_img, contour)
 
     cv2.imshow('debug_img', debug_img)
     cv2.imshow('orig_img', orig_img)
