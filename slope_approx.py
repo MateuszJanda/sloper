@@ -314,25 +314,7 @@ def approx_surface_slope(contour, grid):
 
 
 def in_dot_field(first_pt, test_pt, grid):
-    # width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
-    # height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
-    # x = grid.start.x + int((first_pt.x - grid.start.x)/width) * width
-    # y = grid.start.y + int((first_pt.y - grid.start.y)/height) * height
-
-    # if int(x + width) <= first_pt.x:
-    #     x += width
-    # if int(y + height) <= first_pt.y:
-    #     y += height
     _, tl_pt, br_pt = array_pos(first_pt, grid)
-    # x = grid.start.x + pos.x * width
-    # y = grid.start.y + pos.y * height
-
-    # tl_pt = Point(int(x), int(y))
-    # br_pt = Point(int(x + width), int(y + height))
-
-    # if ddd == 24 or ddd == 25:
-        # print 'first_pt', first_pt, 'test_pt', test_pt
-        # print 'boundry', tl_pt, br_pt, 'first_pt',  first_pt, 'test_pt', test_pt
     print 'boundry', tl_pt, br_pt, 'first_pt',  first_pt, 'test_pt', test_pt, 'RETURN', tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
@@ -359,14 +341,11 @@ def array_pos(pt, grid):
     print 'array first_pt', pt, 'grid', grid
     width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
     height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
-    # x = (pt.x - grid.start.x)//width
-    # y = (pt.y - grid.start.y)//height
 
-    # width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
-    # height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
     pos = Point(int((pt.x - grid.start.x)/width), int((pt.y - grid.start.y)/height))
     x = grid.start.x + pos.x * width
     y = grid.start.y + pos.y * height
+    # print "x, y", x, y
 
     if int(x + width) <= pt.x:
         # pos.x += 1
@@ -375,8 +354,8 @@ def array_pos(pt, grid):
         # pos.y += 1
         pos = Point(pos.x, pos.y + 1)
 
-    field_start_pt = Point(grid.start.x + pos.x * width, grid.start.y + pos.y * height)
-    field_end_pt = Point(field_start_pt.x + width, field_start_pt.y + height)
+    field_start_pt = Point(int(grid.start.x + pos.x * width), int(grid.start.y + pos.y * height))
+    field_end_pt = Point(int(grid.start.x + (pos.x + 1) * width), int(grid.start.y + (pos.y + 1) * height))
 
     return pos, field_start_pt, field_end_pt
 
