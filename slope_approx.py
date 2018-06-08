@@ -18,6 +18,7 @@ CALIBRATION_AREA_SIZE = 40
 BLACK = 0
 WHITE = 255
 BRAILLE_CELL_SIZE = Size(2, 4)
+VECTOR_DIM = 2
 
 
 def grid_data(img):
@@ -275,7 +276,7 @@ def contour_points(img):
 def approximate_surface_slopes(contour, grid):
     height = ((grid.end.y - grid.start.y)//grid.cell_size.height) * BRAILLE_CELL_SIZE.height
     width = ((grid.end.x - grid.start.x)//grid.cell_size.width) * BRAILLE_CELL_SIZE.width
-    norm_vec_arr = np.zeros(shape=[height, width, 2], dtype=np.float32)
+    norm_vec_arr = np.zeros(shape=[height, width, VECTOR_DIM], dtype=np.float32)
 
     first_pt, last_pt = None, None
     norm_vec = np.array([0, 0])
@@ -347,8 +348,8 @@ def export_braille_data(file_name, braille_arr):
 
 def export_norm_vector_arr(file_name, arr):
     """ Export braille data to file """
-    height, width, vec_size = arr.shape
-    np.savetxt(file_name+'.norm', arr.reshape([height, width*vec_size]), fmt='%.04f')
+    height, width, vec_dim = arr.shape
+    np.savetxt(file_name+'.norm', arr.reshape([height, width*vec_dim]), fmt='%.04f')
 
 
 def main():
