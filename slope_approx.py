@@ -163,8 +163,8 @@ def draw_normal_vec(img, arr, grid):
                 cv2.line(img, center, pt, GREEN, 1)
                 c += 1
 
-                if c == 1:
-                    return
+                # if c == 1:
+                #     return
 
 
 def braille_array(img, grid):
@@ -266,6 +266,8 @@ def find_nearest(head_cnt, contours, min_dist=15):
 def contour_points(img):
     cont_img = copy.copy(img)
     _, contours, _ = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    # for c in np.vstack(contours):
+        # print 'coord',  Point(c[0, 0], c[0, 1])
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
 
@@ -290,6 +292,7 @@ def approx_surface_slope(contour, grid):
 
             first_pt = c
             last_pt = None
+            # exit()
         else:
             # print 'ups'
             pass
@@ -298,6 +301,7 @@ def approx_surface_slope(contour, grid):
 
 
 def in_dot_field(first_pt, test_pt, grid):
+    print 'test_pt', test_pt
     width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
     height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
     x = grid.start.x + math.ceil((first_pt.x - grid.start.x)/width) * width
@@ -310,25 +314,30 @@ def in_dot_field(first_pt, test_pt, grid):
 
     tl_pt = Point(int(x), int(y))
     br_pt = Point(int(x + width), int(y + height))
+    print 'boundry', tl_pt, br_pt
 
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
 
 def calculate_norm_vector(pt1, pt2):
+    print 'calc', pt1, pt2
     # calculation tangent line (ax + by + c = 0) to points
+    # Y should be with -, because we terminal use dirrerent cooridinate system
     if pt2.x - pt1.x == 0:
         a = 1.0
         b = 0.0
     else:
-        a = (pt2.y - pt1.y)/float(pt2.x - pt1.x)
+        a = (-pt2.y + pt1.y)/float(pt2.x - pt1.x)
         b = 1.0
 
     # normalized perpendicular vector to line (ax + by + c = 0) equal to v = [-a, b]
     mag = math.sqrt(a**2 + b**2)
-    if pt1.x <= pt2.x or pt1.y < pt2.y:
-        return np.array([-a/mag, b/mag])
+    # if pt1.x <= pt2.x or pt1.y < pt2.y:
+        # print 'slope', np.array([-a/mag, b/mag])
+    return np.array([-a/mag, b/mag])
 
-    return np.array([a/mag, -b/mag])
+    # print 'slope', np.array([a/mag, -b/mag])
+    # return np.array([a/mag, -b/mag])
 
 
 def array_pos(pt, grid):
@@ -368,7 +377,7 @@ def main():
     draw_braille_dots(debug_img, norm_vec_arr, grid)
     draw_normal_vec(debug_img, norm_vec_arr, grid)
     # draw_grid(debug_img, grid)
-    # draw_contour(debug_img, contour)
+    draw_contour(debug_img, contour)
 
     cv2.imshow('debug_img', debug_img)
     cv2.imshow('term_img', term_img)
