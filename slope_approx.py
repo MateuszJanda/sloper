@@ -18,7 +18,7 @@ CALIBRATION_AREA_SIZE = 40
 BLACK = 0
 WHITE = 255
 BRAILLE_CELL_SIZE = Size(2, 4)
-ddd = 0
+
 
 def grid_data(img):
     """
@@ -156,10 +156,6 @@ def draw_normal_vec(img, arr, grid):
     for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
             if (arr[by, bx] != 0).any():
-
-                # if ccc > 1:
-                #     continue
-
                 start = Point(int(x + dot_field_size.width//2), int(y + dot_field_size.height//2))
                 # Y with minus, because OpenCV use different coordinate system
                 vec_end = Point(arr[by, bx][0], -arr[by, bx][1])
@@ -282,46 +278,30 @@ def approx_surface_slope(contour, grid):
             first_pt = c
             continue
 
-        global ddd
         if in_dot_field(first_pt, c, grid):
-            # if ddd <= 25:
-            print 'c', c
             last_pt = c
         elif last_pt:
-            # if ddd > 31:
-            #     return norm_vec_arr
-
             norm_vec = calculate_norm_vector(first_pt, last_pt)
             pos, _, _ = array_pos(first_pt, grid)
             norm_vec_arr[pos.y, pos.x] = norm_vec
-
-            ddd += 1
-            print 'pos', pos
-            print '----'
-
             first_pt = c
             last_pt = None
         else:
             pos, _, _ = array_pos(first_pt, grid)
             norm_vec_arr[pos.y, pos.x] = norm_vec
-            print 'pos', pos
-            print '----'
             first_pt = c
             last_pt = None
-            # raise(Excpetion('Error! One point in dot field. Case not handled yet'))
 
     return norm_vec_arr
 
 
 def in_dot_field(first_pt, test_pt, grid):
     _, tl_pt, br_pt = array_pos(first_pt, grid)
-    print 'boundry', tl_pt, br_pt, 'first_pt',  first_pt, 'test_pt', test_pt, 'RETURN', tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
-
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
 
 def calculate_norm_vector(pt1, pt2):
-    # calculation tangent line (ax + by + c = 0) to points
+    # Calculation tangent line (ax + by + c = 0) to points
     # Y should be with minus, because OpenCV use different coordinate system
     if pt2.x - pt1.x == 0:
         a = 1.0 if pt2.y > pt1.y else -1.0
@@ -330,7 +310,7 @@ def calculate_norm_vector(pt1, pt2):
         a = (-pt2.y + pt1.y)/float(pt2.x - pt1.x)
         b = 1.0
 
-    # normalized perpendicular vector to line (ax + by + c = 0) equal to v = [-a, b]
+    # Normalized perpendicular vector to line (ax + by + c = 0) equal to v = [-a, b]
     mag = math.sqrt(a**2 + b**2)
     if pt2.x <= pt1.x:
         return np.array([-a/mag, b/mag])
@@ -338,20 +318,16 @@ def calculate_norm_vector(pt1, pt2):
 
 
 def array_pos(pt, grid):
-    print 'array first_pt', pt, 'grid', grid
     width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
     height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
 
     pos = Point(int((pt.x - grid.start.x)/width), int((pt.y - grid.start.y)/height))
     x = grid.start.x + pos.x * width
     y = grid.start.y + pos.y * height
-    # print "x, y", x, y
 
     if int(x + width) <= pt.x:
-        # pos.x += 1
         pos = Point(pos.x + 1, pos.y)
     if int(y + height) <= pt.y:
-        # pos.y += 1
         pos = Point(pos.x, pos.y + 1)
 
     field_start_pt = Point(int(grid.start.x + pos.x * width), int(grid.start.y + pos.y * height))
