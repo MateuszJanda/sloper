@@ -151,6 +151,7 @@ def draw_normal_vec(img, arr, grid):
     dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
                           grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
 
+    c = 0
     for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
             if (arr[by, bx] != 0).any():
@@ -158,8 +159,12 @@ def draw_normal_vec(img, arr, grid):
                 # cv2.circle(img, center, radius=2, color=RED, thickness=-1)
                 v = arr[by, bx]
                 factor = 20
-                pt = Point(center.x + int(v[0]*factor), center.y + int(v[1]*factor))
+                pt = Point(center.x + int(v[0]*factor), center.y + int(-v[1]*factor))
                 cv2.line(img, center, pt, GREEN, 1)
+                c += 1
+
+                if c == 20:
+                    return
 
 
 def braille_array(img, grid):
