@@ -18,7 +18,7 @@ CALIBRATION_AREA_SIZE = 40
 BLACK = 0
 WHITE = 255
 BRAILLE_CELL_SIZE = Size(2, 4)
-
+ddd = 0
 
 def grid_data(img):
     """
@@ -152,14 +152,22 @@ def draw_normal_vec(img, arr, grid):
     dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
                           grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
 
+    ccc = 0
     for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
             if (arr[by, bx] != 0).any():
+
+                # if ccc > 1:
+                #     continue
+
                 start = Point(int(x + dot_field_size.width//2), int(y + dot_field_size.height//2))
                 # Y with minus, because OpenCV use different coordinate system
                 vec_end = Point(arr[by, bx][0], -arr[by, bx][1])
                 end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
                 cv2.line(img, start, end, GREEN, 1)
+
+
+                ccc += 1
 
 
 def braille_array(img, grid):
@@ -239,8 +247,6 @@ def smooth_contours(img):
     dilation_img = cv2.dilate(img, kernel_dil, iterations=1)
     erosion_img = cv2.erode(dilation_img, kernel_ero, iterations=1)
 
-    # blur = cv2.GaussianBlur(erosion_img, (3, 3), 0)
-
     return erosion_img
 
 
@@ -270,42 +276,64 @@ def approx_surface_slope(contour, grid):
     norm_vec_arr = np.zeros(shape=[height, width, 2], dtype=np.float32)
 
     first_pt, last_pt = None, None
+    norm_vec = np.array([0, 0])
     for c in contour:
         if not first_pt:
             first_pt = c
             continue
 
+        global ddd
         if in_dot_field(first_pt, c, grid):
+            # if ddd <= 25:
+            print 'c', c
             last_pt = c
         elif last_pt:
-            # print 'jest'
+            # if ddd > 31:
+            #     return norm_vec_arr
+
             norm_vec = calculate_norm_vector(first_pt, last_pt)
-            pos = array_pos(first_pt, grid)
+            pos, _, _ = array_pos(first_pt, grid)
             norm_vec_arr[pos.y, pos.x] = norm_vec
+
+            ddd += 1
+            print 'pos', pos
+            print '----'
 
             first_pt = c
             last_pt = None
-            # exit()
         else:
-            # print 'ups'
-            pass
+            pos, _, _ = array_pos(first_pt, grid)
+            norm_vec_arr[pos.y, pos.x] = norm_vec
+            print 'pos', pos
+            print '----'
+            first_pt = c
+            last_pt = None
+            # raise(Excpetion('Error! One point in dot field. Case not handled yet'))
 
     return norm_vec_arr
 
 
 def in_dot_field(first_pt, test_pt, grid):
-    width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
-    height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
-    x = grid.start.x + math.ceil((first_pt.x - grid.start.x)/width) * width
-    y = grid.start.y + math.ceil((first_pt.y - grid.start.y)/height) * height
+    # width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
+    # height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
+    # x = grid.start.x + int((first_pt.x - grid.start.x)/width) * width
+    # y = grid.start.y + int((first_pt.y - grid.start.y)/height) * height
 
-    if test_pt.x < int(x):
-        x -= width
-    if test_pt.y < int(y):
-        y -= height
+    # if int(x + width) <= first_pt.x:
+    #     x += width
+    # if int(y + height) <= first_pt.y:
+    #     y += height
+    _, tl_pt, br_pt = array_pos(first_pt, grid)
+    # x = grid.start.x + pos.x * width
+    # y = grid.start.y + pos.y * height
 
-    tl_pt = Point(int(x), int(y))
-    br_pt = Point(int(x + width), int(y + height))
+    # tl_pt = Point(int(x), int(y))
+    # br_pt = Point(int(x + width), int(y + height))
+
+    # if ddd == 24 or ddd == 25:
+        # print 'first_pt', first_pt, 'test_pt', test_pt
+        # print 'boundry', tl_pt, br_pt, 'first_pt',  first_pt, 'test_pt', test_pt
+    print 'boundry', tl_pt, br_pt, 'first_pt',  first_pt, 'test_pt', test_pt, 'RETURN', tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
@@ -328,11 +356,29 @@ def calculate_norm_vector(pt1, pt2):
 
 
 def array_pos(pt, grid):
+    print 'array first_pt', pt, 'grid', grid
     width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
     height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
-    x = (pt.x - grid.start.x)//width
-    y = (pt.y - grid.start.y)//height
-    return Point(int(x), int(y))
+    # x = (pt.x - grid.start.x)//width
+    # y = (pt.y - grid.start.y)//height
+
+    # width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
+    # height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
+    pos = Point(int((pt.x - grid.start.x)/width), int((pt.y - grid.start.y)/height))
+    x = grid.start.x + pos.x * width
+    y = grid.start.y + pos.y * height
+
+    if int(x + width) <= pt.x:
+        # pos.x += 1
+        pos = Point(pos.x + 1, pos.y)
+    if int(y + height) <= pt.y:
+        # pos.y += 1
+        pos = Point(pos.x, pos.y + 1)
+
+    field_start_pt = Point(grid.start.x + pos.x * width, grid.start.y + pos.y * height)
+    field_end_pt = Point(field_start_pt.x + width, field_start_pt.y + height)
+
+    return pos, field_start_pt, field_end_pt
 
 
 def export_braille_data(file_name, braille_arr):
@@ -364,7 +410,7 @@ def main():
     draw_braille_dots(debug_img, norm_vec_arr, grid)
     draw_normal_vec(debug_img, norm_vec_arr, grid)
     # draw_grid(debug_img, grid)
-    draw_contour(debug_img, contour)
+    # draw_contour(debug_img, contour)
 
     cv2.imshow('debug_img', debug_img)
     cv2.imshow('term_img', term_img)
