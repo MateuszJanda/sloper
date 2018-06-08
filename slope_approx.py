@@ -144,6 +144,24 @@ def draw_contour(img, contour):
         img[c.y, c.x] = (0, 255, 255)
 
 
+def draw_normal_vec(img, arr, grid):
+    GREEN = (0, 255, 0)
+    x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * float(BRAILLE_CELL_SIZE.width)
+    y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * float(BRAILLE_CELL_SIZE.height)
+    dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
+                          grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
+
+    for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
+        for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
+            if (arr[by, bx] != 0).any():
+                center = Point(int(x + dot_field_size.width//2), int(y + dot_field_size.height//2))
+                # cv2.circle(img, center, radius=2, color=RED, thickness=-1)
+                v = arr[by, bx]
+                factor = 20
+                pt = Point(center.x + int(v[0]*factor), center.y + int(v[1]*factor))
+                cv2.line(img, center, pt, GREEN, 1)
+
+
 def braille_array(img, grid):
     """ Extract braille data - dots that cover chars (any pixel in dot field is none zero) in all cell """
     height = ((grid.end.y - grid.start.y) // grid.cell_size.height) * BRAILLE_CELL_SIZE.height
@@ -330,6 +348,7 @@ def main():
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(orig_img, start_pt, cell_size)
     draw_braille_dots(debug_img, norm_vec_arr, grid)
+    draw_normal_vec(debug_img, norm_vec_arr, grid)
     # draw_grid(debug_img, grid)
     # draw_contour(debug_img, contour)
 
