@@ -156,7 +156,7 @@ def draw_normal_vec(img, arr, grid):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
             if (arr[by, bx] != 0).any():
                 start = Point(int(x + dot_field_size.width//2), int(y + dot_field_size.height//2))
-                # Y with minus, because OpenCV and terminal use different cooridinate system
+                # Y with minus, because OpenCV use different coordinate system
                 vec_end = Point(arr[by, bx][0], -arr[by, bx][1])
                 end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
                 cv2.line(img, start, end, GREEN, 1)
@@ -209,7 +209,7 @@ def connect_nearby_contours(img):
     gray_img = copy.copy(img)
     _, contours, _ = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Countours start from the bottom
+    # Contours start from the bottom
     last = contours.pop(0)
     chain = [last]
     while len(contours) > 0:
@@ -312,7 +312,7 @@ def in_dot_field(first_pt, test_pt, grid):
 
 def calculate_norm_vector(pt1, pt2):
     # calculation tangent line (ax + by + c = 0) to points
-    # Y should be with minus, because we terminal use dirrerent cooridinate system
+    # Y should be with minus, because OpenCV use different coordinate system
     if pt2.x - pt1.x == 0:
         a = 1.0 if pt2.y > pt1.y else -1.0
         b = 0.0
