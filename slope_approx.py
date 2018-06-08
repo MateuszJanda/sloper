@@ -209,7 +209,7 @@ def connect_nearby_contours(img):
     gray_img = copy.copy(img)
     _, contours, _ = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Contours start from the bottom
+    # First contour position is at the bottom of image
     last = contours.pop(0)
     chain = [last]
     while len(contours) > 0:
