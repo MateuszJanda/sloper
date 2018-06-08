@@ -163,7 +163,7 @@ def draw_normal_vec(img, arr, grid):
                 cv2.line(img, center, pt, GREEN, 1)
                 c += 1
 
-                if c == 20:
+                if c == 1:
                     return
 
 
@@ -237,6 +237,18 @@ def connect_nearby_contours(img):
     return cont_img
 
 
+def smooth_contours(img):
+    kernel_dil = np.ones((3, 3), np.uint8)
+    kernel_ero = np.ones((2, 2), np.uint8)
+
+    dilation_img = cv2.dilate(img, kernel_dil, iterations=1)
+    erosion_img = cv2.erode(dilation_img, kernel_ero, iterations=1)
+
+    # blur = cv2.GaussianBlur(erosion_img, (3, 3), 0)
+
+    return erosion_img
+
+
 def find_nearest(head_cnt, contours, min_dist=15):
     """ Find nearest contour to current head contour """
     best_cnt = None
@@ -253,7 +265,7 @@ def find_nearest(head_cnt, contours, min_dist=15):
 
 def contour_points(img):
     cont_img = copy.copy(img)
-    _, contours, _ = cv2.findContours(cont_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    _, contours, _ = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
 
@@ -343,6 +355,7 @@ def main():
     erase_calibration_area(gray_img)
 
     cont_img = connect_nearby_contours(gray_img)
+    cont_img = smooth_contours(cont_img)
 
     contour = contour_points(cont_img)
     norm_vec_arr = approx_surface_slope(contour, grid)
