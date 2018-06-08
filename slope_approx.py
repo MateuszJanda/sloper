@@ -146,25 +146,20 @@ def draw_contour(img, contour):
 
 def draw_normal_vec(img, arr, grid):
     GREEN = (0, 255, 0)
+    FACTOR = 20
     x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * float(BRAILLE_CELL_SIZE.width)
     y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * float(BRAILLE_CELL_SIZE.height)
     dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
                           grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
 
-    c = 0
     for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
             if (arr[by, bx] != 0).any():
-                center = Point(int(x + dot_field_size.width//2), int(y + dot_field_size.height//2))
-                # cv2.circle(img, center, radius=2, color=RED, thickness=-1)
-                v = arr[by, bx]
-                factor = 20
-                pt = Point(center.x + int(v[0]*factor), center.y + int(-v[1]*factor))
-                cv2.line(img, center, pt, GREEN, 1)
-                c += 1
-
-                # if c == 1:
-                #     return
+                start = Point(int(x + dot_field_size.width//2), int(y + dot_field_size.height//2))
+                # Y with minus, because OpenCV and terminal use different cooridinate system
+                vec_end = Point(arr[by, bx][0], -arr[by, bx][1])
+                end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
+                cv2.line(img, start, end, GREEN, 1)
 
 
 def braille_array(img, grid):
@@ -322,9 +317,9 @@ def in_dot_field(first_pt, test_pt, grid):
 def calculate_norm_vector(pt1, pt2):
     print 'calc', pt1, pt2
     # calculation tangent line (ax + by + c = 0) to points
-    # Y should be with -, because we terminal use dirrerent cooridinate system
+    # Y should be with minus, because we terminal use dirrerent cooridinate system
     if pt2.x - pt1.x == 0:
-        a = 1.0
+        a = 1.0 if pt2.y > pt1.y else -1.0
         b = 0.0
     else:
         a = (-pt2.y + pt1.y)/float(pt2.x - pt1.x)
@@ -332,12 +327,12 @@ def calculate_norm_vector(pt1, pt2):
 
     # normalized perpendicular vector to line (ax + by + c = 0) equal to v = [-a, b]
     mag = math.sqrt(a**2 + b**2)
-    # if pt1.x <= pt2.x or pt1.y < pt2.y:
+    if pt2.x <= pt1.x:
         # print 'slope', np.array([-a/mag, b/mag])
-    return np.array([-a/mag, b/mag])
+        return np.array([-a/mag, b/mag])
 
     # print 'slope', np.array([a/mag, -b/mag])
-    # return np.array([a/mag, -b/mag])
+    return np.array([a/mag, -b/mag])
 
 
 def array_pos(pt, grid):
