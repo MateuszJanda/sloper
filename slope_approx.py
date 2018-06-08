@@ -124,43 +124,42 @@ def draw_grid(img, grid):
         cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE, 1)
 
 
-def draw_braille_dots(img, arr, grid):
+def draw_arr_elements(img, arr, grid, draw_func):
     """ Just for debug purpose - if array element of corresponding braille dot is not zero, draw it """
-    RED = (0, 0, 255)
     x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * float(BRAILLE_CELL_SIZE.width)
     y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * float(BRAILLE_CELL_SIZE.height)
-    dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
-                          grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
 
     for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
             if (arr[by, bx] != 0).any():
-                center = Point(int(x + dot_field_size.width//2), int(y + dot_field_size.height//2))
-                cv2.circle(img, center, radius=2, color=RED, thickness=-1)
+                draw_func(img, field_pt=Point(x, y), value=arr[by, bx], grid=grid)
+
+
+def draw_dot(img, field_pt, value, grid):
+    RED = (0, 0, 255)
+    dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
+                          grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
+    center = Point(int(field_pt.x + dot_field_size.width//2), int(field_pt.y + dot_field_size.height//2))
+    cv2.circle(img, center, radius=2, color=RED, thickness=-1)
+
+
+def draw_norm_vec(img, field_pt, value, grid):
+    GREEN = (0, 255, 0)
+    FACTOR = 20
+    dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
+                          grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
+
+    start = Point(int(field_pt.x + dot_field_size.width//2), int(field_pt.y + dot_field_size.height//2))
+    # Y with minus, because OpenCV use different coordinate system
+    vec_end = Point(value[0], -value[1])
+    end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
+    cv2.line(img, start, end, GREEN, 1)
 
 
 def draw_contour(img, contour):
     YELLOW = (0, 255, 255)
     for c in contour:
         img[c.y, c.x] = YELLOW
-
-
-def draw_normal_vec(img, arr, grid):
-    GREEN = (0, 255, 0)
-    FACTOR = 20
-    x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * float(BRAILLE_CELL_SIZE.width)
-    y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * float(BRAILLE_CELL_SIZE.height)
-    dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
-                          grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
-
-    for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
-        for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
-            if (arr[by, bx] != 0).any():
-                start = Point(int(x + dot_field_size.width//2), int(y + dot_field_size.height//2))
-                # Y with minus, because OpenCV use different coordinate system
-                vec_end = Point(arr[by, bx][0], -arr[by, bx][1])
-                end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
-                cv2.line(img, start, end, GREEN, 1)
 
 
 def braille_array(img, grid):
@@ -357,8 +356,8 @@ def main():
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(term_img, start_pt, cell_size)
-    draw_braille_dots(debug_img, norm_vec_arr, grid)
-    draw_normal_vec(debug_img, norm_vec_arr, grid)
+    draw_arr_elements(debug_img, norm_vec_arr, grid, draw_norm_vec)
+    draw_arr_elements(debug_img, norm_vec_arr, grid, draw_dot)
     # draw_grid(debug_img, grid)
     # draw_contour(debug_img, contour)
 
