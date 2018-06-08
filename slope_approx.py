@@ -347,7 +347,8 @@ def export_braille_data(file_name, braille_arr):
 
 def export_norm_vector_arr(file_name, arr):
     """ Export braille data to file """
-    np.savetxt(file_name+'.norm', arr, fmt='%.04f')
+    height, width, vec_size = arr.shape
+    np.savetxt(file_name+'.norm', arr.reshape([height, width*vec_size]), fmt='%.04f')
 
 
 def main():
@@ -368,7 +369,7 @@ def main():
 
     braille_arr = braille_array(gray_img, grid)
     export_braille_data(file_name, braille_arr)
-    # export_norm_vector_arr(file_name, norm_vec_arr)
+    export_norm_vector_arr(file_name, norm_vec_arr)
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(term_img, grid.start, grid)
