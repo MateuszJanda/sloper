@@ -140,8 +140,9 @@ def draw_braille_dots(img, arr, grid):
 
 
 def draw_contour(img, contour):
+    YELLOW = (0, 255, 255)
     for c in contour:
-        img[c.y, c.x] = (0, 255, 255)
+        img[c.y, c.x] = YELLOW
 
 
 def draw_normal_vec(img, arr, grid):
@@ -152,7 +153,6 @@ def draw_normal_vec(img, arr, grid):
     dot_field_size = Size(grid.cell_size.width/float(BRAILLE_CELL_SIZE.width),
                           grid.cell_size.height/float(BRAILLE_CELL_SIZE.height))
 
-    ccc = 0
     for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
             if (arr[by, bx] != 0).any():
@@ -161,9 +161,6 @@ def draw_normal_vec(img, arr, grid):
                 vec_end = Point(arr[by, bx][0], -arr[by, bx][1])
                 end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
                 cv2.line(img, start, end, GREEN, 1)
-
-
-                ccc += 1
 
 
 def braille_array(img, grid):
@@ -266,7 +263,7 @@ def contour_points(img):
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
 
-def approx_surface_slope(contour, grid):
+def approximate_surface_slopes(contour, grid):
     height = ((grid.end.y - grid.start.y)//grid.cell_size.height) * BRAILLE_CELL_SIZE.height
     width = ((grid.end.x - grid.start.x)//grid.cell_size.width) * BRAILLE_CELL_SIZE.width
     norm_vec_arr = np.zeros(shape=[height, width, 2], dtype=np.float32)
@@ -278,25 +275,23 @@ def approx_surface_slope(contour, grid):
             first_pt = c
             continue
 
-        if in_dot_field(first_pt, c, grid):
+        idx, tl_pt, br_pt = dot_field(first_pt, grid)
+        if in_boundaries(c, tl_pt, br_pt):
             last_pt = c
         elif last_pt:
             norm_vec = calculate_norm_vector(first_pt, last_pt)
-            pos, _, _ = array_pos(first_pt, grid)
-            norm_vec_arr[pos.y, pos.x] = norm_vec
+            norm_vec_arr[idx.y, idx.x] = norm_vec
             first_pt = c
             last_pt = None
         else:
-            pos, _, _ = array_pos(first_pt, grid)
-            norm_vec_arr[pos.y, pos.x] = norm_vec
+            norm_vec_arr[idx.y, idx.x] = norm_vec
             first_pt = c
             last_pt = None
 
     return norm_vec_arr
 
 
-def in_dot_field(first_pt, test_pt, grid):
-    _, tl_pt, br_pt = array_pos(first_pt, grid)
+def in_boundaries(test_pt, tl_pt, br_pt):
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
 
@@ -317,23 +312,23 @@ def calculate_norm_vector(pt1, pt2):
     return np.array([a/mag, -b/mag])
 
 
-def array_pos(pt, grid):
+def dot_field(pt, grid):
     width = grid.cell_size.width/float(BRAILLE_CELL_SIZE.width)
     height = grid.cell_size.height/float(BRAILLE_CELL_SIZE.height)
 
-    pos = Point(int((pt.x - grid.start.x)/width), int((pt.y - grid.start.y)/height))
-    x = grid.start.x + pos.x * width
-    y = grid.start.y + pos.y * height
+    idx = Point(int((pt.x - grid.start.x)/width), int((pt.y - grid.start.y)/height))
+    x = grid.start.x + idx.x * width
+    y = grid.start.y + idx.y * height
 
     if int(x + width) <= pt.x:
-        pos = Point(pos.x + 1, pos.y)
+        idx = Point(idx.x + 1, idx.y)
     if int(y + height) <= pt.y:
-        pos = Point(pos.x, pos.y + 1)
+        idx = Point(idx.x, idx.y + 1)
 
-    field_start_pt = Point(int(grid.start.x + pos.x * width), int(grid.start.y + pos.y * height))
-    field_end_pt = Point(int(grid.start.x + (pos.x + 1) * width), int(grid.start.y + (pos.y + 1) * height))
+    tl_pt = Point(int(grid.start.x + idx.x * width), int(grid.start.y + idx.y * height))
+    br_pt = Point(int(grid.start.x + (idx.x + 1) * width), int(grid.start.y + (idx.y + 1) * height))
 
-    return pos, field_start_pt, field_end_pt
+    return idx, tl_pt, br_pt
 
 
 def export_braille_data(file_name, braille_arr):
@@ -355,7 +350,7 @@ def main():
     cont_img = smooth_contours(cont_img)
 
     contour = contour_points(cont_img)
-    norm_vec_arr = approx_surface_slope(contour, grid)
+    norm_vec_arr = approximate_surface_slopes(contour, grid)
 
     braille_arr = braille_array(gray_img, grid)
     export_braille_data(file_name, braille_arr)
