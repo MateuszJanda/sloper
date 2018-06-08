@@ -346,10 +346,10 @@ def export_braille_data(file_name, braille_arr):
 
 def main():
     file_name = 'ascii_fig.png'
-    orig_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
+    term_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
 
     # Processing should be on the image with a black background and white foreground
-    _, gray_img= cv2.threshold(src=orig_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
+    _, gray_img= cv2.threshold(src=term_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
 
     grid = grid_data(gray_img)
     erase_calibration_area(gray_img)
@@ -364,14 +364,14 @@ def main():
     export_braille_data(file_name, braille_arr)
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    # draw_filled_cell(orig_img, start_pt, cell_size)
+    # draw_filled_cell(term_img, start_pt, cell_size)
     draw_braille_dots(debug_img, norm_vec_arr, grid)
     draw_normal_vec(debug_img, norm_vec_arr, grid)
     # draw_grid(debug_img, grid)
     # draw_contour(debug_img, contour)
 
     cv2.imshow('debug_img', debug_img)
-    cv2.imshow('orig_img', orig_img)
+    cv2.imshow('term_img', term_img)
     cv2.imshow('cont_img', cont_img)
 
     cv2.waitKey(0)
