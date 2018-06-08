@@ -213,6 +213,7 @@ def connect_nearby_contours(img):
     See also:
     https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
     http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
+    https://docs.opencv.org/3.4.1/dd/d49/tutorial_py_contour_features.html
     """
     gray_img = copy.copy(img)
     _, contours, _ = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -234,8 +235,9 @@ def connect_nearby_contours(img):
         last = cnt
 
     cont_img = np.zeros_like(gray_img)
-    unified = [np.vstack(chain)]
-    cv2.drawContours(cont_img, unified, -1, WHITE, 1)
+
+    approx = cv2.approxPolyDP(np.vstack(chain), epsilon=2, closed=True)
+    cv2.drawContours(cont_img, [approx], -1, WHITE, 1)
 
     return cont_img
 
@@ -370,7 +372,7 @@ def main():
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(term_img, grid.start, grid)
-    draw_braille_dots(debug_img, norm_vec_arr, grid)
+    # draw_braille_dots(debug_img, norm_vec_arr, grid)
     draw_braille_norm_vec(debug_img, norm_vec_arr, grid)
     # draw_grid(debug_img, grid)
     draw_contour(debug_img, contour)
