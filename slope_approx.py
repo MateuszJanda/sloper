@@ -124,7 +124,15 @@ def draw_grid(img, grid):
         cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE, 1)
 
 
-def draw_arr_elements(img, arr, grid, draw_func):
+def draw_braille_dots(img, arr, grid):
+    foreach_arr_elements(img, arr, grid, draw_dot)
+
+
+def draw_braille_norm_vec(img, arr, grid):
+    foreach_arr_elements(img, arr, grid, draw_norm_vec)
+
+
+def foreach_arr_elements(img, arr, grid, draw_func):
     """ Just for debug purpose - if array element of corresponding braille dot is not zero, draw it """
     x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * float(BRAILLE_CELL_SIZE.width)
     y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * float(BRAILLE_CELL_SIZE.height)
@@ -355,11 +363,11 @@ def main():
     export_braille_data(file_name, braille_arr)
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    # draw_filled_cell(term_img, start_pt, cell_size)
-    draw_arr_elements(debug_img, norm_vec_arr, grid, draw_norm_vec)
-    draw_arr_elements(debug_img, norm_vec_arr, grid, draw_dot)
+    # draw_filled_cell(term_img, grid.start, grid)
+    draw_braille_dots(debug_img, norm_vec_arr, grid)
+    draw_braille_norm_vec(debug_img, norm_vec_arr, grid)
     # draw_grid(debug_img, grid)
-    # draw_contour(debug_img, contour)
+    draw_contour(debug_img, contour)
 
     cv2.imshow('debug_img', debug_img)
     cv2.imshow('term_img', term_img)
