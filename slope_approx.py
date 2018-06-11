@@ -21,6 +21,41 @@ BRAILLE_CELL_SIZE = Size(2, 4)
 VECTOR_DIM = 2
 
 
+def main():
+    file_name = 'ascii_fig.png'
+    term_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
+
+    # Processing should be on the image with a black background and white foreground
+    _, gray_img= cv2.threshold(src=term_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
+
+    grid = grid_data(gray_img)
+    erase_calibration_area(gray_img)
+
+    cont_img = connect_nearby_contours(gray_img)
+    cont_img = smooth_contours(cont_img)
+
+    contour = contour_points(cont_img)
+    norm_vec_arr = approximate_surface_slopes(contour, grid)
+
+    braille_arr = braille_array(gray_img, grid)
+    export_braille_data(file_name, braille_arr)
+    export_norm_vector_arr(file_name, norm_vec_arr)
+
+    debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+    # draw_filled_cell(term_img, grid.start, grid)
+    # draw_braille_dots(debug_img, norm_vec_arr, grid)
+    draw_braille_norm_vec(debug_img, norm_vec_arr, grid)
+    # draw_grid(debug_img, grid)
+    draw_contour(debug_img, contour)
+
+    cv2.imshow('debug_img', debug_img)
+    cv2.imshow('term_img', term_img)
+    cv2.imshow('cont_img', cont_img)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
 def grid_data(img):
     """
     Calculate grid data .
@@ -350,41 +385,6 @@ def export_norm_vector_arr(file_name, arr):
     """ Export braille data to file """
     height, width, vec_dim = arr.shape
     np.savetxt(file_name+'.norm', arr.reshape([height, width*vec_dim]), fmt='%.04f')
-
-
-def main():
-    file_name = 'ascii_fig.png'
-    term_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
-
-    # Processing should be on the image with a black background and white foreground
-    _, gray_img= cv2.threshold(src=term_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
-
-    grid = grid_data(gray_img)
-    erase_calibration_area(gray_img)
-
-    cont_img = connect_nearby_contours(gray_img)
-    cont_img = smooth_contours(cont_img)
-
-    contour = contour_points(cont_img)
-    norm_vec_arr = approximate_surface_slopes(contour, grid)
-
-    braille_arr = braille_array(gray_img, grid)
-    export_braille_data(file_name, braille_arr)
-    export_norm_vector_arr(file_name, norm_vec_arr)
-
-    debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    # draw_filled_cell(term_img, grid.start, grid)
-    # draw_braille_dots(debug_img, norm_vec_arr, grid)
-    draw_braille_norm_vec(debug_img, norm_vec_arr, grid)
-    # draw_grid(debug_img, grid)
-    draw_contour(debug_img, contour)
-
-    cv2.imshow('debug_img', debug_img)
-    cv2.imshow('term_img', term_img)
-    cv2.imshow('cont_img', cont_img)
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
