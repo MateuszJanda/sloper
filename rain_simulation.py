@@ -19,23 +19,13 @@ Vector = co.namedtuple('Vector', ['x', 'y'])
 
 
 def main():
-    # esetup()
-    print('asdf')
-    # sys.stdout = open('/dev/pts/5', 'w')
-    sys.stderr = open('/dev/pts/6', 'w')
-    # print(type(sys.stdout))
-    print('jkl')
-
-    curses.setupterm(fd=sys.stdout.fileno())
-
+    esetup()
     curses.wrapper(run)
 
 
 def esetup():
-    print('asdf')
-    # sys.stdout = open('/dev/pts/5', 'w')
     sys.stderr = open('/dev/pts/6', 'w')
-    print('jkl')
+
 
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr)
@@ -49,18 +39,13 @@ def eassert(condition):
 
 
 def run(scr):
-    print(dir(scr))
-    setup(scr)
-    print('xxx')
+    setup_curses(scr)
 
     file_name = 'ascii_fig.png.norm'
     norm_vec_arr = import_norm_vector_arr(file_name)
-    eprint('erro1')
 
     scr.addstr(0, 0, 'Hello world')
     scr.refresh()
-
-    eprint('erro2')
 
     while scr.getch() == -1:
         continue
@@ -89,9 +74,8 @@ def run(scr):
     curses.endwin()
 
 
-def setup(scr):
+def setup_curses(scr):
     """Setup curses screen"""
-
     curses.start_color()
     curses.use_default_colors()
     curses.halfdelay(5)
