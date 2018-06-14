@@ -8,19 +8,14 @@ import numpy as np
 import curses
 import locale
 import time
-import pdb
 
-
-locale.setlocale(locale.LC_ALL, '')
 
 G = 9.8             # [m/s^2]
 VECTOR_DIM = 2
 
 
-Vector = co.namedtuple('Vector', ['x', 'y'])
-
-
 def main():
+    locale.setlocale(locale.LC_ALL, '')
     esetup()
     curses.wrapper(run)
 
@@ -37,6 +32,7 @@ def eassert(condition):
     if not condition:
         curses.endwin()
         sys.stderr = sys.stdout
+        import pdb
         pdb.set_trace()
 
 
@@ -46,13 +42,7 @@ def run(scr):
     file_name = 'ascii_fig.png.norm'
     norm_vec_arr = import_norm_vector_arr(file_name)
 
-    # scr.addstr(0, 0, 'Hello world')
-    # scr.refresh()
-
     bodies = [
-        # Body(pos=Vector(110, 80), mass=10000, velocity=Vector(0, 0)),
-        # Body(pos=Vector(50, 100), mass=10, velocity=Vector(12, 3)),
-        # Body(pos=Vector(95, 80), mass=1, velocity=Vector(9, 21))
         Body(pos=Vector(110, 80), mass=12, velocity=Vector(0, 0)),
         Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, 0)),
         Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, 0))
@@ -61,7 +51,7 @@ def run(scr):
     t = 0
     freq = 100
     dt = 1.0/freq
-    screen_buf = clear_buf()
+    screen_buf = empty_buf()
 
     while True:
         calcs(bodies, dt)
@@ -93,7 +83,7 @@ def import_norm_vector_arr(file_name):
     return arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
 
 
-def clear_buf():
+def empty_buf():
     return [list(u'\u2800' * (curses.COLS - 1)) for _ in range(curses.LINES)]
 
 
@@ -105,10 +95,11 @@ def draw_pt(screen_buf, pt):
         return
 
     uchar = ord(screen_buf[y][x])
-    screen_buf[y][x] = unichr(uchar | relative_uchar(pt))
+    screen_buf[y][x] = unichr(uchar | rel_pos_to_uchar(pt))
 
 
-def relative_uchar(pt):
+def rel_pos_to_uchar(pt):
+    """Relative position (in cell) to braille mask"""
     bx = int(pt.x) % 2
     by = int(pt.y) % 4
 
