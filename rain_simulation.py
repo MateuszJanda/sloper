@@ -21,7 +21,7 @@ def main():
 
 
 def esetup():
-    sys.stderr = open('/dev/pts/4', 'w')
+    sys.stderr = open('/dev/pts/3', 'w')
 
 
 def eprint(*args, **kwargs):
@@ -43,7 +43,7 @@ def run(scr):
     norm_vec_arr = import_norm_vector_arr(file_name)
 
     bodies = [
-        Body(pos=Vector(110, 80), mass=12, velocity=Vector(0, 0)),
+        Body(pos=Vector(110, 80), mass=100, velocity=Vector(0, 0)),
         Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, 0)),
         Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, 0))
     ]
@@ -124,15 +124,18 @@ def display(scr, screen_buf):
 
 def calcs(bodies, dt):
     for b in bodies:
-        b.forces = Vector(0, -G)
+        b.forces = Vector(0, 0)
 
     # for b1, b2 in itertools.combinations(bodies, 2):
     #     calc_forces(b1, b2, dt)
 
     for b in bodies:
-        b.acc = div_s(b.forces, b.mass)
+        b.acc = add(Vector(0, -G), div_s(b.forces, b.mass))
         b.vel = add(b.vel, mul_s(b.acc, dt))
         b.pos = add(b.pos, mul_s(b.vel, dt))
+
+        eprint(mul_s(b.acc, dt))
+        eprint(b.vel)
 
 
 # def calc_forces(body1, body2, dt):
@@ -158,6 +161,10 @@ class Vector:
     def __init__(self, x, y):
         self.x = x
         self.y = y
+
+    def __repr__(self):
+        """ string representation of an object """
+        return "<" + str(self.x) + ", " + str(self.y) + ">"
 
 
 def magnitude(vec1, vec2):
