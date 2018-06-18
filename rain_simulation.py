@@ -92,6 +92,7 @@ def run(scr):
     t = 0
     freq = 100
     dt = 1.0/freq
+    # eprint(dt)
 
     scene = empty_scene()
     obstacles = empty_scene()
@@ -109,7 +110,7 @@ def run(scr):
         # display(scr, screen)
         display(scr, scene)
 
-        time.sleep(0.01)
+        time.sleep(dt)
         t += dt
 
     curses.endwin()
