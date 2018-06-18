@@ -96,7 +96,7 @@ def run(scr):
     dt = 1.0/freq
 
     while True:
-        calcs(bodies, dt)
+        calcs(bodies, obstacles_arr, dt)
         scene = copy.deepcopy(obstacles)
 
         for b in bodies:
@@ -187,9 +187,8 @@ def arrpos_to_point(x, y, arr_size):
 
 
 def point_to_arrpos(pt):
-    x = pt.x
     y = (curses.LINES - 1) * 4 - pt.y
-    return x, y
+    return int(pt.x), int(y)
 
 
 def braille_representation(pt):
@@ -215,7 +214,7 @@ def display(scr, screen):
     scr.refresh()
 
 
-def calcs(bodies, dt):
+def calcs(bodies, obstacles_arr, dt):
     # for b1, b2 in itertools.combinations(bodies, 2):
     #     calc_forces(b1, b2, dt)
 
@@ -223,6 +222,11 @@ def calcs(bodies, dt):
         b.acc = add(Vector(0, -G), div_s(b.forces, b.mass))
         b.vel = add(b.vel, mul_s(b.acc, dt))
         b.pos = add(b.pos, mul_s(b.vel, dt))
+
+    for b in bodies:
+        if check_collision(b, obstacles_arr):
+            collision(b, obstacles_arr)
+
 
     # for b in bodies:
     #     if collision(b.pos, :
@@ -244,10 +248,33 @@ def calcs(bodies, dt):
 #     body2.forces = add(body2.forces, mul_s(dir2, grav_mag))
 
 
-def collision(arr, pt):
-    x, y = point_to_arrpos(pt)
-    if (arr[y, x] != 0).any():
-        pass
+def check_collision(body, obs_arr):
+    x, y = point_to_arrpos(body.pos)
+    if (obs_arr[y, x] != 0).any():
+        eprint('kolizja')
+        return True
+
+    return False
+
+
+def collision(body, obs_arr):
+    return
+    x, y = point_to_arrpos(body.pos)
+    collision_norm = Vector(obs_arr[y, x][1], obs_arr[y, x][0])
+
+    e = 0.5
+
+    j = (-(1+e) * (dot(relativVel, collision_norm))) / \
+        ((1/body.mass) + \
+         dot(collision_norm, cross(cross(body.collisionPoint, collision_norm) / body.inertia, body.collisionPoint)))
+
+    body.vel += j * collision_norm / body.mass
+    # body1.angularVel += cross(body1.collisionPoint, (j * collision_norm)) / body1.inertia
+
+    # body2.vel -= j * collision_norm / body2.mass
+    # body2.angularVel -= cross(body2.collisionPoint, (j * collision_norm)) / body2.inertia
+
+
 
 class Body:
     def __init__(self, pos, mass, velocity):
