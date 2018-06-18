@@ -80,24 +80,20 @@ def eassert(condition):
 def run(scr):
     setup_curses(scr)
 
-    file_name = 'ascii_fig.png.norm'
-    norm_vec_arr = import_norm_vector_arr(file_name)
-
     bodies = [
         Body(pos=Vector(110, 80), mass=100, velocity=Vector(0, 0)),
         Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, 0)),
         Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, 0))
     ]
 
+    for b in bodies:
+        b.forces = Vector(0, 0)
+
+    obstacles, obstacles_arr = config_scene()
+
     t = 0
     freq = 100
     dt = 1.0/freq
-    # eprint(dt)
-
-    scene = empty_scene()
-    obstacles = empty_scene()
-    draw_arr_as_braille(obstacles, norm_vec_arr)
-
 
     while True:
         calcs(bodies, dt)
@@ -124,6 +120,28 @@ def setup_curses(scr):
     curses.noecho()
     curses.curs_set(False)
     scr.clear()
+
+
+def config_scene():
+    file_name = 'ascii_fig.png.norm'
+    norm_vec_arr = import_norm_vector_arr(file_name)
+
+    obstacles = empty_scene()
+    # draw_arr_as_braille(obstacles, norm_vec_arr)
+
+    norm_arr_size = Size(norm_vec_arr.shape[1], norm_vec_arr.shape[0])
+    obstacle_arr_size = Size((curses.COLS - 1) * 4, curses.LINES * 8)
+    obstacles_arr = np.zeros(shape=[obstacle_arr_size.height, obstacle_arr_size.width, VECTOR_DIM], dtype=norm_vec_arr.dtype)
+
+    x1 = 0
+    x2 = x1 + norm_arr_size.width
+    y1 = obstacle_arr_size.height - norm_arr_size.height
+    y2 = obstacle_arr_size.height
+    obstacles_arr[y1:y2, x1:x2] = norm_vec_arr
+
+    draw_arr_as_braille(obstacles, obstacles_arr)
+
+    return obstacles, obstacles_arr
 
 
 def import_norm_vector_arr(file_name):
@@ -159,7 +177,6 @@ def draw_point(screen, pt):
 def point_to_buffpos(pt):
     x = int(pt.x/2)
     y = curses.LINES - 1 - int(pt.y/4)
-
     return x, y
 
 
@@ -167,6 +184,12 @@ def arrpos_to_point(x, y, arr_size):
     """Array position to cartesian coordinate system"""
     y = arr_size.height - y
     return Vector(x, y)
+
+
+def point_to_arrpos(pt):
+    x = pt.x
+    y = (curses.LINES - 1) * 4 - pt.y
+    return x, y
 
 
 def braille_representation(pt):
@@ -189,14 +212,10 @@ def braille_representation(pt):
 def display(scr, screen):
     for num, line in enumerate(screen):
         scr.addstr(num, 0, u''.join(line).encode('utf-8'))
-
     scr.refresh()
 
 
 def calcs(bodies, dt):
-    for b in bodies:
-        b.forces = Vector(0, 0)
-
     # for b1, b2 in itertools.combinations(bodies, 2):
     #     calc_forces(b1, b2, dt)
 
@@ -204,6 +223,10 @@ def calcs(bodies, dt):
         b.acc = add(Vector(0, -G), div_s(b.forces, b.mass))
         b.vel = add(b.vel, mul_s(b.acc, dt))
         b.pos = add(b.pos, mul_s(b.vel, dt))
+
+    # for b in bodies:
+    #     if collision(b.pos, :
+
 
         # eprint(mul_s(b.acc, dt))
         # eprint(b.vel)
@@ -220,6 +243,11 @@ def calcs(bodies, dt):
 #     body1.forces = add(body1.forces, mul_s(dir1, grav_mag))
 #     body2.forces = add(body2.forces, mul_s(dir2, grav_mag))
 
+
+def collision(arr, pt):
+    x, y = point_to_arrpos(pt)
+    if (arr[y, x] != 0).any():
+        pass
 
 class Body:
     def __init__(self, pos, mass, velocity):
