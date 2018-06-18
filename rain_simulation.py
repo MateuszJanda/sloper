@@ -19,6 +19,40 @@ VECTOR_DIM = 2
 
 Size = co.namedtuple('Size', ['width', 'height'])
 
+class Vector:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
+    def __repr__(self):
+        """ string representation of an object """
+        return "<" + str(self.x) + ", " + str(self.y) + ">"
+
+
+def magnitude(vec1, vec2):
+    return math.sqrt((vec1.x - vec2.x)**2 + (vec1.y - vec2.y)**2)
+
+
+def normalize(vec):
+    mag = magnitude(Vector(0, 0), vec)
+    return Vector(vec.x / mag, vec.y / mag)
+
+
+def mul_s(vec, s):
+    return Vector(vec.x * s, vec.y * s)
+
+
+def div_s(vec, s):
+    return Vector(vec.x / s, vec.y / s)
+
+
+def sub(vec1, vec2):
+    return Vector(vec1.x - vec2.x, vec1.y - vec2.y)
+
+
+def add(vec1, vec2):
+    return Vector(vec1.x + vec2.x, vec1.y + vec2.y)
+
 
 def main():
     locale.setlocale(locale.LC_ALL, '')
@@ -57,19 +91,21 @@ def run(scr):
     t = 0
     freq = 100
     dt = 1.0/freq
-    # screen_buf = empty_buf()
 
-    screen_buf = scene_buf(norm_vec_arr)
+    screen = empty_scene()
+    obstacles = empty_scene()
+    draw_arr_as_braille(obstacles, norm_vec_arr)
+
 
     while True:
         calcs(bodies, dt)
 
         for b in bodies:
-            # draw_point(screen_buf, b.pos)
+            draw_point(screen, b.pos)
             pass
-        # draw_info(screen_buf, '[%.2f]: %.4f %.4f' % (t, bodies[1].pos.x, bodies[1].pos.y))
-        # display(scr, screen_buf)
-        display(scr, screen_buf)
+        # draw_info(screen, '[%.2f]: %.4f %.4f' % (t, bodies[1].pos.x, bodies[1].pos.y))
+        # display(scr, screen)
+        display(scr, screen)
 
         time.sleep(0.01)
         t += dt
@@ -93,33 +129,28 @@ def import_norm_vector_arr(file_name):
     return arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
 
 
-def empty_buf():
+def empty_scene():
     return [list(EMPTY_BRAILLE * (curses.COLS - 1)) for _ in range(curses.LINES)]
 
 
-def scene_buf(arr):
-    buf = empty_buf()
-
+def draw_arr_as_braille(buff, arr, shift=Vector(0, 0)):
     height, width, _ = arr.shape
     for x, y in it.product(range(width), range(height)):
         if (arr[y, x] != 0).any():
             pt = arrpos_to_point(x, y, Size(width, height))
-            draw_point(buf, pt)
-
-    return buf
-
+            pt = Vector(pt.x + shift.x, pt.y + shift.y)
+            draw_point(buff, pt)
 
 
-def draw_point(screen_buf, pt):
+def draw_point(screen, pt):
     x, y = point_to_buffpos(pt)
 
     # Out of screen
     if pt.y < 0 or y < 0 or pt.x < 0 or x >= curses.COLS - 1:
         return
 
-    eprint(x, y)
-    uchar = ord(screen_buf[y][x])
-    screen_buf[y][x] = unichr(uchar | point_to_braille(pt))
+    uchar = ord(screen[y][x])
+    screen[y][x] = unichr(uchar | point_to_braille(pt))
 
 
 def point_to_buffpos(pt):
@@ -153,8 +184,8 @@ def point_to_braille(pt):
             return ord(EMPTY_BRAILLE) | (0x20 >> (by -1))
 
 
-def display(scr, screen_buf):
-    for num, line in enumerate(screen_buf):
+def display(scr, screen):
+    for num, line in enumerate(screen):
         scr.addstr(num, 0, u''.join(line).encode('utf-8'))
 
     scr.refresh()
@@ -193,41 +224,6 @@ class Body:
         self.pos = pos
         self.mass = mass
         self.vel = velocity
-
-
-class Vector:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-    def __repr__(self):
-        """ string representation of an object """
-        return "<" + str(self.x) + ", " + str(self.y) + ">"
-
-
-def magnitude(vec1, vec2):
-    return math.sqrt((vec1.x - vec2.x)**2 + (vec1.y - vec2.y)**2)
-
-
-def normalize(vec):
-    mag = magnitude(Vector(0, 0), vec)
-    return Vector(vec.x / mag, vec.y / mag)
-
-
-def mul_s(vec, s):
-    return Vector(vec.x * s, vec.y * s)
-
-
-def div_s(vec, s):
-    return Vector(vec.x / s, vec.y / s)
-
-
-def sub(vec1, vec2):
-    return Vector(vec1.x - vec2.x, vec1.y - vec2.y)
-
-
-def add(vec1, vec2):
-    return Vector(vec1.x + vec2.x, vec1.y + vec2.y)
 
 
 if __name__ == '__main__':
