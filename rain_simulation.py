@@ -4,14 +4,20 @@
 from __future__ import division, print_function
 import sys
 import collections as co
+import itertools as it
 import numpy as np
 import curses
 import locale
 import time
 
 
+EMPTY_BRAILLE = u'\u2800'
+
 G = 9.8             # [m/s^2]
 VECTOR_DIM = 2
+
+
+Size = co.namedtuple('Size', ['width', 'height'])
 
 
 def main():
@@ -21,7 +27,7 @@ def main():
 
 
 def esetup():
-    sys.stderr = open('/dev/pts/3', 'w')
+    sys.stderr = open('/dev/pts/2', 'w')
 
 
 def eprint(*args, **kwargs):
@@ -51,14 +57,18 @@ def run(scr):
     t = 0
     freq = 100
     dt = 1.0/freq
-    screen_buf = empty_buf()
+    # screen_buf = empty_buf()
+
+    screen_buf = scene_buf(norm_vec_arr)
 
     while True:
         calcs(bodies, dt)
 
         for b in bodies:
-            draw_pt(screen_buf, b.pos)
+            # draw_point(screen_buf, b.pos)
+            pass
         # draw_info(screen_buf, '[%.2f]: %.4f %.4f' % (t, bodies[1].pos.x, bodies[1].pos.y))
+        # display(scr, screen_buf)
         display(scr, screen_buf)
 
         time.sleep(0.01)
@@ -84,35 +94,63 @@ def import_norm_vector_arr(file_name):
 
 
 def empty_buf():
-    return [list(u'\u2800' * (curses.COLS - 1)) for _ in range(curses.LINES)]
+    return [list(EMPTY_BRAILLE * (curses.COLS - 1)) for _ in range(curses.LINES)]
 
 
-def draw_pt(screen_buf, pt):
-    x = int(pt.x/2)
-    y = curses.LINES - 1 - int(pt.y/4)
+def scene_buf(arr):
+    buf = empty_buf()
 
+    height, width, _ = arr.shape
+    for x, y in it.product(range(width), range(height)):
+        if (arr[y, x] != 0).any():
+            pt = arrpos_to_point(x, y, Size(width, height))
+            draw_point(buf, pt)
+
+    return buf
+
+
+
+def draw_point(screen_buf, pt):
+    x, y = point_to_buffpos(pt)
+
+    # Out of screen
     if pt.y < 0 or y < 0 or pt.x < 0 or x >= curses.COLS - 1:
         return
 
+    eprint(x, y)
     uchar = ord(screen_buf[y][x])
-    screen_buf[y][x] = unichr(uchar | rel_pos_to_uchar(pt))
+    screen_buf[y][x] = unichr(uchar | point_to_braille(pt))
 
 
-def rel_pos_to_uchar(pt):
-    """Relative position (in cell) to braille mask"""
+def point_to_buffpos(pt):
+    """Point coordinate to buffer pos"""
+    x = int(pt.x/2)
+    y = curses.LINES - 1 - int(pt.y/4)
+
+    return x, y
+
+
+def arrpos_to_point(x, y, arr_size):
+    """Array position to cartesian coordinate system"""
+    y = arr_size.height - y
+    return Vector(x, y)
+
+
+def point_to_braille(pt):
+    """Point from cartesian coordinate system to his braille representation"""
     bx = int(pt.x) % 2
     by = int(pt.y) % 4
 
     if bx == 0:
         if by == 0:
-            return 0x40
+            return ord(EMPTY_BRAILLE) | 0x40
         else:
-            return 0x4 >> (by - 1)
+            return ord(EMPTY_BRAILLE) | (0x4 >> (by - 1))
     else:
         if by == 0:
-            return 0x80
+            return ord(EMPTY_BRAILLE) | 0x80
         else:
-            return 0x20 >> (by -1)
+            return ord(EMPTY_BRAILLE) | (0x20 >> (by -1))
 
 
 def display(scr, screen_buf):
@@ -134,8 +172,8 @@ def calcs(bodies, dt):
         b.vel = add(b.vel, mul_s(b.acc, dt))
         b.pos = add(b.pos, mul_s(b.vel, dt))
 
-        eprint(mul_s(b.acc, dt))
-        eprint(b.vel)
+        # eprint(mul_s(b.acc, dt))
+        # eprint(b.vel)
 
 
 # def calc_forces(body1, body2, dt):
