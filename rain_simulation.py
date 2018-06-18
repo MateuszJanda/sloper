@@ -5,6 +5,7 @@ from __future__ import division, print_function
 import sys
 import collections as co
 import itertools as it
+import copy
 import numpy as np
 import curses
 import locale
@@ -92,20 +93,21 @@ def run(scr):
     freq = 100
     dt = 1.0/freq
 
-    screen = empty_scene()
+    scene = empty_scene()
     obstacles = empty_scene()
     draw_arr_as_braille(obstacles, norm_vec_arr)
 
 
     while True:
         calcs(bodies, dt)
+        scene = copy.deepcopy(obstacles)
 
         for b in bodies:
-            draw_point(screen, b.pos)
+            draw_point(scene, b.pos)
             pass
         # draw_info(screen, '[%.2f]: %.4f %.4f' % (t, bodies[1].pos.x, bodies[1].pos.y))
         # display(scr, screen)
-        display(scr, screen)
+        display(scr, scene)
 
         time.sleep(0.01)
         t += dt
@@ -150,11 +152,10 @@ def draw_point(screen, pt):
         return
 
     uchar = ord(screen[y][x])
-    screen[y][x] = unichr(uchar | point_to_braille(pt))
+    screen[y][x] = unichr(uchar | braille_representation(pt))
 
 
 def point_to_buffpos(pt):
-    """Point coordinate to buffer pos"""
     x = int(pt.x/2)
     y = curses.LINES - 1 - int(pt.y/4)
 
@@ -167,7 +168,7 @@ def arrpos_to_point(x, y, arr_size):
     return Vector(x, y)
 
 
-def point_to_braille(pt):
+def braille_representation(pt):
     """Point from cartesian coordinate system to his braille representation"""
     bx = int(pt.x) % 2
     by = int(pt.y) % 4
