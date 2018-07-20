@@ -55,12 +55,6 @@ def add(vec1, vec2):
     return Vector(vec1.x + vec2.x, vec1.y + vec2.y)
 
 
-def main():
-    locale.setlocale(locale.LC_ALL, '')
-    esetup()
-    curses.wrapper(run)
-
-
 def esetup():
     sys.stderr = open('/dev/pts/2', 'w')
 
@@ -77,7 +71,7 @@ def eassert(condition):
         pdb.set_trace()
 
 
-def run(scr):
+def main(scr):
     setup_curses(scr)
 
     bodies = [
@@ -284,4 +278,6 @@ class Body:
 
 
 if __name__ == '__main__':
-    main()
+    locale.setlocale(locale.LC_ALL, '')
+    esetup()
+    curses.wrapper(main)
