@@ -25,33 +25,65 @@ class Vector:
         self.y = y
 
     def __repr__(self):
-        """ string representation of an object """
+        """ string representation of object """
         return "<" + str(self.x) + ", " + str(self.y) + ">"
 
+    def __imul__(self, scalar):
+        """ Multiply by scalar"""
+        self.x *= scalar
+        self.y *= scalar
+        return self
 
-def magnitude(vec1, vec2):
-    return math.sqrt((vec1.x - vec2.x)**2 + (vec1.y - vec2.y)**2)
+    def __mul__(self, scalar):
+        """ Multiply Vector by scalar"""
+        return Vector(self.x * scalar, self.y * scalar)
 
+    def __ifloordiv__(self, scalar):
+        """ Floor division by scalar """
+        self.x //= scalar
+        self.y //= scalar
+        return self
 
-def normalize(vec):
-    mag = magnitude(Vector(0, 0), vec)
-    return Vector(vec.x / mag, vec.y / mag)
+    def __floordiv__(self, scalar):
+        """ Floor division by scalar """
+        return Vector(self.x // scalar, self.y // scalar)
 
+    def __itruediv__(self, scalar):
+        """ True division Vector by scalar """
+        self.x /= scalar
+        self.y /= scalar
+        return self
 
-def mul_s(vec, s):
-    return Vector(vec.x * s, vec.y * s)
+    def __truediv__(self, scalar):
+        """ True division Vector by scalar """
+        return Vector(self.x / scalar, self.y / scalar)
 
+    def __isub__(self, vec):
+        """ Subtract Vector """
+        self.x -= vec.x
+        self.y -= vec.y
+        return self
 
-def div_s(vec, s):
-    return Vector(vec.x / s, vec.y / s)
+    def __sub__(self, vec):
+        """ Subtract two Vectors """
+        return Vector(self.x - vec.x, self.y - vec.y)
 
+    def __iadd__(self, vec):
+        """ Add Vectors """
+        self.x += vec.x
+        self.y += vec.y
+        return self
 
-def sub(vec1, vec2):
-    return Vector(vec1.x - vec2.x, vec1.y - vec2.y)
+    def __add__(self, vec):
+        """ Add two Vectors """
+        return Vector(self.x + vec.x, self.y + vec.y)
 
+    def magnitude(self):
+        return math.sqrt(self.x**2 + self.y**2)
 
-def add(vec1, vec2):
-    return Vector(vec1.x + vec2.x, vec1.y + vec2.y)
+    def normalized(self):
+        mag = self.magnitude()
+        return Vector(self.x / mag, self.y / mag)
 
 
 def esetup():
@@ -213,9 +245,10 @@ def calcs(bodies, obstacles_arr, dt):
     #     calc_forces(b1, b2, dt)
 
     for b in bodies:
-        b.acc = add(Vector(0, -GRAVITY_ACC), div_s(b.forces, b.mass))
-        b.vel = add(b.vel, mul_s(b.acc, dt))
-        b.pos = add(b.pos, mul_s(b.vel, dt))
+        b.forces = Vector(0, -GRAVITY_ACC)
+        b.acc = b.forces/b.mass
+        b.vel += b.acc * dt
+        b.pos += b.vel * dt
 
     for b in bodies:
         if check_collision(b, obstacles_arr):
@@ -235,8 +268,8 @@ def calcs(bodies, obstacles_arr, dt):
 #     if dist < 1:
 #         exit()
 
-#     dir1 = normalize(sub(body2.pos, body1.pos))
-#     dir2 = normalize(sub(body1.pos, body2.pos))
+#     dir1 = normalized(sub(body2.pos, body1.pos))
+#     dir2 = normalized(sub(body1.pos, body2.pos))
 #     grav_mag = (GRAVITY_ACC * body1.mass * body2.mass) / (dist**2)
 #     body1.forces = add(body1.forces, mul_s(dir1, grav_mag))
 #     body2.forces = add(body2.forces, mul_s(dir2, grav_mag))
