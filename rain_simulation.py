@@ -1,7 +1,6 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
-from __future__ import division, print_function
 import sys
 import collections as co
 import itertools as it
@@ -14,7 +13,7 @@ import time
 
 EMPTY_BRAILLE = u'\u2800'
 
-G = 9.8             # [m/s^2]
+GRAVITY_ACC = 9.8  # [m/s^2]
 VECTOR_DIM = 2
 
 
@@ -56,7 +55,8 @@ def add(vec1, vec2):
 
 
 def esetup():
-    sys.stderr = open('/dev/pts/2', 'w')
+    """Redirect stderr to other terminal. Run tty command, to get terminal id."""
+    sys.stderr = open('/dev/pts/4', 'w')
 
 
 def eprint(*args, **kwargs):
@@ -165,7 +165,7 @@ def draw_point(screen, pt):
         return
 
     uchar = ord(screen[y][x])
-    screen[y][x] = unichr(uchar | braille_representation(pt))
+    screen[y][x] = chr(uchar | braille_representation(pt))
 
 
 def point_to_buffpos(pt):
@@ -213,7 +213,7 @@ def calcs(bodies, obstacles_arr, dt):
     #     calc_forces(b1, b2, dt)
 
     for b in bodies:
-        b.acc = add(Vector(0, -G), div_s(b.forces, b.mass))
+        b.acc = add(Vector(0, -GRAVITY_ACC), div_s(b.forces, b.mass))
         b.vel = add(b.vel, mul_s(b.acc, dt))
         b.pos = add(b.pos, mul_s(b.vel, dt))
 
@@ -237,7 +237,7 @@ def calcs(bodies, obstacles_arr, dt):
 
 #     dir1 = normalize(sub(body2.pos, body1.pos))
 #     dir2 = normalize(sub(body1.pos, body2.pos))
-#     grav_mag = (G * body1.mass * body2.mass) / (dist**2)
+#     grav_mag = (GRAVITY_ACC * body1.mass * body2.mass) / (dist**2)
 #     body1.forces = add(body1.forces, mul_s(dir1, grav_mag))
 #     body2.forces = add(body2.forces, mul_s(dir2, grav_mag))
 
