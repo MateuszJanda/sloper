@@ -1,4 +1,4 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import collections as co
@@ -9,16 +9,16 @@ import copy
 import cv2
 
 
+Point = co.namedtuple('Point', ['x', 'y'])
+Size = co.namedtuple('Size', ['width', 'height'])
+Grid = co.namedtuple('Grid', ['start', 'end', 'cell_size'])
+
+
 CALIBRATION_AREA_SIZE = 40
 BLACK = 0
 WHITE = 255
 BRAILLE_CELL_SIZE = Size(2, 4)
 VECTOR_DIM = 2
-
-
-Point = co.namedtuple('Point', ['x', 'y'])
-Size = co.namedtuple('Size', ['width', 'height'])
-Grid = co.namedtuple('Grid', ['start', 'end', 'cell_size'])
 
 
 def main():
