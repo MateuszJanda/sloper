@@ -20,8 +20,9 @@ import time
 
 
 EMPTY_BRAILLE = u'\u2800'
-GRAVITY_ACC = 9.8  # [m/s^2]
 VECTOR_DIM = 2
+GRAVITY_ACC = 9.8  # [m/s^2]
+COEFFICIENT_OF_RESTITUTION = 0.5
 
 
 Size = co.namedtuple('Size', ['width', 'height'])
@@ -117,9 +118,9 @@ def main(scr):
     setup_curses(scr)
 
     bodies = [
-        Body(pos=Vector(110, 80), mass=5, velocity=Vector(0, -20)),
-        Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, -20)),
-        Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, -20))
+        Body(pos=Vector(110, 80), mass=5, velocity=Vector(0, -40)),
+        Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
+        Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, -40))
     ]
 
     for b in bodies:
@@ -261,7 +262,7 @@ def calcs(bodies, obstacles_arr, dt):
         b.pos += b.vel * dt
 
     collisions = detect_collisions(bodies, obstacles_arr)
-    resolve_collisions(collisions, obstacles_arr)
+    resolve_collisions(dt, collisions)
 
 
     # for b in bodies:
@@ -327,23 +328,17 @@ def border_collision(body, obs_arr):
     return []
 
 
-def resolve_collisions(body, obs_arr):
-    return
-    x, y = point_to_arrpos(body.pos)
-    collision_norm = Vector(obs_arr[y, x][1], obs_arr[y, x][0])
+def resolve_collisions(dt, collisions):
+    for c in collisions:
+        # Collision with border
+        if not c.body2:
+            rv = np.array([c.relative_vel.y, c.relative_vel.x])
+            cn = np.array([c.collision_normal.y, c.collision_normal.x])
+            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(rv, cn)) / \
+                    1/c.body1.mass
 
-    e = 0.5
-
-    j = (-(1+e) * (dot(relativVel, collision_norm))) / \
-        ((1/body.mass) + \
-         dot(collision_norm, cross(cross(body.collisionPoint, collision_norm) / body.inertia, body.collisionPoint)))
-
-    body.vel += j * collision_norm / body.mass
-    # body1.angularVel += cross(body1.collisionPoint, (j * collision_norm)) / body1.inertia
-
-    # body2.vel -= j * collision_norm / body2.mass
-    # body2.angularVel -= cross(body2.collisionPoint, (j * collision_norm)) / body2.inertia
-
+            c.body1.vel += (c.collision_normal / c.body1.mass) * impulse
+            c.body1.pos += c.body1.vel * dt
 
 
 class Body:
