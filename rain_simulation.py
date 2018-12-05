@@ -252,9 +252,6 @@ def display(scr, screen):
 
 
 def calcs(bodies, obstacles_arr, dt):
-    # for b1, b2 in itertools.combinations(bodies, 2):
-    #     calc_forces(b1, b2, dt)
-
     for b in bodies:
         b.forces = Vector(0, -GRAVITY_ACC)
         b.acc = b.forces/b.mass
@@ -263,26 +260,6 @@ def calcs(bodies, obstacles_arr, dt):
 
     collisions = detect_collisions(bodies, obstacles_arr)
     resolve_collisions(dt, collisions)
-
-
-    # for b in bodies:
-    #     if resolve_collisions(b.pos, :
-
-
-        # eprint(mul_s(b.acc, dt))
-        # eprint(b.vel)
-
-
-# def calc_forces(body1, body2, dt):
-#     dist = magnitude(body1.pos, body2.pos)
-#     if dist < 1:
-#         exit()
-
-#     dir1 = normalized(sub(body2.pos, body1.pos))
-#     dir2 = normalized(sub(body1.pos, body2.pos))
-#     grav_mag = (GRAVITY_ACC * body1.mass * body2.mass) / (dist**2)
-#     body1.forces = add(body1.forces, mul_s(dir1, grav_mag))
-#     body2.forces = add(body2.forces, mul_s(dir2, grav_mag))
 
 
 class Collision:
