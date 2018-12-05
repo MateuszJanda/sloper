@@ -1,6 +1,14 @@
 #! /usr/bin/env python3
 # -*- coding: utf-8 -*-
 
+"""
+Coordinates systems:
+    point/pos/pt    - position in Cartesian coordinate system
+    buffpos         - position on screen (of one character). Y from top to bottom
+    arrpos          - similar to point, but Y from top to bottom
+"""
+
+
 import sys
 import collections as co
 import itertools as it
@@ -109,9 +117,9 @@ def main(scr):
     setup_curses(scr)
 
     bodies = [
-        Body(pos=Vector(110, 80), mass=100, velocity=Vector(0, 0)),
-        Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, 0)),
-        Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, 0))
+        Body(pos=Vector(110, 80), mass=5, velocity=Vector(0, -20)),
+        Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, -20)),
+        Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, -20))
     ]
 
     for b in bodies:
@@ -252,9 +260,8 @@ def calcs(bodies, obstacles_arr, dt):
         b.vel += b.acc * dt
         b.pos += b.vel * dt
 
-    for b in bodies:
-        if collisions(b, obstacles_arr):
-            resolve_collisions(b, obstacles_arr)
+    collisions = detect_collisions(bodies, obstacles_arr)
+    resolve_collisions(collisions, obstacles_arr)
 
 
     # for b in bodies:
@@ -277,13 +284,47 @@ def calcs(bodies, obstacles_arr, dt):
 #     body2.forces = add(body2.forces, mul_s(dir2, grav_mag))
 
 
-def collisions(body, obs_arr):
-    x, y = point_to_arrpos(body.pos)
-    if (obs_arr[y, x] != 0).any():
-        eprint('kolizja')
-        return True
+class Collision:
+    def __init__(self, body1, body2, relative_vel, collision_normal):
+        self.body1 = body1
+        self.body2 = body2
+        self.relative_vel = relative_vel
+        self.collision_normal = collision_normal
 
-    return False
+
+def detect_collisions(bodies, obs_arr):
+    collisions = []
+    for body in bodies:
+        collisions += border_collision(body, obs_arr)
+
+    return collisions
+
+
+def border_collision(body, obs_arr):
+    """Check colisions with border"""
+    # TODO: dedicated Size should be used instead obs_arr.shape to compare
+    if body.pos.x < 0:
+        return [Collision(body1=body,
+            body2=None,
+            relative_vel=body.vel,
+            collision_normal=Vector(1, 0))]
+    elif body.pos.x > obs_arr.shape[1]:
+        return [Collision(body1=body,
+            body2=None,
+            relative_vel=body.vel,
+            collision_normal=Vector(-1, 0))]
+    elif body.pos.y < 0:
+        return [Collision(body1=body,
+            body2=None,
+            relative_vel=body.vel,
+            collision_normal=Vector(0, 1))]
+    elif body.pos.y > obs_arr.shape[0]:
+        return [Collision(body1=body,
+            body2=None,
+            relative_vel=body.vel,
+            collision_normal=Vector(0, -1))]
+
+    return []
 
 
 def resolve_collisions(body, obs_arr):
