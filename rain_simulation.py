@@ -12,12 +12,12 @@ import time
 
 
 EMPTY_BRAILLE = u'\u2800'
-
 GRAVITY_ACC = 9.8  # [m/s^2]
 VECTOR_DIM = 2
 
 
 Size = co.namedtuple('Size', ['width', 'height'])
+
 
 class Vector:
     def __init__(self, x, y):
@@ -86,16 +86,18 @@ class Vector:
         return Vector(self.x / mag, self.y / mag)
 
 
-def esetup():
+def setup_stderr():
     """Redirect stderr to other terminal. Run tty command, to get terminal id."""
-    sys.stderr = open('/dev/pts/4', 'w')
+    sys.stderr = open('/dev/pts/2', 'w')
 
 
 def eprint(*args, **kwargs):
+    """Print on stderr"""
     print(*args, file=sys.stderr)
 
 
 def eassert(condition):
+    """Assert. Disable curses and run pdb"""
     if not condition:
         curses.endwin()
         sys.stderr = sys.stdout
@@ -251,12 +253,12 @@ def calcs(bodies, obstacles_arr, dt):
         b.pos += b.vel * dt
 
     for b in bodies:
-        if check_collision(b, obstacles_arr):
-            collision(b, obstacles_arr)
+        if collisions(b, obstacles_arr):
+            resolve_collisions(b, obstacles_arr)
 
 
     # for b in bodies:
-    #     if collision(b.pos, :
+    #     if resolve_collisions(b.pos, :
 
 
         # eprint(mul_s(b.acc, dt))
@@ -275,7 +277,7 @@ def calcs(bodies, obstacles_arr, dt):
 #     body2.forces = add(body2.forces, mul_s(dir2, grav_mag))
 
 
-def check_collision(body, obs_arr):
+def collisions(body, obs_arr):
     x, y = point_to_arrpos(body.pos)
     if (obs_arr[y, x] != 0).any():
         eprint('kolizja')
@@ -284,7 +286,7 @@ def check_collision(body, obs_arr):
     return False
 
 
-def collision(body, obs_arr):
+def resolve_collisions(body, obs_arr):
     return
     x, y = point_to_arrpos(body.pos)
     collision_norm = Vector(obs_arr[y, x][1], obs_arr[y, x][0])
@@ -312,5 +314,5 @@ class Body:
 
 if __name__ == '__main__':
     locale.setlocale(locale.LC_ALL, '')
-    esetup()
+    setup_stderr()
     curses.wrapper(main)
