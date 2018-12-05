@@ -130,7 +130,7 @@ def main(scr):
 
     t = 0
     freq = 100
-    dt = 1.0/freq
+    dt = 1/freq
 
     while True:
         calcs(bodies, obstacles_arr, dt)
@@ -138,7 +138,6 @@ def main(scr):
 
         for b in bodies:
             draw_point(scene, b.pos)
-            pass
         # draw_info(screen, '[%.2f]: %.4f %.4f' % (t, bodies[1].pos.x, bodies[1].pos.y))
         # display(scr, screen)
         display(scr, scene)
@@ -253,8 +252,7 @@ def display(scr, screen):
 
 def calcs(bodies, obstacles_arr, dt):
     for b in bodies:
-        b.forces = Vector(0, -GRAVITY_ACC)
-        b.acc = b.forces/b.mass
+        b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
         b.vel += b.acc * dt
         b.pos += b.vel * dt
 
