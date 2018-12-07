@@ -17,6 +17,7 @@ import numpy as np
 import curses
 import locale
 import time
+import pdb
 
 
 Size = co.namedtuple('Size', ['width', 'height'])
@@ -25,6 +26,7 @@ Size = co.namedtuple('Size', ['width', 'height'])
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = Size(2, 4)
 VECTOR_DIM = 2
+
 GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
 
@@ -120,6 +122,17 @@ class Screen:
 
         self._buf_backup = copy.deepcopy(self._buf)
 
+    def draw_borders(self):
+        for x in range(self._arr_size.width):
+            self.draw_point(Vector(x, 0))
+            self.draw_point(Vector(x, self._arr_size.height-1))
+
+        for y in range(self._arr_size.height):
+            self.draw_point(Vector(0, y))
+            self.draw_point(Vector(self._arr_size.width-1, y))
+
+        self._buf_backup = copy.deepcopy(self._buf)
+
     def draw_hail(self, pt):
         self.draw_point(pt)
 
@@ -168,9 +181,10 @@ class Body:
 def main(scr):
     setup_curses(scr)
     screen = Screen(scr)
-    obstacles_arr = setup_obstacles(screen)
+    arr = setup_obstacles(screen)
 
-    screen.draw_arr(obstacles_arr)
+    screen.draw_arr(arr)
+    screen.draw_borders()
 
     bodies = [
         Body(pos=Vector(110, 80), mass=5, velocity=Vector(0, -40)),
@@ -186,7 +200,7 @@ def main(scr):
     dt = 1/freq
 
     while True:
-        calcs(bodies, obstacles_arr, dt)
+        step_simulation(dt, bodies, arr)
         screen.restore_backup()
 
         for b in bodies:
@@ -214,7 +228,6 @@ def eassert(condition):
     if not condition:
         curses.endwin()
         sys.stderr = sys.stdout
-        import pdb
         pdb.set_trace()
 
 
@@ -230,22 +243,22 @@ def setup_curses(scr):
 
 def setup_obstacles(screen):
     file_name = 'ascii_fig.png.norm'
-    norm_vec_arr = import_norm_vector_arr(file_name)
+    norm_vec_arr = import_norm_arr(file_name)
 
     norm_arr_size = Size(norm_vec_arr.shape[1], norm_vec_arr.shape[0])
-    obstacle_arr_size = Size((curses.COLS - 1) * 4, curses.LINES * 8)
-    obstacles_arr = np.zeros(shape=[obstacle_arr_size.height, obstacle_arr_size.width, VECTOR_DIM], dtype=norm_vec_arr.dtype)
+    arr_size = Size((curses.COLS - 1) * 4, curses.LINES * 8)
+    arr = np.zeros(shape=[arr_size.height, arr_size.width, VECTOR_DIM], dtype=norm_vec_arr.dtype)
 
     x1 = 0
     x2 = x1 + norm_arr_size.width
-    y1 = obstacle_arr_size.height - norm_arr_size.height
-    y2 = obstacle_arr_size.height
-    obstacles_arr[y1:y2, x1:x2] = norm_vec_arr
+    y1 = arr_size.height - norm_arr_size.height
+    y2 = arr_size.height
+    arr[y1:y2, x1:x2] = norm_vec_arr
 
-    return obstacles_arr
+    return arr
 
 
-def import_norm_vector_arr(file_name):
+def import_norm_arr(file_name):
     arr = np.loadtxt(file_name)
     height, width = arr.shape
     return arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
@@ -268,14 +281,17 @@ def ptpos_to_arrpos(pt):
     return Vector(int(pt.x), int(y))
 
 
-def calcs(bodies, obstacles_arr, dt):
+def step_simulation(dt, bodies, arr):
+    integrate(dt, bodies)
+    collisions = detect_collisions(bodies, arr)
+    resolve_collisions(dt, collisions)
+
+
+def integrate(dt, bodies):
     for b in bodies:
         b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
         b.vel += b.acc * dt
         b.pos += b.vel * dt
-
-    collisions = detect_collisions(bodies, obstacles_arr)
-    resolve_collisions(dt, collisions)
 
 
 class Collision:
