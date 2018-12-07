@@ -31,71 +31,34 @@ GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
 
 
-class Vector:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
+class Vector(np.ndarray):
+    def __new__(cls, x, y):
+        obj = np.asarray([x, y]).view(cls)
+        return obj
+
+    @property
+    def x(self):
+        return self[0]
+
+    @x.setter
+    def x(self, value):
+        self[0] = value
+
+    @property
+    def y(self):
+        return self[1]
+
+    @y.setter
+    def y(self, value):
+        self[1] = value
+
+    def __str__(self):
+        """string representation of object"""
+        return "<x=" + str(self.x) + ", y=" + str(self.y) + ">"
 
     def __repr__(self):
-        """ string representation of object """
-        return "<" + str(self.x) + ", " + str(self.y) + ">"
-
-    def __imul__(self, scalar):
-        """ Multiply by scalar"""
-        self.x *= scalar
-        self.y *= scalar
-        return self
-
-    def __mul__(self, scalar):
-        """ Multiply Vector by scalar"""
-        return Vector(self.x * scalar, self.y * scalar)
-
-    def __ifloordiv__(self, scalar):
-        """ Floor division by scalar """
-        self.x //= scalar
-        self.y //= scalar
-        return self
-
-    def __floordiv__(self, scalar):
-        """ Floor division by scalar """
-        return Vector(self.x // scalar, self.y // scalar)
-
-    def __itruediv__(self, scalar):
-        """ True division Vector by scalar """
-        self.x /= scalar
-        self.y /= scalar
-        return self
-
-    def __truediv__(self, scalar):
-        """ True division Vector by scalar """
-        return Vector(self.x / scalar, self.y / scalar)
-
-    def __isub__(self, vec):
-        """ Subtract Vector """
-        self.x -= vec.x
-        self.y -= vec.y
-        return self
-
-    def __sub__(self, vec):
-        """ Subtract two Vectors """
-        return Vector(self.x - vec.x, self.y - vec.y)
-
-    def __iadd__(self, vec):
-        """ Add Vectors """
-        self.x += vec.x
-        self.y += vec.y
-        return self
-
-    def __add__(self, vec):
-        """ Add two Vectors """
-        return Vector(self.x + vec.x, self.y + vec.y)
-
-    def magnitude(self):
-        return math.sqrt(self.x**2 + self.y**2)
-
-    def normalized(self):
-        mag = self.magnitude()
-        return Vector(self.x / mag, self.y / mag)
+        """string representation of object"""
+        return "<x=" + str(self.x) + ", y=" + str(self.y) + ">"
 
 
 class Screen:
@@ -133,16 +96,15 @@ class Screen:
 
         self._buf_backup = copy.deepcopy(self._buf)
 
-    def draw_hail(self, pt):
+    def draw_hailstone(self, pt):
         self.draw_point(pt)
 
     def draw_point(self, pt):
-        bufpos = ptpos_to_bufpos(pt)
-
         # Out of the screen
-        if not (0 <= pt.x  < self._arr_size.width and 0 <= pt.y < self._arr_size.height):
+        if not (0 <= pt.x < self._arr_size.width and 0 <= pt.y < self._arr_size.height):
             return
 
+        bufpos = ptpos_to_bufpos(pt)
         uchar = ord(self._buf[bufpos.y][bufpos.x])
         self._buf[bufpos.y][bufpos.x] = chr(uchar | self._braille_char(pt))
 
@@ -200,11 +162,12 @@ def main(scr):
     dt = 1/freq
 
     while True:
-        step_simulation(dt, bodies, arr)
         screen.restore_backup()
 
+        step_simulation(dt, bodies, arr)
+
         for b in bodies:
-            screen.draw_hail(b.pos)
+            screen.draw_hailstone(b.pos)
         screen.refresh()
 
         time.sleep(dt)
@@ -290,8 +253,8 @@ def step_simulation(dt, bodies, arr):
 def integrate(dt, bodies):
     for b in bodies:
         b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
-        b.vel += b.acc * dt
-        b.pos += b.vel * dt
+        b.vel = b.vel + b.acc * dt
+        b.pos = b.pos + b.vel * dt
 
 
 class Collision:
@@ -341,9 +304,7 @@ def resolve_collisions(dt, collisions):
     for c in collisions:
         # Collision with screen border
         if not c.body2:
-            rv = np.array([c.relative_vel.y, c.relative_vel.x])
-            cn = np.array([c.collision_normal.y, c.collision_normal.x])
-            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(rv, cn)) / \
+            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.collision_normal)) / \
                     1/c.body1.mass
 
             c.body1.vel += (c.collision_normal / c.body1.mass) * impulse
