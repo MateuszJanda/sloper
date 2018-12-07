@@ -19,13 +19,14 @@ import locale
 import time
 
 
+Size = co.namedtuple('Size', ['width', 'height'])
+
+
 EMPTY_BRAILLE = u'\u2800'
+BUF_CELL_SIZE = Size(2, 4)
 VECTOR_DIM = 2
 GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
-
-
-Size = co.namedtuple('Size', ['width', 'height'])
 
 
 class Vector:
@@ -95,6 +96,109 @@ class Vector:
         return Vector(self.x / mag, self.y / mag)
 
 
+class Screen:
+    def __init__(self, scr):
+        self._scr = scr
+
+        self._buf_size = Size(curses.COLS-1, curses.LINES)
+        self._arr_size = Size(self._buf_size.width*BUF_CELL_SIZE.width,
+            self._buf_size.height*BUF_CELL_SIZE.height)
+
+        self._buf = self._get_empty_buf()
+        self._buf_backup = copy.deepcopy(self._buf)
+
+    def _get_empty_buf(self):
+        return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
+
+    def draw_arr(self, arr, shift=Vector(0, 0)):
+        """Draw array. Every element is represent as braille character"""
+        height, width, _ = arr.shape
+        for x, y in it.product(range(width), range(height)):
+            if np.any(arr[y, x] != 0):
+                pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
+                self.draw_point(pt)
+
+        self._buf_backup = copy.deepcopy(self._buf)
+
+    def draw_hail(self, pt):
+        self.draw_point(pt)
+
+    def draw_point(self, pt):
+        bufpos = ptpos_to_bufpos(pt)
+
+        # Out of the screen
+        if not (0 <= pt.x  < self._arr_size.width and 0 <= pt.y < self._arr_size.height):
+            return
+
+        uchar = ord(self._buf[bufpos.y][bufpos.x])
+        self._buf[bufpos.y][bufpos.x] = chr(uchar | self._braille_char(pt))
+
+    def _braille_char(self, pt):
+        """Point as braille character in buffer cell"""
+        bx = int(pt.x) % BUF_CELL_SIZE.width
+        by = int(pt.y) % BUF_CELL_SIZE.height
+
+        if bx == 0:
+            if by == 0:
+                return ord(EMPTY_BRAILLE) | 0x40
+            else:
+                return ord(EMPTY_BRAILLE) | (0x4 >> (by - 1))
+        else:
+            if by == 0:
+                return ord(EMPTY_BRAILLE) | 0x80
+            else:
+                return ord(EMPTY_BRAILLE) | (0x20 >> (by -1))
+
+    def restore_backup(self):
+        self._buf = copy.deepcopy(self._buf_backup)
+
+    def refresh(self):
+        for num, line in enumerate(self._buf):
+            self._scr.addstr(num, 0, u''.join(line).encode('utf-8'))
+        self._scr.refresh()
+
+
+class Body:
+    def __init__(self, pos, mass, velocity):
+        self.pos = pos
+        self.mass = mass
+        self.vel = velocity
+
+
+def main(scr):
+    setup_curses(scr)
+    screen = Screen(scr)
+    obstacles_arr = setup_obstacles(screen)
+
+    screen.draw_arr(obstacles_arr)
+
+    bodies = [
+        Body(pos=Vector(110, 80), mass=5, velocity=Vector(0, -40)),
+        Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
+        Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, -40))
+    ]
+
+    for b in bodies:
+        b.forces = Vector(0, 0)
+
+    t = 0
+    freq = 100
+    dt = 1/freq
+
+    while True:
+        calcs(bodies, obstacles_arr, dt)
+        screen.restore_backup()
+
+        for b in bodies:
+            screen.draw_hail(b.pos)
+        screen.refresh()
+
+        time.sleep(dt)
+        t += dt
+
+    curses.endwin()
+
+
 def setup_stderr():
     """Redirect stderr to other terminal. Run tty command, to get terminal id."""
     sys.stderr = open('/dev/pts/2', 'w')
@@ -114,40 +218,6 @@ def eassert(condition):
         pdb.set_trace()
 
 
-def main(scr):
-    setup_curses(scr)
-
-    bodies = [
-        Body(pos=Vector(110, 80), mass=5, velocity=Vector(0, -40)),
-        Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
-        Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, -40))
-    ]
-
-    for b in bodies:
-        b.forces = Vector(0, 0)
-
-    obstacles, obstacles_arr = config_scene()
-
-    t = 0
-    freq = 100
-    dt = 1/freq
-
-    while True:
-        calcs(bodies, obstacles_arr, dt)
-        scene = copy.deepcopy(obstacles)
-
-        for b in bodies:
-            draw_point(scene, b.pos)
-        # draw_info(screen, '[%.2f]: %.4f %.4f' % (t, bodies[1].pos.x, bodies[1].pos.y))
-        # display(scr, screen)
-        display(scr, scene)
-
-        time.sleep(dt)
-        t += dt
-
-    curses.endwin()
-
-
 def setup_curses(scr):
     """Setup curses screen"""
     curses.start_color()
@@ -158,12 +228,9 @@ def setup_curses(scr):
     scr.clear()
 
 
-def config_scene():
+def setup_obstacles(screen):
     file_name = 'ascii_fig.png.norm'
     norm_vec_arr = import_norm_vector_arr(file_name)
-
-    obstacles = empty_scene()
-    # draw_arr_as_braille(obstacles, norm_vec_arr)
 
     norm_arr_size = Size(norm_vec_arr.shape[1], norm_vec_arr.shape[0])
     obstacle_arr_size = Size((curses.COLS - 1) * 4, curses.LINES * 8)
@@ -175,9 +242,7 @@ def config_scene():
     y2 = obstacle_arr_size.height
     obstacles_arr[y1:y2, x1:x2] = norm_vec_arr
 
-    draw_arr_as_braille(obstacles, obstacles_arr)
-
-    return obstacles, obstacles_arr
+    return obstacles_arr
 
 
 def import_norm_vector_arr(file_name):
@@ -186,68 +251,21 @@ def import_norm_vector_arr(file_name):
     return arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
 
 
-def empty_scene():
-    return [list(EMPTY_BRAILLE * (curses.COLS - 1)) for _ in range(curses.LINES)]
-
-
-def draw_arr_as_braille(buff, arr, shift=Vector(0, 0)):
-    height, width, _ = arr.shape
-    for x, y in it.product(range(width), range(height)):
-        if (arr[y, x] != 0).any():
-            pt = arrpos_to_point(x, y, Size(width, height))
-            pt = Vector(pt.x + shift.x, pt.y + shift.y)
-            draw_point(buff, pt)
-
-
-def draw_point(screen, pt):
-    x, y = point_to_buffpos(pt)
-
-    # Out of screen
-    if pt.y < 0 or y < 0 or pt.x < 0 or x >= curses.COLS - 1:
-        return
-
-    uchar = ord(screen[y][x])
-    screen[y][x] = chr(uchar | braille_representation(pt))
-
-
-def point_to_buffpos(pt):
+def ptpos_to_bufpos(pt):
     x = int(pt.x/2)
     y = curses.LINES - 1 - int(pt.y/4)
-    return x, y
+    return Vector(x, y)
 
 
-def arrpos_to_point(x, y, arr_size):
+def arrpos_to_ptpos(x, y, arr_size):
     """Array position to cartesian coordinate system"""
     y = arr_size.height - y
     return Vector(x, y)
 
 
-def point_to_arrpos(pt):
+def ptpos_to_arrpos(pt):
     y = (curses.LINES - 1) * 4 - pt.y
-    return int(pt.x), int(y)
-
-
-def braille_representation(pt):
-    """Point from cartesian coordinate system to his braille representation"""
-    bx = int(pt.x) % 2
-    by = int(pt.y) % 4
-
-    if bx == 0:
-        if by == 0:
-            return ord(EMPTY_BRAILLE) | 0x40
-        else:
-            return ord(EMPTY_BRAILLE) | (0x4 >> (by - 1))
-    else:
-        if by == 0:
-            return ord(EMPTY_BRAILLE) | 0x80
-        else:
-            return ord(EMPTY_BRAILLE) | (0x20 >> (by -1))
-
-
-def display(scr, screen):
-    for num, line in enumerate(screen):
-        scr.addstr(num, 0, u''.join(line).encode('utf-8'))
-    scr.refresh()
+    return Vector(int(pt.x), int(y))
 
 
 def calcs(bodies, obstacles_arr, dt):
@@ -305,7 +323,7 @@ def border_collision(body, obs_arr):
 
 def resolve_collisions(dt, collisions):
     for c in collisions:
-        # Collision with border
+        # Collision with screen border
         if not c.body2:
             rv = np.array([c.relative_vel.y, c.relative_vel.x])
             cn = np.array([c.collision_normal.y, c.collision_normal.x])
@@ -314,13 +332,6 @@ def resolve_collisions(dt, collisions):
 
             c.body1.vel += (c.collision_normal / c.body1.mass) * impulse
             c.body1.pos += c.body1.vel * dt
-
-
-class Body:
-    def __init__(self, pos, mass, velocity):
-        self.pos = pos
-        self.mass = mass
-        self.vel = velocity
 
 
 if __name__ == '__main__':
