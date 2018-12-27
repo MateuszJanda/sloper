@@ -75,15 +75,19 @@ class Screen:
     def _get_empty_buf(self):
         return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
 
-    def draw_arr(self, arr, shift=Vector(0, 0)):
-        """Draw array. Every element is represent as braille character"""
+    def add_arr(self, arr, shift=Vector(0, 0)):
+        """
+        Add static element to screen buffer. Every element in array will be
+        represent as braille character. By default all arrays are drawn in
+        bottom left corner.
+        """
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
                 pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
                 self.draw_point(pt)
 
-        self._buf_backup = copy.deepcopy(self._buf)
+        self._save_in_backup_buf()
 
     def draw_borders(self):
         for x in range(self._arr_size.width):
@@ -94,6 +98,10 @@ class Screen:
             self.draw_point(Vector(0, y))
             self.draw_point(Vector(self._arr_size.width-1, y))
 
+        self._save_in_backup_buf()
+
+    def _save_in_backup_buf(self):
+        """Backup screen buffer"""
         self._buf_backup = copy.deepcopy(self._buf)
 
     def draw_hailstone(self, pt):
@@ -143,10 +151,12 @@ class Body:
 def main(scr):
     setup_curses(scr)
     screen = Screen(scr)
-    arr = setup_obstacles(screen)
+    terrain = Terrain()
 
-    screen.draw_arr(arr)
-    screen.draw_borders()
+    arr = import_obstacle('ascii_fig.png.norm')
+
+    terrain.add_arr(arr)
+    screen.add_arr(arr)
 
     bodies = [
         Body(pos=Vector(110, 80), mass=5, velocity=Vector(0, -40)),
@@ -164,7 +174,7 @@ def main(scr):
     while True:
         screen.restore_backup()
 
-        step_simulation(dt, bodies, arr)
+        step_simulation(dt, bodies, terrain)
 
         for b in bodies:
             screen.draw_hailstone(b.pos)
@@ -204,32 +214,38 @@ def setup_curses(scr):
     scr.clear()
 
 
-def setup_obstacles(screen):
-    file_name = 'ascii_fig.png.norm'
-    norm_vec_arr = import_norm_arr(file_name)
+class Terrain:
+    def __init__(self):
+        self._terrain_size = Size(curses.COLS-1*BUF_CELL_SIZE.width,
+            curses.LINES*BUF_CELL_SIZE.height)
+        self._terrain = np.zeros(shape=[self._terrain_size.height, self._terrain_size.width, VECTOR_DIM])
 
-    norm_arr_size = Size(norm_vec_arr.shape[1], norm_vec_arr.shape[0])
-    arr_size = Size((curses.COLS - 1) * 4, curses.LINES * 8)
-    arr = np.zeros(shape=[arr_size.height, arr_size.width, VECTOR_DIM], dtype=norm_vec_arr.dtype)
+    def size(self):
+        return self._terrain_size
 
-    x1 = 0
-    x2 = x1 + norm_arr_size.width
-    y1 = arr_size.height - norm_arr_size.height
-    y2 = arr_size.height
-    arr[y1:y2, x1:x2] = norm_vec_arr
+    def add_arr(self, arr, shift=Vector(0, 0)):
+        """By default all arrays are drawn inbottom left corner."""
+        arr_size = Size(arr.shape[1], arr.shape[0])
 
-    return arr
+        x1 = shift.x
+        x2 = x1 + arr_size.width
+        y1 = self._terrain_size.height - arr_size.height - shift.y
+        y2 = self._terrain_size.height - shift.y
+        self._terrain[y1:y2, x1:x2] = arr
 
 
-def import_norm_arr(file_name):
+def import_obstacle(file_name):
+    """Import array with normal vector"""
     arr = np.loadtxt(file_name)
     height, width = arr.shape
-    return arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
+    norm_vec_arr = arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
+    norm_arr_size = Size(norm_vec_arr.shape[1], norm_vec_arr.shape[0])
+    return norm_vec_arr
 
 
 def ptpos_to_bufpos(pt):
-    x = int(pt.x/2)
-    y = curses.LINES - 1 - int(pt.y/4)
+    x = int(pt.x/BUF_CELL_SIZE.width)
+    y = curses.LINES - 1 - int(pt.y/BUF_CELL_SIZE.height)
     return Vector(x, y)
 
 
@@ -240,13 +256,13 @@ def arrpos_to_ptpos(x, y, arr_size):
 
 
 def ptpos_to_arrpos(pt):
-    y = (curses.LINES - 1) * 4 - pt.y
+    y = (curses.LINES - 1) * BUF_CELL_SIZE.height - pt.y
     return Vector(int(pt.x), int(y))
 
 
-def step_simulation(dt, bodies, arr):
+def step_simulation(dt, bodies, terrain):
     integrate(dt, bodies)
-    collisions = detect_collisions(bodies, arr)
+    collisions = detect_collisions(bodies, terrain)
     resolve_collisions(dt, collisions)
 
 
@@ -265,23 +281,22 @@ class Collision:
         self.collision_normal = collision_normal
 
 
-def detect_collisions(bodies, obs_arr):
+def detect_collisions(bodies, terrain):
     collisions = []
     for body in bodies:
-        collisions += border_collision(body, obs_arr)
+        collisions += border_collision(body, terrain.size())
 
     return collisions
 
 
-def border_collision(body, obs_arr):
-    """Check colisions with border"""
-    # TODO: dedicated Size should be used instead obs_arr.shape to compare
+def border_collision(body, terrain_size):
+    """Check collisions with border"""
     if body.pos.x < 0:
         return [Collision(body1=body,
             body2=None,
             relative_vel=-body.vel,
             collision_normal=Vector(1, 0))]
-    elif body.pos.x > obs_arr.shape[1]:
+    elif body.pos.x > terrain_size.width:
         return [Collision(body1=body,
             body2=None,
             relative_vel=-body.vel,
@@ -291,7 +306,7 @@ def border_collision(body, obs_arr):
             body2=None,
             relative_vel=-body.vel,
             collision_normal=Vector(0, 1))]
-    elif body.pos.y > obs_arr.shape[0]:
+    elif body.pos.y > terrain_size.height:
         return [Collision(body1=body,
             body2=None,
             relative_vel=-body.vel,
