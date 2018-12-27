@@ -304,7 +304,7 @@ def resolve_collisions(dt, collisions):
     for c in collisions:
         # Collision with screen border
         if not c.body2:
-            impulse = (-(1+0.5) * np.dot(c.relative_vel, c.collision_normal)) / \
+            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.collision_normal)) / \
                     (1/c.body1.mass)
 
             c.body1.vel -= (c.collision_normal / c.body1.mass) * impulse
