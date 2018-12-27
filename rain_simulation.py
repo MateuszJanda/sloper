@@ -54,11 +54,11 @@ class Vector(np.ndarray):
 
     def __str__(self):
         """string representation of object"""
-        return "<x=" + str(self.x) + ", y=" + str(self.y) + ">"
+        return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
 
     def __repr__(self):
         """string representation of object"""
-        return "<x=" + str(self.x) + ", y=" + str(self.y) + ">"
+        return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
 
 
 class Screen:
@@ -279,22 +279,22 @@ def border_collision(body, obs_arr):
     if body.pos.x < 0:
         return [Collision(body1=body,
             body2=None,
-            relative_vel=body.vel,
+            relative_vel=-body.vel,
             collision_normal=Vector(1, 0))]
     elif body.pos.x > obs_arr.shape[1]:
         return [Collision(body1=body,
             body2=None,
-            relative_vel=body.vel,
+            relative_vel=-body.vel,
             collision_normal=Vector(-1, 0))]
     elif body.pos.y < 0:
         return [Collision(body1=body,
             body2=None,
-            relative_vel=body.vel,
+            relative_vel=-body.vel,
             collision_normal=Vector(0, 1))]
     elif body.pos.y > obs_arr.shape[0]:
         return [Collision(body1=body,
             body2=None,
-            relative_vel=body.vel,
+            relative_vel=-body.vel,
             collision_normal=Vector(0, -1))]
 
     return []
@@ -304,10 +304,10 @@ def resolve_collisions(dt, collisions):
     for c in collisions:
         # Collision with screen border
         if not c.body2:
-            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.collision_normal)) / \
-                    1/c.body1.mass
+            impulse = (-(1+0.5) * np.dot(c.relative_vel, c.collision_normal)) / \
+                    (1/c.body1.mass)
 
-            c.body1.vel += (c.collision_normal / c.body1.mass) * impulse
+            c.body1.vel -= (c.collision_normal / c.body1.mass) * impulse
             c.body1.pos += c.body1.vel * dt
 
 
