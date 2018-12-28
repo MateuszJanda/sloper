@@ -14,6 +14,7 @@ import collections as co
 import itertools as it
 import copy
 import numpy as np
+import math
 import curses
 import locale
 import time
@@ -52,6 +53,10 @@ class Vector(np.ndarray):
     def y(self, value):
         self[1] = value
 
+    def magnitude(self):
+        """Calculate vector magnitude"""
+        return np.linalg.norm(self)
+
     def __str__(self):
         """string representation of object"""
         return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
@@ -89,7 +94,8 @@ class Screen:
 
         self._save_in_backup_buf()
 
-    def draw_borders(self):
+    def add_border(self):
+        """For debug, draw screen border in braille characters"""
         for x in range(self._arr_size.width):
             self.draw_point(Vector(x, 0))
             self.draw_point(Vector(x, self._arr_size.height-1))
@@ -125,7 +131,7 @@ class Screen:
             if by == 0:
                 return ord(EMPTY_BRAILLE) | 0x40
             else:
-                return ord(EMPTY_BRAILLE) | (0x4 >> (by - 1))
+                return ord(EMPTY_BRAILLE) | (0x04 >> (by - 1))
         else:
             if by == 0:
                 return ord(EMPTY_BRAILLE) | 0x80
@@ -133,6 +139,7 @@ class Screen:
                 return ord(EMPTY_BRAILLE) | (0x20 >> (by -1))
 
     def restore_backup(self):
+        """Restore static elements added to screen"""
         self._buf = copy.deepcopy(self._buf_backup)
 
     def refresh(self):
@@ -146,6 +153,7 @@ class Body:
         self.pos = pos
         self.mass = mass
         self.vel = velocity
+        self.lock = False
 
 
 def main(scr):
@@ -250,7 +258,7 @@ def ptpos_to_bufpos(pt):
 
 
 def arrpos_to_ptpos(x, y, arr_size):
-    """Array position to cartesian coordinate system"""
+    """Array position to Cartesian coordinate system"""
     y = arr_size.height - y
     return Vector(x, y)
 
@@ -268,9 +276,16 @@ def step_simulation(dt, bodies, terrain):
 
 def integrate(dt, bodies):
     for b in bodies:
+        if b.lock:
+            continue
+
         b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
         b.vel = b.vel + b.acc * dt
         b.pos = b.pos + b.vel * dt
+
+        # Don't calculate collision if body is not moving
+        if math.isclose(b.vel.magnitude(), 0, abs_tol=0.01):
+            b.lock = True
 
 
 class Collision:
@@ -284,6 +299,8 @@ class Collision:
 def detect_collisions(bodies, terrain):
     collisions = []
     for body in bodies:
+        if body.lock:
+            continue
         collisions += border_collision(body, terrain.size())
 
     return collisions
