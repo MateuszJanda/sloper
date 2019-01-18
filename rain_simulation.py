@@ -80,17 +80,27 @@ class Screen:
     def _get_empty_buf(self):
         return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
 
-    def add_arr(self, arr, shift=Vector(0, 0)):
+    def add_arr(self, txt, arr, shift=Vector(0, 0)):
         """
         Add static element to screen buffer. Every element in array will be
         represent as braille character. By default all arrays are drawn in
         bottom left corner.
         """
-        height, width, _ = arr.shape
+        # height, width, _ = arr.shape
+        # for x, y in it.product(range(width), range(height)):
+        #     if np.any(arr[y, x] != 0):
+        #         pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
+        #         self.draw_point(pt)
+
+        height, width = txt.shape
+        eprint(arr.shape)
         for x, y in it.product(range(width), range(height)):
-            if np.any(arr[y, x] != 0):
-                pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
-                self.draw_point(pt)
+            if np.any(arr[y, x] != ' '):
+                # pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
+                # self.draw_point(pt)
+                w = width//BUF_CELL_SIZE.width
+                h = height//BUF_CELL_SIZE.height
+                self._buf[y + h][x + h] = txt[y, x]
 
         self._save_in_backup_buf()
 
@@ -161,15 +171,16 @@ def main(scr):
     screen = Screen(scr)
     terrain = Terrain()
 
-    arr = import_obstacle('ascii_fig.png.norm')
+    txt, arr = import_obstacle('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_arr(arr)
-    screen.add_arr(arr)
+    screen.add_arr(txt, arr)
 
     bodies = [
-        Body(pos=Vector(110, 80), mass=5, velocity=Vector(0, -40)),
         Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
-        Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, -40))
+        Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
+        # Body(pos=Vector(110, 80), mass=1, velocity=Vector(0, -40)),
+        # Body(pos=Vector(20, 80), mass=1, velocity=Vector(0, -40)),
     ]
 
     for b in bodies:
@@ -196,7 +207,7 @@ def main(scr):
 
 def setup_stderr():
     """Redirect stderr to other terminal. Run tty command, to get terminal id."""
-    sys.stderr = open('/dev/pts/2', 'w')
+    sys.stderr = open('/dev/pts/9', 'w')
 
 
 def eprint(*args, **kwargs):
@@ -232,7 +243,7 @@ class Terrain:
         return self._terrain_size
 
     def add_arr(self, arr, shift=Vector(0, 0)):
-        """By default all arrays are drawn inbottom left corner."""
+        """By default all arrays are drawn in bottom left corner."""
         arr_size = Size(arr.shape[1], arr.shape[0])
 
         x1 = shift.x
@@ -242,13 +253,32 @@ class Terrain:
         self._terrain[y1:y2, x1:x2] = arr
 
 
-def import_obstacle(file_name):
+def import_obstacle(obs_file, obs_norm_file):
     """Import array with normal vector"""
-    arr = np.loadtxt(file_name)
+
+    # Import array with text version of obstacle
+    tmp = []
+    max_size = 0
+    with open(obs_file, 'r') as f:
+        for line in f:
+            max_size = max(max_size, len(line))
+            arr = np.array([ch for ch in line])
+            tmp.append(arr)
+
+    tmp2 = []
+    for t in tmp:
+        arr = np.append(t, [s for s in (max_size - t.shape[0]) * ' '])
+        tmp2.append(arr)
+
+    tmp2 = np.array(tmp2)
+    eprint(tmp2.shape)
+
+    arr = np.loadtxt(obs_norm_file)
     height, width = arr.shape
     norm_vec_arr = arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
     norm_arr_size = Size(norm_vec_arr.shape[1], norm_vec_arr.shape[0])
-    return norm_vec_arr
+
+    return tmp2, norm_vec_arr
 
 
 def ptpos_to_bufpos(pt):
