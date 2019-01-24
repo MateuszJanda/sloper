@@ -3,9 +3,9 @@
 
 """
 Coordinates systems:
-    point/pos/pt    - position in Cartesian coordinate system
-    buffpos         - position on screen (of one character). Y from top to bottom
-    arrpos          - similar to point, but Y from top to bottom
+    ptpos      - position in Cartesian coordinate system
+    buffpos    - position on screen (of one character). Y from top to bottom
+    arrpos     - similar to point, but Y from top to bottom
 """
 
 
@@ -93,14 +93,17 @@ class Screen:
         #         self.draw_point(pt)
 
         height, width = txt.shape
-        eprint(arr.shape)
-        for x, y in it.product(range(width), range(height)):
-            if np.any(arr[y, x] != ' '):
+        # eprint(arr.shape)
+        for x, y in it.product(range(width), range(height-1)):
+            if np.any(txt[y, x] != ' '):
                 # pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
                 # self.draw_point(pt)
-                w = width//BUF_CELL_SIZE.width
-                h = height//BUF_CELL_SIZE.height
-                self._buf[y + h][x + h] = txt[y, x]
+                # w = width//BUF_CELL_SIZE.width
+                w = x
+                h = self._buf_size.height - height + y
+                # h = height//BUF_CELL_SIZE.height
+                # eprint(y + h, x + w)
+                self._buf[h][w] = txt[y, x]
 
         self._save_in_backup_buf()
 
@@ -120,8 +123,8 @@ class Screen:
         """Backup screen buffer"""
         self._buf_backup = copy.deepcopy(self._buf)
 
-    def draw_hailstone(self, pt):
-        self.draw_point(pt)
+    # def draw_hailstone(self, pt):
+    #     self.draw_point(pt)
 
     def draw_point(self, pt):
         # Out of the screen
@@ -159,8 +162,8 @@ class Screen:
 
 
 class Body:
-    def __init__(self, pos, mass, velocity):
-        self.pos = pos
+    def __init__(self, ptpos, mass, velocity):
+        self.ptpos = ptpos
         self.mass = mass
         self.vel = velocity
         self.lock = False
@@ -177,10 +180,10 @@ def main(scr):
     screen.add_arr(txt, arr)
 
     bodies = [
-        Body(pos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
-        Body(pos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
-        # Body(pos=Vector(110, 80), mass=1, velocity=Vector(0, -40)),
-        # Body(pos=Vector(20, 80), mass=1, velocity=Vector(0, -40)),
+        Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
+        Body(ptpos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
+        # Body(ptpos=Vector(110, 80), mass=1, velocity=Vector(0, -40)),
+        # Body(ptpos=Vector(20, 80), mass=1, velocity=Vector(0, -40)),
     ]
 
     for b in bodies:
@@ -196,7 +199,8 @@ def main(scr):
         step_simulation(dt, bodies, terrain)
 
         for b in bodies:
-            screen.draw_hailstone(b.pos)
+            # screen.draw_hailstone(b.ptpos)
+            screen.draw_point(b.ptpos)
         screen.refresh()
 
         time.sleep(dt)
@@ -207,7 +211,7 @@ def main(scr):
 
 def setup_stderr():
     """Redirect stderr to other terminal. Run tty command, to get terminal id."""
-    sys.stderr = open('/dev/pts/9', 'w')
+    sys.stderr = open('/dev/pts/3', 'w')
 
 
 def eprint(*args, **kwargs):
@@ -311,7 +315,7 @@ def integrate(dt, bodies):
 
         b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
         b.vel = b.vel + b.acc * dt
-        b.pos = b.pos + b.vel * dt
+        b.ptpos = b.ptpos + b.vel * dt
 
         # Don't calculate collision if body is not moving
         if math.isclose(b.vel.magnitude(), 0, abs_tol=0.01):
@@ -338,22 +342,22 @@ def detect_collisions(bodies, terrain):
 
 def border_collision(body, terrain_size):
     """Check collisions with border"""
-    if body.pos.x < 0:
+    if body.ptpos.x < 0:
         return [Collision(body1=body,
             body2=None,
             relative_vel=-body.vel,
             collision_normal=Vector(1, 0))]
-    elif body.pos.x > terrain_size.width:
+    elif body.ptpos.x > terrain_size.width:
         return [Collision(body1=body,
             body2=None,
             relative_vel=-body.vel,
             collision_normal=Vector(-1, 0))]
-    elif body.pos.y < 0:
+    elif body.ptpos.y < 0:
         return [Collision(body1=body,
             body2=None,
             relative_vel=-body.vel,
             collision_normal=Vector(0, 1))]
-    elif body.pos.y > terrain_size.height:
+    elif body.ptpos.y > terrain_size.height:
         return [Collision(body1=body,
             body2=None,
             relative_vel=-body.vel,
@@ -370,7 +374,7 @@ def resolve_collisions(dt, collisions):
                     (1/c.body1.mass)
 
             c.body1.vel -= (c.collision_normal / c.body1.mass) * impulse
-            c.body1.pos += c.body1.vel * dt
+            c.body1.ptpos += c.body1.vel * dt
 
 
 if __name__ == '__main__':
