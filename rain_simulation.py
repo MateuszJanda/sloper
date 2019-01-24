@@ -257,17 +257,30 @@ class Terrain:
         self._terrain[y1:y2, x1:x2] = arr
 
 
-def import_obstacle(obs_file, obs_norm_file):
-    """Import array with normal vector"""
+def import_obstacle(ascii_file, norm_file):
+    tmp = import_ascii(ascii_file)
+    tmp2 = reshape_ascii(tmp)
+    norm_vec_arr = import_arr_with_normal_vectors(norm_file)
 
-    # Import array with text version of obstacle
+    return tmp2, norm_vec_arr
+
+
+def import_ascii(ascii_file):
+    """Import array with normal vector"""
+    # Import array with ascii version of obstacle
     tmp = []
-    max_size = 0
-    with open(obs_file, 'r') as f:
+    with open(ascii_file, 'r') as f:
         for line in f:
-            max_size = max(max_size, len(line))
             arr = np.array([ch for ch in line])
             tmp.append(arr)
+
+    return tmp
+
+
+def reshape_ascii(tmp):
+    max_size = 0
+    for t in tmp:
+        max_size = max(max_size, len(t))
 
     tmp2 = []
     for t in tmp:
@@ -275,14 +288,17 @@ def import_obstacle(obs_file, obs_norm_file):
         tmp2.append(arr)
 
     tmp2 = np.array(tmp2)
-    eprint(tmp2.shape)
 
-    arr = np.loadtxt(obs_norm_file)
+    return tmp2
+
+
+def import_arr_with_normal_vectors(norm_file):
+    arr = np.loadtxt(norm_file)
     height, width = arr.shape
     norm_vec_arr = arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
     norm_arr_size = Size(norm_vec_arr.shape[1], norm_vec_arr.shape[0])
 
-    return tmp2, norm_vec_arr
+    return norm_vec_arr
 
 
 def ptpos_to_bufpos(pt):
