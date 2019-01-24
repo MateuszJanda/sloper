@@ -93,16 +93,11 @@ class Screen:
         #         self.draw_point(pt)
 
         height, width = txt.shape
-        # eprint(arr.shape)
+        # TODO: fix hack
         for x, y in it.product(range(width), range(height-1)):
             if np.any(txt[y, x] != ' '):
-                # pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
-                # self.draw_point(pt)
-                # w = width//BUF_CELL_SIZE.width
                 w = x
                 h = self._buf_size.height - height + y
-                # h = height//BUF_CELL_SIZE.height
-                # eprint(y + h, x + w)
                 self._buf[h][w] = txt[y, x]
 
         self._save_in_backup_buf()
@@ -157,7 +152,7 @@ class Screen:
 
     def refresh(self):
         for num, line in enumerate(self._buf):
-            self._scr.addstr(num, 0, u''.join(line).encode('utf-8'))
+            self._scr.addstr(num, 0, ''.join(line))
         self._scr.refresh()
 
 
@@ -181,7 +176,7 @@ def main(scr):
 
     bodies = [
         Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
-        Body(ptpos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
+        # Body(ptpos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
         # Body(ptpos=Vector(110, 80), mass=1, velocity=Vector(0, -40)),
         # Body(ptpos=Vector(20, 80), mass=1, velocity=Vector(0, -40)),
     ]
@@ -211,7 +206,7 @@ def main(scr):
 
 def setup_stderr():
     """Redirect stderr to other terminal. Run tty command, to get terminal id."""
-    sys.stderr = open('/dev/pts/3', 'w')
+    sys.stderr = open('/dev/pts/2', 'w')
 
 
 def eprint(*args, **kwargs):
@@ -271,7 +266,7 @@ def import_ascii(ascii_file):
     tmp = []
     with open(ascii_file, 'r') as f:
         for line in f:
-            arr = np.array([ch for ch in line])
+            arr = np.array([ch for ch in line if ch != '\n'])
             tmp.append(arr)
 
     return tmp
