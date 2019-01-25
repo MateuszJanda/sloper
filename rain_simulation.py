@@ -262,7 +262,7 @@ def import_obstacle(ascii_file, norm_file):
 
 
 def import_ascii(ascii_file):
-    """Import array with normal vector"""
+    """Import ascii figure from file"""
     # Import array with ascii version of obstacle
     tmp = []
     with open(ascii_file, 'r') as f:
@@ -289,6 +289,7 @@ def reshape_ascii(tmp):
 
 
 def import_arr_with_normal_vectors(norm_file):
+    """Import array with normal vector"""
     arr = np.loadtxt(norm_file)
     height, width = arr.shape
     norm_vec_arr = arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
