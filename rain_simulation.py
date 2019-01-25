@@ -95,14 +95,14 @@ class Screen:
 
         self._save_in_backup_buf()
 
-    def add_ascii(self, ascii, shift=Vector(0, 0)):
-        height, width = ascii.shape
+    def add_ascii(self, ascii_arr, shift=Vector(0, 0)):
+        height, width = ascii_arr.shape
         # TODO: fix hack
         for x, y in it.product(range(width), range(height-1)):
-            if np.any(ascii[y, x] != ' '):
+            if np.any(ascii_arr[y, x] != ' '):
                 w = x
                 h = self._buf_size.height - height + y
-                self._buf[h][w] = ascii[y, x]
+                self._buf[h][w] = ascii_arr[y, x]
 
         self._save_in_backup_buf()
 
@@ -207,7 +207,7 @@ def main(scr):
 
 def setup_stderr():
     """Redirect stderr to other terminal. Run tty command, to get terminal id."""
-    sys.stderr = open('/dev/pts/2', 'w')
+    sys.stderr = open('/dev/pts/3', 'w')
 
 
 def eprint(*args, **kwargs):
@@ -256,6 +256,12 @@ class Terrain:
 def import_obstacle(ascii_file, norm_file):
     tmp = import_ascii(ascii_file)
     tmp2 = reshape_ascii(tmp)
+    tmp2 = remove_margin(tmp2)
+    tmp2 = remove_marker(tmp2)
+
+    for line in tmp2:
+        eprint(''.join(line))
+
     norm_vec_arr = import_arr_with_normal_vectors(norm_file)
 
     return tmp2, norm_vec_arr
@@ -287,6 +293,17 @@ def reshape_ascii(tmp):
 
     return tmp2
 
+
+def remove_margin(ascii_arr):
+    height, width = ascii_arr.shape
+    ascii_arr = np.delete(ascii_arr, [0, height-1], 0)
+    ascii_arr = np.delete(ascii_arr, [0, width-1], 1)
+    return ascii_arr
+
+
+def remove_marker(ascii_arr):
+    ascii_arr[0:2, 0:2] = np.array([[' ', ' '], [' ', ' ']])
+    return ascii_arr
 
 def import_arr_with_normal_vectors(norm_file):
     """Import array with normal vector"""
