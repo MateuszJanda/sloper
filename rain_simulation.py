@@ -5,7 +5,7 @@
 Coordinates systems:
     ptpos      - position in Cartesian coordinate system
     buffpos    - position on screen (of one character). Y from top to bottom
-    arrpos     - similar to point, but Y from top to bottom
+    arrpos     - similar to ptpos, but Y from top to bottom
 """
 
 
@@ -173,6 +173,7 @@ def main(scr):
 
     terrain.add_arr(arr)
     screen.add_ascii(txt)
+    # screen.add_norm_arr(arr)
 
     bodies = [
         Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
@@ -255,13 +256,18 @@ class Terrain:
 def import_obstacle(ascii_file, norm_file):
     tmp = import_ascii(ascii_file)
     tmp2 = reshape_ascii(tmp)
-    tmp2 = remove_margin(tmp2)
     tmp2 = remove_marker(tmp2)
+    # eprint(tmp2)
+    tmp2 = remove_margin(tmp2)
 
     # for line in tmp2:
-    #     eprint(''.join(line))
+        # eprint(''.join(line))
+    # eprint(tmp2)
 
     norm_vec_arr = import_arr_with_normal_vectors(norm_file)
+    norm_vec_arr = remove_norm_margin(norm_vec_arr)
+
+    validate_arrays(tmp2, norm_vec_arr)
 
     return tmp2, norm_vec_arr
 
@@ -294,14 +300,29 @@ def reshape_ascii(tmp):
 
 
 def remove_margin(ascii_arr):
-    height, width = ascii_arr.shape
-    ascii_arr = np.delete(ascii_arr, [0, height-1], 0)
-    ascii_arr = np.delete(ascii_arr, [0, width-1], 1)
+    del_rows = [idx for idx, margin in enumerate(np.all(ascii_arr == ' ', axis=0)) if margin]
+    ascii_arr = np.delete(ascii_arr, del_rows, axis=1)
+
+    del_columns = [idx for idx, margin in enumerate(np.all(ascii_arr == ' ', axis=1)) if margin]
+    ascii_arr = np.delete(ascii_arr, del_columns, axis=0)
+
     return ascii_arr
 
 
+def remove_norm_margin(norm_arr):
+    empty = np.array([0, 0])
+    norm_reduce = np.logical_and.reduce(norm_arr == empty, axis=-1)
+    del_rows = [idx for idx, margin in enumerate(np.all(norm_reduce, axis=0)) if margin]
+    norm_arr = np.delete(norm_arr, del_rows, axis=1)
+
+    del_columns = [idx for idx, margin in enumerate(np.all(norm_reduce, axis=1)) if margin]
+    norm_arr = np.delete(norm_arr, del_columns, axis=0)
+
+    return norm_arr
+
+
 def remove_marker(ascii_arr):
-    ascii_arr[0:2, 0:2] = np.array([[' ', ' '], [' ', ' ']])
+    ascii_arr[0:3, 0:3] = np.array([' ' for _ in range(9)]).reshape(3, 3)
     return ascii_arr
 
 
@@ -313,6 +334,14 @@ def import_arr_with_normal_vectors(norm_file):
     norm_arr_size = Size(norm_vec_arr.shape[1], norm_vec_arr.shape[0])
 
     return norm_vec_arr
+
+
+def validate_arrays(ascii_arr, norm_arr):
+    ascii_arr_size = Size(ascii_arr.shape[1], ascii_arr.shape[0])
+    norm_arr_size = Size(norm_arr.shape[1]//BUF_CELL_SIZE.width, norm_arr.shape[0]//BUF_CELL_SIZE.height)
+
+    if ascii_arr_size != norm_arr_size:
+        raise Exception('Arrays imported from file. Mismatch size', ascii_arr_size, norm_arr_size)
 
 
 def ptpos_to_bufpos(pt):
