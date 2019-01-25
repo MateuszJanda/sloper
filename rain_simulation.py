@@ -97,8 +97,7 @@ class Screen:
 
     def add_ascii(self, ascii_arr, shift=Vector(0, 0)):
         height, width = ascii_arr.shape
-        # TODO: fix hack
-        for x, y in it.product(range(width), range(height-1)):
+        for x, y in it.product(range(width), range(height)):
             if np.any(ascii_arr[y, x] != ' '):
                 w = x
                 h = self._buf_size.height - height + y
@@ -259,8 +258,8 @@ def import_obstacle(ascii_file, norm_file):
     tmp2 = remove_margin(tmp2)
     tmp2 = remove_marker(tmp2)
 
-    for line in tmp2:
-        eprint(''.join(line))
+    # for line in tmp2:
+    #     eprint(''.join(line))
 
     norm_vec_arr = import_arr_with_normal_vectors(norm_file)
 
@@ -304,6 +303,7 @@ def remove_margin(ascii_arr):
 def remove_marker(ascii_arr):
     ascii_arr[0:2, 0:2] = np.array([[' ', ' '], [' ', ' ']])
     return ascii_arr
+
 
 def import_arr_with_normal_vectors(norm_file):
     """Import array with normal vector"""
