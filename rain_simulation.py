@@ -80,25 +80,29 @@ class Screen:
     def _get_empty_buf(self):
         return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
 
-    def add_arr(self, txt, arr, shift=Vector(0, 0)):
+
+    def add_norm_arr(self, arr, shift=Vector(0, 0)):
         """
         Add static element to screen buffer. Every element in array will be
         represent as braille character. By default all arrays are drawn in
         bottom left corner.
         """
-        # height, width, _ = arr.shape
-        # for x, y in it.product(range(width), range(height)):
-        #     if np.any(arr[y, x] != 0):
-        #         pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
-        #         self.draw_point(pt)
+        height, width, _ = arr.shape
+        for x, y in it.product(range(width), range(height)):
+            if np.any(arr[y, x] != 0):
+                pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
+                self.draw_point(pt)
 
-        height, width = txt.shape
+        self._save_in_backup_buf()
+
+    def add_ascii(self, ascii, shift=Vector(0, 0)):
+        height, width = ascii.shape
         # TODO: fix hack
         for x, y in it.product(range(width), range(height-1)):
-            if np.any(txt[y, x] != ' '):
+            if np.any(ascii[y, x] != ' '):
                 w = x
                 h = self._buf_size.height - height + y
-                self._buf[h][w] = txt[y, x]
+                self._buf[h][w] = ascii[y, x]
 
         self._save_in_backup_buf()
 
@@ -117,9 +121,6 @@ class Screen:
     def _save_in_backup_buf(self):
         """Backup screen buffer"""
         self._buf_backup = copy.deepcopy(self._buf)
-
-    # def draw_hailstone(self, pt):
-    #     self.draw_point(pt)
 
     def draw_point(self, pt):
         # Out of the screen
@@ -172,7 +173,7 @@ def main(scr):
     txt, arr = import_obstacle('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_arr(arr)
-    screen.add_arr(txt, arr)
+    screen.add_ascii(txt)
 
     bodies = [
         Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
