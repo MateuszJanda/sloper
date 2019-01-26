@@ -315,19 +315,23 @@ def remove_norm_margin(norm_arr):
 
     falgs = transform_norm(norm_arr)
 
-    # eprint(np.all(falgs, axis=0))
-    # eprint(np.all(falgs, axis=1))
+    eprint(norm_arr.shape)
+    eprint(np.all(falgs == False, axis=0))
+    # eprint(np.all(falgs == False, axis=1))
 
     # empty = np.array([0, 0])
     # norm_reduce = np.logical_and.reduce(norm_arr == empty, axis=-1)
 
     del_rows = [list(range(idx*BUF_CELL_SIZE.height, idx*BUF_CELL_SIZE.height+BUF_CELL_SIZE.height))
-                for idx, margin in enumerate(np.all(falgs == False, axis=0)) if margin]
+                for idx, margin in enumerate(np.all(falgs == False, axis=1)) if margin]
+    eprint(del_rows)
     norm_arr = np.delete(norm_arr, del_rows, axis=1)
 
+    eprint(norm_arr.shape)
     # del_columns = [idx for idx, margin in enumerate(np.all(norm_reduce, axis=1)) if margin]
     del_columns = [list(range(idx*BUF_CELL_SIZE.width, idx*BUF_CELL_SIZE.width+BUF_CELL_SIZE.width))
-                for idx, margin in enumerate(np.all(falgs == False, axis=1)) if margin]
+                for idx, margin in enumerate(np.all(falgs == False, axis=0)) if margin]
+    eprint(del_columns)
     norm_arr = np.delete(norm_arr, del_columns, axis=0)
 
     eprint(norm_arr.shape)
