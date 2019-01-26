@@ -172,8 +172,8 @@ def main(scr):
     txt, arr = import_obstacle('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_arr(arr)
-    screen.add_ascii(txt)
-    # screen.add_norm_arr(arr)
+    # screen.add_ascii(txt)
+    screen.add_norm_arr(arr)
 
     bodies = [
         Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
@@ -267,7 +267,7 @@ def import_obstacle(ascii_file, norm_file):
     norm_vec_arr = import_arr_with_normal_vectors(norm_file)
     norm_vec_arr = remove_norm_margin(norm_vec_arr)
 
-    validate_arrays(tmp2, norm_vec_arr)
+    # validate_arrays(tmp2, norm_vec_arr)
 
     return tmp2, norm_vec_arr
 
@@ -310,13 +310,27 @@ def remove_margin(ascii_arr):
 
 
 def remove_norm_margin(norm_arr):
-    empty = np.array([0, 0])
-    norm_reduce = np.logical_and.reduce(norm_arr == empty, axis=-1)
-    del_rows = [idx for idx, margin in enumerate(np.all(norm_reduce, axis=0)) if margin]
+    if norm_arr.shape[1] % BUF_CELL_SIZE.width or norm_arr.shape[0] % BUF_CELL_SIZE.height:
+        raise Exception("Arrays with normal vector can't be transformed to buffer")
+
+    falgs = transform_norm(norm_arr)
+
+    # eprint(np.all(falgs, axis=0))
+    # eprint(np.all(falgs, axis=1))
+
+    # empty = np.array([0, 0])
+    # norm_reduce = np.logical_and.reduce(norm_arr == empty, axis=-1)
+
+    del_rows = [list(range(idx*BUF_CELL_SIZE.height, idx*BUF_CELL_SIZE.height+BUF_CELL_SIZE.height))
+                for idx, margin in enumerate(np.all(falgs == False, axis=0)) if margin]
     norm_arr = np.delete(norm_arr, del_rows, axis=1)
 
-    del_columns = [idx for idx, margin in enumerate(np.all(norm_reduce, axis=1)) if margin]
+    # del_columns = [idx for idx, margin in enumerate(np.all(norm_reduce, axis=1)) if margin]
+    del_columns = [list(range(idx*BUF_CELL_SIZE.width, idx*BUF_CELL_SIZE.width+BUF_CELL_SIZE.width))
+                for idx, margin in enumerate(np.all(falgs == False, axis=1)) if margin]
     norm_arr = np.delete(norm_arr, del_columns, axis=0)
+
+    eprint(norm_arr.shape)
 
     return norm_arr
 
@@ -336,11 +350,37 @@ def import_arr_with_normal_vectors(norm_file):
     return norm_vec_arr
 
 
+def transform_norm(norm_arr):
+    empty = np.array([0, 0])
+    norm_reduce = np.logical_and.reduce(norm_arr != empty, axis=-1)
+
+    # size = Size(norm_arr.shape[1]//BUF_CELL_SIZE.width, norm_arr.shape[0]//BUF_CELL_SIZE.height)
+    # result = np.zeros(size.width*size.height)
+    result = []
+
+
+    for y in range(0, norm_reduce.shape[0], BUF_CELL_SIZE.height):
+        for x in range(0, norm_reduce.shape[1], BUF_CELL_SIZE.width):
+            # eprint(norm_reduce[y:y+BUF_CELL_SIZE.height, x:x+BUF_CELL_SIZE.width])
+            # eprint(y,y+BUF_CELL_SIZE.height, x,x+BUF_CELL_SIZE.width)
+            result.append(int(np.any(norm_reduce[y:y+BUF_CELL_SIZE.height, x:x+BUF_CELL_SIZE.width])))
+            # exit()
+
+    size = Size(norm_reduce.shape[1]//BUF_CELL_SIZE.width, norm_reduce.shape[0]//BUF_CELL_SIZE.height)
+    result = np.reshape(result, (size.height, size.width))
+
+    eprint(result)
+
+    return result
+
+
 def validate_arrays(ascii_arr, norm_arr):
     ascii_arr_size = Size(ascii_arr.shape[1], ascii_arr.shape[0])
     norm_arr_size = Size(norm_arr.shape[1]//BUF_CELL_SIZE.width, norm_arr.shape[0]//BUF_CELL_SIZE.height)
 
     if ascii_arr_size != norm_arr_size:
+    # if ascii_arr.shape != norm_arr.shape:
+        # raise Exception('Arrays imported from file. Mismatch size', ascii_arr.shape, norm_arr.shape)
         raise Exception('Arrays imported from file. Mismatch size', ascii_arr_size, norm_arr_size)
 
 
