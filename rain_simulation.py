@@ -267,7 +267,7 @@ def import_obstacle(ascii_file, norm_file):
     norm_vec_arr = import_arr_with_normal_vectors(norm_file)
     norm_vec_arr = remove_norm_margin(norm_vec_arr)
 
-    # validate_arrays(tmp2, norm_vec_arr)
+    validate_arrays(tmp2, norm_vec_arr)
 
     return tmp2, norm_vec_arr
 
@@ -383,6 +383,8 @@ def validate_arrays(ascii_arr, norm_arr):
     # if ascii_arr.shape != norm_arr.shape:
         # raise Exception('Arrays imported from file. Mismatch size', ascii_arr.shape, norm_arr.shape)
         raise Exception('Arrays imported from file. Mismatch size', ascii_arr_size, norm_arr_size)
+
+    eprint('Validate ok')
 
 
 def ptpos_to_bufpos(pt):
