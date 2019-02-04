@@ -315,8 +315,8 @@ def remove_norm_margin(norm_arr):
 
     falgs = transform_norm(norm_arr)
 
-    eprint(norm_arr.shape)
-    eprint(np.all(falgs == False, axis=0))
+    # eprint(norm_arr.shape)
+    # eprint(np.all(falgs == False, axis=0))
     # eprint(np.all(falgs == False, axis=1))
 
     # empty = np.array([0, 0])
@@ -324,17 +324,17 @@ def remove_norm_margin(norm_arr):
 
     del_rows = [list(range(idx*BUF_CELL_SIZE.height, idx*BUF_CELL_SIZE.height+BUF_CELL_SIZE.height))
                 for idx, margin in enumerate(np.all(falgs == False, axis=1)) if margin]
-    eprint(del_rows)
+    # eprint(del_rows)
     norm_arr = np.delete(norm_arr, del_rows, axis=0)
 
-    eprint(norm_arr.shape)
+    # eprint(norm_arr.shape)
     # del_columns = [idx for idx, margin in enumerate(np.all(norm_reduce, axis=1)) if margin]
     del_columns = [list(range(idx*BUF_CELL_SIZE.width, idx*BUF_CELL_SIZE.width+BUF_CELL_SIZE.width))
                 for idx, margin in enumerate(np.all(falgs == False, axis=0)) if margin]
-    eprint(del_columns)
+    # eprint(del_columns)
     norm_arr = np.delete(norm_arr, del_columns, axis=1)
 
-    eprint(norm_arr.shape)
+    # eprint(norm_arr.shape)
 
     return norm_arr
 
@@ -356,7 +356,7 @@ def import_arr_with_normal_vectors(norm_file):
 
 def transform_norm(norm_arr):
     empty = np.array([0, 0])
-    norm_reduce = np.logical_and.reduce(norm_arr != empty, axis=-1)
+    norm_reduce = np.logical_or.reduce(norm_arr != empty, axis=-1)
 
     # size = Size(norm_arr.shape[1]//BUF_CELL_SIZE.width, norm_arr.shape[0]//BUF_CELL_SIZE.height)
     # result = np.zeros(size.width*size.height)
@@ -365,10 +365,7 @@ def transform_norm(norm_arr):
 
     for y in range(0, norm_reduce.shape[0], BUF_CELL_SIZE.height):
         for x in range(0, norm_reduce.shape[1], BUF_CELL_SIZE.width):
-            # eprint(norm_reduce[y:y+BUF_CELL_SIZE.height, x:x+BUF_CELL_SIZE.width])
-            # eprint(y,y+BUF_CELL_SIZE.height, x,x+BUF_CELL_SIZE.width)
             result.append(int(np.any(norm_reduce[y:y+BUF_CELL_SIZE.height, x:x+BUF_CELL_SIZE.width])))
-            # exit()
 
     size = Size(norm_reduce.shape[1]//BUF_CELL_SIZE.width, norm_reduce.shape[0]//BUF_CELL_SIZE.height)
     result = np.reshape(result, (size.height, size.width))
