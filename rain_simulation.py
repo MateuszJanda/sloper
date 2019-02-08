@@ -300,6 +300,7 @@ class Importer:
         return ascii_arr
 
     def _remove_ascii_margin(self, ascii_arr):
+        """Remove margin from ascii_arr (line and columns with spaces at the edges"""
         del_rows = [idx for idx, margin in enumerate(np.all(ascii_arr == ' ', axis=0)) if margin]
         ascii_arr = np.delete(ascii_arr, del_rows, axis=1)
 
@@ -308,55 +309,39 @@ class Importer:
 
         return ascii_arr
 
-    def _remove_norm_margin(self, norm_arr):
-        if norm_arr.shape[1] % BUF_CELL_SIZE.width or norm_arr.shape[0] % BUF_CELL_SIZE.height:
-            raise Exception("Arrays with normal vector can't be transformed to buffer")
-
-        falgs = self.transform_norm(norm_arr)
-
-        # eprint(norm_arr.shape)
-        # eprint(np.all(falgs == False, axis=0))
-        # eprint(np.all(falgs == False, axis=1))
-
-        # empty = np.array([0, 0])
-        # norm_reduce = np.logical_and.reduce(norm_arr == empty, axis=-1)
-
-        del_rows = [list(range(idx*BUF_CELL_SIZE.height, idx*BUF_CELL_SIZE.height+BUF_CELL_SIZE.height))
-                    for idx, margin in enumerate(np.all(falgs == False, axis=1)) if margin]
-        # eprint(del_rows)
-        norm_arr = np.delete(norm_arr, del_rows, axis=0)
-
-        # eprint(norm_arr.shape)
-        # del_columns = [idx for idx, margin in enumerate(np.all(norm_reduce, axis=1)) if margin]
-        del_columns = [list(range(idx*BUF_CELL_SIZE.width, idx*BUF_CELL_SIZE.width+BUF_CELL_SIZE.width))
-                    for idx, margin in enumerate(np.all(falgs == False, axis=0)) if margin]
-        # eprint(del_columns)
-        norm_arr = np.delete(norm_arr, del_columns, axis=1)
-
-        # eprint(norm_arr.shape)
-
-        return norm_arr
-
-
     def _import_norm_arr(self, norm_file):
         """Import array with normal vector"""
         arr = np.loadtxt(norm_file)
         height, width = arr.shape
         norm_arr = arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
-        norm_arr_size = Size(norm_arr.shape[1], norm_arr.shape[0])
 
         return norm_arr
 
+    def _remove_norm_margin(self, norm_arr):
+        """Remove margin from array with normal vectors (line and columns with
+        np.array([0, 0]) at the edges"""
+        if norm_arr.shape[1] % BUF_CELL_SIZE.width or norm_arr.shape[0] % BUF_CELL_SIZE.height:
+            raise Exception("Arrays with normal vector can't be transformed to buffer")
 
-    def transform_norm(self, norm_arr):
-        empty = np.array([0, 0])
-        norm_reduce = np.logical_or.reduce(norm_arr != empty, axis=-1)
+        ascii_markers = self._transform_norm(norm_arr)
+        del_rows = [list(range(idx*BUF_CELL_SIZE.height, idx*BUF_CELL_SIZE.height+BUF_CELL_SIZE.height))
+                    for idx, margin in enumerate(np.all(ascii_markers == False, axis=1)) if margin]
+        norm_arr = np.delete(norm_arr, del_rows, axis=0)
 
-        # size = Size(norm_arr.shape[1]//BUF_CELL_SIZE.width, norm_arr.shape[0]//BUF_CELL_SIZE.height)
-        # result = np.zeros(size.width*size.height)
+        del_columns = [list(range(idx*BUF_CELL_SIZE.width, idx*BUF_CELL_SIZE.width+BUF_CELL_SIZE.width))
+                    for idx, margin in enumerate(np.all(ascii_markers == False, axis=0)) if margin]
+        norm_arr = np.delete(norm_arr, del_columns, axis=1)
+
+        return norm_arr
+
+    def _transform_norm(self, norm_arr):
+        """Transform array with normal vectors (for braille characters), to
+        dimmensions of ascii figure, and mark if in ascii cell there was any
+        character"""
+        EMPTY = np.array([0, 0])
+        norm_reduce = np.logical_or.reduce(norm_arr != EMPTY, axis=-1)
+
         result = []
-
-
         for y in range(0, norm_reduce.shape[0], BUF_CELL_SIZE.height):
             for x in range(0, norm_reduce.shape[1], BUF_CELL_SIZE.width):
                 result.append(int(np.any(norm_reduce[y:y+BUF_CELL_SIZE.height, x:x+BUF_CELL_SIZE.width])))
@@ -365,7 +350,6 @@ class Importer:
         result = np.reshape(result, (size.height, size.width))
 
         eprint(result)
-
         return result
 
     def _validate_arrays(self, ascii_arr, norm_arr):
@@ -373,11 +357,9 @@ class Importer:
         norm_arr_size = Size(norm_arr.shape[1]//BUF_CELL_SIZE.width, norm_arr.shape[0]//BUF_CELL_SIZE.height)
 
         if ascii_arr_size != norm_arr_size:
-        # if ascii_arr.shape != norm_arr.shape:
-            # raise Exception('Arrays imported from file. Mismatch size', ascii_arr.shape, norm_arr.shape)
             raise Exception('Arrays imported from file. Mismatch size', ascii_arr_size, norm_arr_size)
 
-        eprint('Validate ok')
+        eprint('Validation OK')
 
 
 def ptpos_to_bufpos(pt):
