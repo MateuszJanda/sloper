@@ -227,6 +227,7 @@ class Screen:
 class Body:
     def __init__(self, ptpos, mass, velocity):
         self.ptpos = ptpos
+        self.prev_ptpos = ptpos
         self.mass = mass
         self.vel = velocity
         self.lock = False
@@ -249,6 +250,23 @@ class Terrain:
         y1 = self._terrain_size.height - arr_size.height - shift.y
         y2 = self._terrain_size.height - shift.y
         self._terrain[y1:y2, x1:x2] = arr
+
+    def get_normal_vec(self, pt):
+        # pt = np.floor(pt)
+        eprint('checking', pt)
+        arrpos = ptpos_to_arrpos(pt)
+        # eprint('arrpos', arrpos)
+        normal_vec = self._terrain[arrpos.y, arrpos.x]
+        if np.any(normal_vec != 0):
+            eprint('point', pt, Vector(normal_vec[1], normal_vec[0]))
+            return Vector(normal_vec[1], normal_vec[0])
+
+        return None
+
+    def in_border(self, pt):
+        arrpos = ptpos_to_arrpos(pt)
+        return 0 <= arrpos.x < self._terrain_size.width and \
+               0 <= arrpos.y < self._terrain_size.height
 
 
 class Importer:
@@ -389,7 +407,10 @@ def integrate(dt, bodies):
 
         b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
         b.vel = b.vel + b.acc * dt
+        b.prev_ptpos = b.ptpos
         b.ptpos = b.ptpos + b.vel * dt
+
+        # eprint(b.prev_ptpos, b.ptpos)
 
         # Don't calculate collision if body is not moving
         if math.isclose(b.vel.magnitude(), 0, abs_tol=0.01):
@@ -410,6 +431,7 @@ def detect_collisions(bodies, terrain):
         if body.lock:
             continue
         collisions += border_collision(body, terrain.size())
+        collisions += obstacle_collisions(body, terrain)
 
     return collisions
 
@@ -438,6 +460,99 @@ def border_collision(body, terrain_size):
                           collision_normal=Vector(0, -1))]
 
     return []
+
+
+def obstacle_collisions(body, terrain):
+    norml_vec = obstacle_pos(terrain, body.prev_ptpos, body.ptpos)
+    # eprint(body.prev_ptpos)
+    # eprint(body.ptpos)
+    # eprint('----')
+    # exit()
+    if np.any(norml_vec):
+        return [Collision(body1=body,
+                          body2=None,
+                          relative_vel=-body.vel,
+                          collision_normal=norml_vec)]
+    return []
+
+
+def obstacle_pos(terrain, pt1, pt2):
+    """Bresenham's line algorithm
+    https://pl.wikipedia.org/wiki/Algorytm_Bresenhama
+    """
+    # x, y = pt1.x, pt1.y
+    eprint('start')
+    check_pt = np.floor(pt1)
+    # eprint(check_pt)
+    pt1 = np.floor(pt1)
+    pt2 = np.floor(pt2)
+    # return None
+
+    # Drawing direction
+    if pt1.x < pt2.x:
+        xi = 1
+        dx = pt2.x - pt1.x
+    else:
+        xi = -1
+        dx = pt1.x - pt2.x
+
+    if pt1.y < pt2.y:
+        yi = 1
+        dy = pt2.y - pt1.y
+    else:
+        yi = -1
+        dy = pt1.y - pt2.y
+
+    if not terrain.in_border(check_pt):
+        return None
+
+    normal_vec = terrain.get_normal_vec(check_pt)
+    if np.any(normal_vec):
+        return normal_vec
+
+    # X axis
+    if dx > dy:
+        ai = (dy - dx) * 2
+        bi = dy * 2
+        d = bi - dx
+        while check_pt.x != pt2.x:
+            # coordinate test
+            if d >= 0:
+                check_pt.x += xi
+                check_pt.y += yi
+                d += ai
+            else:
+                d += bi
+                check_pt.x += xi
+
+            if not terrain.in_border(check_pt):
+                return None
+
+            normal_vec = terrain.get_normal_vec(check_pt)
+            if np.any(normal_vec):
+                return normal_vec
+    else:
+        ai = (dx - dy) * 2
+        bi = dx * 2
+        d = bi - dy
+        while check_pt.y != pt2.y:
+            # coordinate test
+            if d >= 0:
+                check_pt.x += xi
+                check_pt.y += yi
+                d += ai
+            else:
+                d += bi
+                check_pt.y += yi
+
+            if not terrain.in_border(check_pt):
+                return None
+
+            normal_vec = terrain.get_normal_vec(check_pt)
+            if np.any(normal_vec):
+                return normal_vec
+
+    return None
 
 
 def resolve_collisions(dt, collisions):
