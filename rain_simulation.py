@@ -257,25 +257,21 @@ class Terrain:
 
 class Importer:
     def load(self, ascii_file, norm_file):
-        tmp = self.import_ascii(ascii_file)
-        tmp2 = self.reshape_ascii(tmp)
-        tmp2 = self.remove_marker(tmp2)
+        tmp = self._import_ascii(ascii_file)
+        tmp2 = self._reshape_ascii(tmp)
+        tmp2 = self._remove_ascii_marker(tmp2)
         # eprint(tmp2)
-        tmp2 = self.remove_margin(tmp2)
+        tmp2 = self._remove_ascii_margin(tmp2)
 
-        # for line in tmp2:
-            # eprint(''.join(line))
-        # eprint(tmp2)
+        norm_arr = self._import_norm_arr(norm_file)
+        norm_arr = self._remove_norm_margin(norm_arr)
 
-        norm_vec_arr = self.import_arr_with_normal_vectors(norm_file)
-        norm_vec_arr = self.remove_norm_margin(norm_vec_arr)
+        self._validate_arrays(tmp2, norm_arr)
 
-        self.validate_arrays(tmp2, norm_vec_arr)
-
-        return tmp2, norm_vec_arr
+        return tmp2, norm_arr
 
 
-    def import_ascii(self, ascii_file):
+    def _import_ascii(self, ascii_file):
         """Import ascii figure from file"""
         # Import array with ascii version of obstacle
         tmp = []
@@ -287,7 +283,7 @@ class Importer:
         return tmp
 
 
-    def reshape_ascii(self, tmp):
+    def _reshape_ascii(self, tmp):
         max_size = 0
         for t in tmp:
             max_size = max(max_size, len(t))
@@ -302,7 +298,7 @@ class Importer:
         return tmp2
 
 
-    def remove_margin(self, ascii_arr):
+    def _remove_ascii_margin(self, ascii_arr):
         del_rows = [idx for idx, margin in enumerate(np.all(ascii_arr == ' ', axis=0)) if margin]
         ascii_arr = np.delete(ascii_arr, del_rows, axis=1)
 
@@ -312,7 +308,7 @@ class Importer:
         return ascii_arr
 
 
-    def remove_norm_margin(self, norm_arr):
+    def _remove_norm_margin(self, norm_arr):
         if norm_arr.shape[1] % BUF_CELL_SIZE.width or norm_arr.shape[0] % BUF_CELL_SIZE.height:
             raise Exception("Arrays with normal vector can't be transformed to buffer")
 
@@ -342,19 +338,19 @@ class Importer:
         return norm_arr
 
 
-    def remove_marker(self, ascii_arr):
+    def _remove_ascii_marker(self, ascii_arr):
         ascii_arr[0:3, 0:3] = np.array([' ' for _ in range(9)]).reshape(3, 3)
         return ascii_arr
 
 
-    def import_arr_with_normal_vectors(self, norm_file):
+    def _import_norm_arr(self, norm_file):
         """Import array with normal vector"""
         arr = np.loadtxt(norm_file)
         height, width = arr.shape
-        norm_vec_arr = arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
-        norm_arr_size = Size(norm_vec_arr.shape[1], norm_vec_arr.shape[0])
+        norm_arr = arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
+        norm_arr_size = Size(norm_arr.shape[1], norm_arr.shape[0])
 
-        return norm_vec_arr
+        return norm_arr
 
 
     def transform_norm(self, norm_arr):
@@ -378,7 +374,7 @@ class Importer:
         return result
 
 
-    def validate_arrays(self, ascii_arr, norm_arr):
+    def _validate_arrays(self, ascii_arr, norm_arr):
         ascii_arr_size = Size(ascii_arr.shape[1], ascii_arr.shape[0])
         norm_arr_size = Size(norm_arr.shape[1]//BUF_CELL_SIZE.width, norm_arr.shape[0]//BUF_CELL_SIZE.height)
 
