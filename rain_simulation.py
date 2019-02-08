@@ -13,12 +13,12 @@ import sys
 import collections as co
 import itertools as it
 import copy
-import numpy as np
 import math
+import time
 import curses
 import locale
-import time
 import pdb
+import numpy as np
 
 
 Size = co.namedtuple('Size', ['width', 'height'])
