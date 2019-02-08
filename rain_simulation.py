@@ -257,46 +257,47 @@ class Terrain:
 
 class Importer:
     def load(self, ascii_file, norm_file):
-        tmp = self._import_ascii(ascii_file)
-        tmp2 = self._reshape_ascii(tmp)
-        tmp2 = self._remove_ascii_marker(tmp2)
-        # eprint(tmp2)
-        tmp2 = self._remove_ascii_margin(tmp2)
+        ascii_arr = self._import_ascii_arr(ascii_file)
+        ascii_arr = self._remove_ascii_marker(ascii_arr)
+        ascii_arr = self._remove_ascii_margin(ascii_arr)
 
         norm_arr = self._import_norm_arr(norm_file)
         norm_arr = self._remove_norm_margin(norm_arr)
 
-        self._validate_arrays(tmp2, norm_arr)
+        self._validate_arrays(ascii_arr, norm_arr)
+        return ascii_arr, norm_arr
 
-        return tmp2, norm_arr
-
-
-    def _import_ascii(self, ascii_file):
+    def _import_ascii_arr(self, ascii_file):
         """Import ascii figure from file"""
-        # Import array with ascii version of obstacle
-        tmp = []
+        ascii_fig = []
         with open(ascii_file, 'r') as f:
             for line in f:
                 arr = np.array([ch for ch in line if ch != '\n'])
-                tmp.append(arr)
+                ascii_fig.append(arr)
 
-        return tmp
+        ascii_arr = self._reshape_ascii(ascii_fig)
 
+        return ascii_arr
 
-    def _reshape_ascii(self, tmp):
+    def _reshape_ascii(self, ascii_fig):
+        """Fill end of each line in ascii_fig with spaces, and convert it to np.array"""
         max_size = 0
-        for t in tmp:
-            max_size = max(max_size, len(t))
+        for line in ascii_fig:
+            max_size = max(max_size, len(line))
 
-        tmp2 = []
-        for t in tmp:
-            arr = np.append(t, [s for s in (max_size - t.shape[0]) * ' '])
-            tmp2.append(arr)
+        larr = []
+        for line in ascii_fig:
+            arr = np.append(line, [ch for ch in (max_size - line.shape[0]) * ' '])
+            larr.append(arr)
 
-        tmp2 = np.array(tmp2)
+        ascii_arr = np.array(larr)
 
-        return tmp2
+        return ascii_arr
 
+    def _remove_ascii_marker(self, ascii_arr):
+        """Erase 3x3 marker at the left-top position from ascii"""
+        ascii_arr[0:3, 0:3] = np.array([' ' for _ in range(9)]).reshape(3, 3)
+        return ascii_arr
 
     def _remove_ascii_margin(self, ascii_arr):
         del_rows = [idx for idx, margin in enumerate(np.all(ascii_arr == ' ', axis=0)) if margin]
@@ -306,7 +307,6 @@ class Importer:
         ascii_arr = np.delete(ascii_arr, del_columns, axis=0)
 
         return ascii_arr
-
 
     def _remove_norm_margin(self, norm_arr):
         if norm_arr.shape[1] % BUF_CELL_SIZE.width or norm_arr.shape[0] % BUF_CELL_SIZE.height:
@@ -338,11 +338,6 @@ class Importer:
         return norm_arr
 
 
-    def _remove_ascii_marker(self, ascii_arr):
-        ascii_arr[0:3, 0:3] = np.array([' ' for _ in range(9)]).reshape(3, 3)
-        return ascii_arr
-
-
     def _import_norm_arr(self, norm_file):
         """Import array with normal vector"""
         arr = np.loadtxt(norm_file)
@@ -372,7 +367,6 @@ class Importer:
         eprint(result)
 
         return result
-
 
     def _validate_arrays(self, ascii_arr, norm_arr):
         ascii_arr_size = Size(ascii_arr.shape[1], ascii_arr.shape[0])
