@@ -159,8 +159,8 @@ class Screen:
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
-                pt = arrpos_to_ptpos(x, y, Size(width, height)) + shift
-                self.draw_point(pt)
+                ptpos = arrpos_to_ptpos(x, y, Size(width, height)) + shift
+                self.draw_point(ptpos)
 
         self._save_in_backup_buf()
 
@@ -168,9 +168,8 @@ class Screen:
         height, width = ascii_arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(ascii_arr[y, x] != ' '):
-                bx = x
-                by = self._buf_size.height - height + y
-                self._buf[by][bx] = ascii_arr[y, x]
+                buffpos = Vector(x, self._buf_size.height - height + y)
+                self._buf[buffpos.y][buffpos.x] = ascii_arr[y, x]
 
         self._save_in_backup_buf()
 
