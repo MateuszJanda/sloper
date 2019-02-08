@@ -38,11 +38,11 @@ def main(scr):
     terrain = Terrain()
 
     im = Importer()
-    txt, arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
+    ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
-    terrain.add_arr(arr)
-    screen.add_ascii(txt)
-    # screen.add_norm_arr(arr)
+    terrain.add_arr(norm_arr)
+    screen.add_ascii(ascii_arr)
+    # screen.add_norm_arr(norm_arr)
 
     bodies = [
         Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
