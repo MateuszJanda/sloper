@@ -168,9 +168,9 @@ class Screen:
         height, width = ascii_arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(ascii_arr[y, x] != ' '):
-                w = x
-                h = self._buf_size.height - height + y
-                self._buf[h][w] = ascii_arr[y, x]
+                bx = x
+                by = self._buf_size.height - height + y
+                self._buf[by][bx] = ascii_arr[y, x]
 
         self._save_in_backup_buf()
 
