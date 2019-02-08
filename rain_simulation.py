@@ -44,8 +44,22 @@ def main(scr):
     screen.add_ascii(ascii_arr)
     # screen.add_norm_arr(norm_arr)
 
+
+    # for y in range(terrain._terrain_size.height):
+    #     if np.any(terrain._terrain[y, 50]):
+    #         eprint('YYY', y)
+    #         eprint(arrpos_to_ptpos(50, y, terrain._terrain_size))
+
+    #         exit()
+
+    assert(np.all(Vector(50, 38) == Vector(50, 38)))
+    arrpos = ptpos_to_arrpos(Vector(50,38))
+    assert(np.all(Vector(50, 38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
+    # eprint('line', curses.LINES )
+
     bodies = [
-        Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
+        # Body(ptpos=Vector(30, 80), mass=10, velocity=Vector(0, -40))
+        Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),  # TODO: check interaction with normal vector
         # Body(ptpos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
         # Body(ptpos=Vector(110, 80), mass=1, velocity=Vector(0, -40)),
         # Body(ptpos=Vector(20, 80), mass=1, velocity=Vector(0, -40)),
@@ -155,11 +169,13 @@ class Screen:
         Add static element to screen buffer. Every element in array will be
         represent as braille character. By default all arrays are drawn in
         bottom left corner.
+
+        TODO: shift should be buf_shift
         """
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
-                ptpos = arrpos_to_ptpos(x, y, Size(width, height)) + shift
+                ptpos = arrpos_to_ptpos(x, self._arr_size.height - height + y) + shift
                 self.draw_point(ptpos)
 
         self._save_in_backup_buf()
@@ -253,13 +269,18 @@ class Terrain:
 
     def get_normal_vec(self, pt):
         # pt = np.floor(pt)
-        eprint('checking', pt)
+        # eprint('checking', pt)
         arrpos = ptpos_to_arrpos(pt)
+
+        # if int(pt.y) == 38:
+        #     eprint('col', arrpos.y)
+        #     time.sleep(100)
+
         # eprint('arrpos', arrpos)
         normal_vec = self._terrain[arrpos.y, arrpos.x]
         if np.any(normal_vec != 0):
-            eprint('point', pt, Vector(normal_vec[1], normal_vec[0]))
-            return Vector(normal_vec[1], normal_vec[0])
+            eprint('at point', pt, 'norm vec', Vector(normal_vec[0], normal_vec[1]))
+            return Vector(normal_vec[0], normal_vec[1])
 
         return None
 
@@ -383,14 +404,14 @@ def ptpos_to_bufpos(pt):
     return Vector(x, y)
 
 
-def arrpos_to_ptpos(x, y, arr_size):
+def arrpos_to_ptpos(x, y):
     """Array position to Cartesian coordinate system"""
-    y = arr_size.height - y
+    y = curses.LINES * BUF_CELL_SIZE.height - y
     return Vector(x, y)
 
 
 def ptpos_to_arrpos(pt):
-    y = (curses.LINES - 1) * BUF_CELL_SIZE.height - pt.y
+    y = curses.LINES * BUF_CELL_SIZE.height - pt.y
     return Vector(int(pt.x), int(y))
 
 
@@ -410,7 +431,11 @@ def integrate(dt, bodies):
         b.prev_ptpos = b.ptpos
         b.ptpos = b.ptpos + b.vel * dt
 
-        # eprint(b.prev_ptpos, b.ptpos)
+        eprint('Integrate current', b.ptpos, 'prev', b.prev_ptpos,)
+        # eprint(b.ptpos)
+        # if int(b.ptpos.y) == 38:
+        #     time.sleep(5000)
+        #     eprint('col')
 
         # Don't calculate collision if body is not moving
         if math.isclose(b.vel.magnitude(), 0, abs_tol=0.01):
@@ -481,7 +506,7 @@ def obstacle_pos(terrain, pt1, pt2):
     https://pl.wikipedia.org/wiki/Algorytm_Bresenhama
     """
     # x, y = pt1.x, pt1.y
-    eprint('start')
+    # eprint('start')
     check_pt = np.floor(pt1)
     # eprint(check_pt)
     pt1 = np.floor(pt1)
@@ -506,9 +531,9 @@ def obstacle_pos(terrain, pt1, pt2):
     if not terrain.in_border(check_pt):
         return None
 
-    normal_vec = terrain.get_normal_vec(check_pt)
-    if np.any(normal_vec):
-        return normal_vec
+    # normal_vec = terrain.get_normal_vec(check_pt)
+    # if np.any(normal_vec):
+    #     return normal_vec
 
     # X axis
     if dx > dy:
@@ -562,8 +587,15 @@ def resolve_collisions(dt, collisions):
             impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.collision_normal)) / \
                     (1/c.body1.mass)
 
+            # eprint('pos 1', c.body1.ptpos)
+            # eprint('prev 1', c.body1.prev_ptpos)
             c.body1.vel -= (c.collision_normal / c.body1.mass) * impulse
             c.body1.ptpos += c.body1.vel * dt
+
+            # eprint('vel', c.body1.vel)
+            # eprint('normal', c.collision_normal)
+            # eprint('pos 2', c.body1.ptpos)
+            # time.sleep(100)
 
 
 if __name__ == '__main__':
