@@ -32,7 +32,6 @@ GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
 
 
-
 def main(scr):
     setup_curses(scr)
     screen = Screen(scr)
@@ -143,14 +142,13 @@ class Screen:
 
         self._buf_size = Size(curses.COLS-1, curses.LINES)
         self._arr_size = Size(self._buf_size.width*BUF_CELL_SIZE.width,
-            self._buf_size.height*BUF_CELL_SIZE.height)
+                              self._buf_size.height*BUF_CELL_SIZE.height)
 
         self._buf = self._get_empty_buf()
         self._buf_backup = copy.deepcopy(self._buf)
 
     def _get_empty_buf(self):
         return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
-
 
     def add_norm_arr(self, arr, shift=Vector(0, 0)):
         """
@@ -215,7 +213,7 @@ class Screen:
             if by == 0:
                 return ord(EMPTY_BRAILLE) | 0x80
             else:
-                return ord(EMPTY_BRAILLE) | (0x20 >> (by -1))
+                return ord(EMPTY_BRAILLE) | (0x20 >> (by - 1))
 
     def restore_backup(self):
         """Restore static elements added to screen"""
@@ -237,8 +235,7 @@ class Body:
 
 class Terrain:
     def __init__(self):
-        self._terrain_size = Size(curses.COLS-1*BUF_CELL_SIZE.width,
-            curses.LINES*BUF_CELL_SIZE.height)
+        self._terrain_size = Size(curses.COLS-1*BUF_CELL_SIZE.width, curses.LINES*BUF_CELL_SIZE.height)
         self._terrain = np.zeros(shape=[self._terrain_size.height, self._terrain_size.width, VECTOR_DIM])
 
     def size(self):
@@ -329,7 +326,7 @@ class Importer:
         norm_arr = np.delete(norm_arr, del_rows, axis=0)
 
         del_columns = [list(range(idx*BUF_CELL_SIZE.width, idx*BUF_CELL_SIZE.width+BUF_CELL_SIZE.width))
-                    for idx, margin in enumerate(np.all(ascii_markers == False, axis=0)) if margin]
+                       for idx, margin in enumerate(np.all(ascii_markers == False, axis=0)) if margin]
         norm_arr = np.delete(norm_arr, del_columns, axis=1)
 
         return norm_arr
@@ -422,24 +419,24 @@ def border_collision(body, terrain_size):
     """Check collisions with border"""
     if body.ptpos.x < 0:
         return [Collision(body1=body,
-            body2=None,
-            relative_vel=-body.vel,
-            collision_normal=Vector(1, 0))]
+                          body2=None,
+                          relative_vel=-body.vel,
+                          collision_normal=Vector(1, 0))]
     elif body.ptpos.x > terrain_size.width:
         return [Collision(body1=body,
-            body2=None,
-            relative_vel=-body.vel,
-            collision_normal=Vector(-1, 0))]
+                          body2=None,
+                          relative_vel=-body.vel,
+                          collision_normal=Vector(-1, 0))]
     elif body.ptpos.y < 0:
         return [Collision(body1=body,
-            body2=None,
-            relative_vel=-body.vel,
-            collision_normal=Vector(0, 1))]
+                          body2=None,
+                          relative_vel=-body.vel,
+                          collision_normal=Vector(0, 1))]
     elif body.ptpos.y > terrain_size.height:
         return [Collision(body1=body,
-            body2=None,
-            relative_vel=-body.vel,
-            collision_normal=Vector(0, -1))]
+                          body2=None,
+                          relative_vel=-body.vel,
+                          collision_normal=Vector(0, -1))]
 
     return []
 
