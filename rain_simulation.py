@@ -32,6 +32,76 @@ GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
 
 
+
+def main(scr):
+    setup_curses(scr)
+    screen = Screen(scr)
+    terrain = Terrain()
+
+    txt, arr = import_obstacle('ascii_fig.txt', 'ascii_fig.png.norm')
+
+    terrain.add_arr(arr)
+    screen.add_ascii(txt)
+    # screen.add_norm_arr(arr)
+
+    bodies = [
+        Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
+        # Body(ptpos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
+        # Body(ptpos=Vector(110, 80), mass=1, velocity=Vector(0, -40)),
+        # Body(ptpos=Vector(20, 80), mass=1, velocity=Vector(0, -40)),
+    ]
+
+    for b in bodies:
+        b.forces = Vector(0, 0)
+
+    t = 0
+    freq = 100
+    dt = 1/freq
+
+    while True:
+        screen.restore_backup()
+
+        step_simulation(dt, bodies, terrain)
+
+        for b in bodies:
+            # screen.draw_hailstone(b.ptpos)
+            screen.draw_point(b.ptpos)
+        screen.refresh()
+
+        time.sleep(dt)
+        t += dt
+
+    curses.endwin()
+
+
+def setup_stderr():
+    """Redirect stderr to other terminal. Run tty command, to get terminal id."""
+    sys.stderr = open('/dev/pts/3', 'w')
+
+
+def eprint(*args, **kwargs):
+    """Print on stderr"""
+    print(*args, file=sys.stderr)
+
+
+def eassert(condition):
+    """Assert. Disable curses and run pdb"""
+    if not condition:
+        curses.endwin()
+        sys.stderr = sys.stdout
+        pdb.set_trace()
+
+
+def setup_curses(scr):
+    """Setup curses screen"""
+    curses.start_color()
+    curses.use_default_colors()
+    curses.halfdelay(5)
+    curses.noecho()
+    curses.curs_set(False)
+    scr.clear()
+
+
 class Vector(np.ndarray):
     def __new__(cls, x, y):
         obj = np.asarray([x, y]).view(cls)
@@ -162,75 +232,6 @@ class Body:
         self.mass = mass
         self.vel = velocity
         self.lock = False
-
-
-def main(scr):
-    setup_curses(scr)
-    screen = Screen(scr)
-    terrain = Terrain()
-
-    txt, arr = import_obstacle('ascii_fig.txt', 'ascii_fig.png.norm')
-
-    terrain.add_arr(arr)
-    # screen.add_ascii(txt)
-    screen.add_norm_arr(arr)
-
-    bodies = [
-        Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),
-        # Body(ptpos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
-        # Body(ptpos=Vector(110, 80), mass=1, velocity=Vector(0, -40)),
-        # Body(ptpos=Vector(20, 80), mass=1, velocity=Vector(0, -40)),
-    ]
-
-    for b in bodies:
-        b.forces = Vector(0, 0)
-
-    t = 0
-    freq = 100
-    dt = 1/freq
-
-    while True:
-        screen.restore_backup()
-
-        step_simulation(dt, bodies, terrain)
-
-        for b in bodies:
-            # screen.draw_hailstone(b.ptpos)
-            screen.draw_point(b.ptpos)
-        screen.refresh()
-
-        time.sleep(dt)
-        t += dt
-
-    curses.endwin()
-
-
-def setup_stderr():
-    """Redirect stderr to other terminal. Run tty command, to get terminal id."""
-    sys.stderr = open('/dev/pts/3', 'w')
-
-
-def eprint(*args, **kwargs):
-    """Print on stderr"""
-    print(*args, file=sys.stderr)
-
-
-def eassert(condition):
-    """Assert. Disable curses and run pdb"""
-    if not condition:
-        curses.endwin()
-        sys.stderr = sys.stdout
-        pdb.set_trace()
-
-
-def setup_curses(scr):
-    """Setup curses screen"""
-    curses.start_color()
-    curses.use_default_colors()
-    curses.halfdelay(5)
-    curses.noecho()
-    curses.curs_set(False)
-    scr.clear()
 
 
 class Terrain:
