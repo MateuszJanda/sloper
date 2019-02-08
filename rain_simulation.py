@@ -353,11 +353,12 @@ class Importer:
         return result
 
     def _validate_arrays(self, ascii_arr, norm_arr):
+        """Validate if both arrays describe same thing"""
         ascii_arr_size = Size(ascii_arr.shape[1], ascii_arr.shape[0])
         norm_arr_size = Size(norm_arr.shape[1]//BUF_CELL_SIZE.width, norm_arr.shape[0]//BUF_CELL_SIZE.height)
 
         if ascii_arr_size != norm_arr_size:
-            raise Exception('Arrays imported from file. Mismatch size', ascii_arr_size, norm_arr_size)
+            raise Exception('Imported arrays (ascii/norm) - mismatch size', ascii_arr_size, norm_arr_size)
 
         eprint('Validation OK')
 
