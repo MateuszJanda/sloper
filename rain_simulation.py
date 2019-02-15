@@ -251,7 +251,9 @@ class Body:
 
 class Terrain:
     def __init__(self):
-        self._terrain_size = Size(curses.COLS-1*BUF_CELL_SIZE.width, curses.LINES*BUF_CELL_SIZE.height)
+        self._terrain_size = Size((curses.COLS-1)*BUF_CELL_SIZE.width, curses.LINES*BUF_CELL_SIZE.height)
+        eprint(curses.COLS-1, curses.LINES)
+        eprint(self._terrain_size)
         self._terrain = np.zeros(shape=[self._terrain_size.height, self._terrain_size.width, VECTOR_DIM])
 
     def size(self):
@@ -279,7 +281,7 @@ class Terrain:
         # eprint('arrpos', arrpos)
         normal_vec = self._terrain[arrpos.y, arrpos.x]
         if np.any(normal_vec != 0):
-            eprint('at point', pt, 'norm vec', Vector(normal_vec[0], normal_vec[1]))
+            # eprint('at point', pt, 'norm vec', Vector(normal_vec[0], normal_vec[1]))
             return Vector(normal_vec[0], normal_vec[1])
 
         return None
@@ -431,7 +433,7 @@ def integrate(dt, bodies):
         b.prev_ptpos = b.ptpos
         b.ptpos = b.ptpos + b.vel * dt
 
-        eprint('Integrate current', b.ptpos, 'prev', b.prev_ptpos,)
+        # eprint('Integrate current', b.ptpos, 'prev', b.prev_ptpos,)
         # eprint(b.ptpos)
         # if int(b.ptpos.y) == 38:
         #     time.sleep(5000)
