@@ -416,10 +416,16 @@ def ptpos_to_arrpos(pt):
 
 
 def step_simulation(dt, bodies, terrain):
+    # clac_forces(dt, bodies)
     integrate(dt, bodies)
     collisions = detect_collisions(bodies, terrain)
     resolve_collisions(dt, collisions)
     fix_penetration(bodies, terrain.size())
+
+
+def clac_forces(dt, bodies):
+    for body in bodies:
+        body.forces = None
 
 
 def integrate(dt, bodies):
