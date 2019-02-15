@@ -29,7 +29,7 @@ BUF_CELL_SIZE = Size(2, 4)
 VECTOR_DIM = 2
 
 GRAVITY_ACC = 9.8  # [m/s^2]
-COEFFICIENT_OF_RESTITUTION = 0.5
+COEFFICIENT_OF_RESTITUTION = 0.3
 
 
 def main(scr):
@@ -252,8 +252,6 @@ class Body:
 class Terrain:
     def __init__(self):
         self._terrain_size = Size((curses.COLS-1)*BUF_CELL_SIZE.width, curses.LINES*BUF_CELL_SIZE.height)
-        eprint(curses.COLS-1, curses.LINES)
-        eprint(self._terrain_size)
         self._terrain = np.zeros(shape=[self._terrain_size.height, self._terrain_size.width, VECTOR_DIM])
 
     def size(self):
@@ -421,11 +419,13 @@ def step_simulation(dt, bodies, terrain):
     integrate(dt, bodies)
     collisions = detect_collisions(bodies, terrain)
     resolve_collisions(dt, collisions)
+    fix_penetration(bodies, terrain.size())
 
 
 def integrate(dt, bodies):
     for b in bodies:
         if b.lock:
+            eprint('LOCK')
             continue
 
         b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
@@ -476,6 +476,8 @@ def border_collision(body, terrain_size):
                           relative_vel=-body.vel,
                           collision_normal=Vector(-1, 0))]
     elif body.ptpos.y < 0:
+        eprint('body.vel', body.vel)
+
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
@@ -594,10 +596,16 @@ def resolve_collisions(dt, collisions):
             c.body1.vel -= (c.collision_normal / c.body1.mass) * impulse
             c.body1.ptpos += c.body1.vel * dt
 
-            # eprint('vel', c.body1.vel)
+            eprint('vel', c.body1.vel)
             # eprint('normal', c.collision_normal)
-            # eprint('pos 2', c.body1.ptpos)
+            eprint('pos 2', c.body1.ptpos)
             # time.sleep(100)
+
+
+def fix_penetration(bodies, terrain_size):
+    for body in bodies:
+        body.ptpos.x = max(0, min(body.ptpos.x, terrain_size.width))
+        body.ptpos.y = max(0, min(body.ptpos.y, terrain_size.height))
 
 
 if __name__ == '__main__':
