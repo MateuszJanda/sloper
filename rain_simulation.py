@@ -29,7 +29,7 @@ BUF_CELL_SIZE = Size(2, 4)
 VECTOR_DIM = 2
 
 GRAVITY_ACC = 9.8  # [m/s^2]
-COEFFICIENT_OF_RESTITUTION = 0.5
+COEFFICIENT_OF_RESTITUTION = 0.3
 COEFFICIENT_OF_FRICTION = 0.9
 
 
@@ -63,7 +63,7 @@ def main(scr):
         Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),  # TODO: check interaction with normal vector
         # Body(ptpos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
         # Body(ptpos=Vector(110, 80), mass=1, velocity=Vector(0, -40)),
-        # Body(ptpos=Vector(20, 80), mass=1, velocity=Vector(0, -40)),
+        # Body(ptpos=Vector(23, 80), mass=1, velocity=Vector(0, -40)),
     ]
 
     for b in bodies:
@@ -518,46 +518,47 @@ def obstacle_collisions(body, terrain):
     return []
 
 
-def obstacle_pos(terrain, pt1, pt2):
+def obstacle_pos(terrain, prev_ptpos, ptpos):
     """Bresenham's line algorithm
     https://pl.wikipedia.org/wiki/Algorytm_Bresenhama
     """
-    # x, y = pt1.x, pt1.y
+    # x, y = prev_ptpos.x, prev_ptpos.y
     # eprint('start')
-    check_pt = np.floor(pt1)
+    check_pt = np.floor(prev_ptpos)
     # eprint(check_pt)
-    pt1 = np.floor(pt1)
-    pt2 = np.floor(pt2)
+    prev_ptpos = np.floor(prev_ptpos)
+    ptpos = np.floor(ptpos)
     # return None
 
     # Drawing direction
-    if pt1.x < pt2.x:
+    if prev_ptpos.x < ptpos.x:
         xi = 1
-        dx = pt2.x - pt1.x
+        dx = ptpos.x - prev_ptpos.x
     else:
         xi = -1
-        dx = pt1.x - pt2.x
+        dx = prev_ptpos.x - ptpos.x
 
-    if pt1.y < pt2.y:
+    if prev_ptpos.y < ptpos.y:
         yi = 1
-        dy = pt2.y - pt1.y
+        dy = ptpos.y - prev_ptpos.y
     else:
         yi = -1
-        dy = pt1.y - pt2.y
+        dy = prev_ptpos.y - ptpos.y
 
     if not terrain.in_border(check_pt):
         return None
 
-    # normal_vec = terrain.get_normal_vec(check_pt)
-    # if np.any(normal_vec):
-    #     return normal_vec
+    normal_vec = terrain.get_normal_vec(check_pt)
+    # If body collide with different obstacle than in previous step
+    if np.any(normal_vec) and (check_pt.y != prev_ptpos.y or check_pt.x != prev_ptpos.x):
+        return normal_vec
 
     # X axis
     if dx > dy:
         ai = (dy - dx) * 2
         bi = dy * 2
         d = bi - dx
-        while check_pt.x != pt2.x:
+        while check_pt.x != ptpos.x:
             # coordinate test
             if d >= 0:
                 check_pt.x += xi
@@ -577,7 +578,7 @@ def obstacle_pos(terrain, pt1, pt2):
         ai = (dx - dy) * 2
         bi = dx * 2
         d = bi - dy
-        while check_pt.y != pt2.y:
+        while check_pt.y != ptpos.y:
             # coordinate test
             if d >= 0:
                 check_pt.x += xi
@@ -619,6 +620,8 @@ def fix_penetration(bodies, terrain_size):
     for body in bodies:
         body.ptpos.x = max(0, min(body.ptpos.x, terrain_size.width))
         body.ptpos.y = max(0, min(body.ptpos.y, terrain_size.height))
+
+        eprint('body.ptpos, body.prev_ptpos', body.ptpos, body.prev_ptpos)
 
 
 if __name__ == '__main__':
