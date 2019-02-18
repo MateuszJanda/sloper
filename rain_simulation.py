@@ -29,7 +29,8 @@ BUF_CELL_SIZE = Size(2, 4)
 VECTOR_DIM = 2
 
 GRAVITY_ACC = 9.8  # [m/s^2]
-COEFFICIENT_OF_RESTITUTION = 0.3
+COEFFICIENT_OF_RESTITUTION = 0.5
+COEFFICIENT_OF_FRICTION = 0.9
 
 
 def main(scr):
@@ -248,6 +249,9 @@ class Body:
         self.vel = velocity
         self.lock = False
 
+    def is_moving(self):
+        return not math.isclose(self.vel.magnitude(), 0, abs_tol=0.01)
+
 
 class Terrain:
     def __init__(self):
@@ -416,16 +420,19 @@ def ptpos_to_arrpos(pt):
 
 
 def step_simulation(dt, bodies, terrain):
-    # clac_forces(dt, bodies)
+    calc_forces(dt, bodies)
     integrate(dt, bodies)
     collisions = detect_collisions(bodies, terrain)
     resolve_collisions(dt, collisions)
     fix_penetration(bodies, terrain.size())
 
 
-def clac_forces(dt, bodies):
+def calc_forces(dt, bodies):
     for body in bodies:
-        body.forces = None
+        body.forces = Vector(0, -GRAVITY_ACC) * body.mass
+
+        if int(body.prev_ptpos.y) == 0 and int(body.ptpos.y) == 0 and int(body.prev_ptpos.x) != int(body.ptpos.x):
+            body.forces *= COEFFICIENT_OF_FRICTION
 
 
 def integrate(dt, bodies):
@@ -434,7 +441,8 @@ def integrate(dt, bodies):
             eprint('LOCK')
             continue
 
-        b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
+        # b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
+        b.acc = b.forces / b.mass
         b.vel = b.vel + b.acc * dt
         b.prev_ptpos = b.ptpos
         b.ptpos = b.ptpos + b.vel * dt
@@ -446,7 +454,8 @@ def integrate(dt, bodies):
         #     eprint('col')
 
         # Don't calculate collision if body is not moving
-        if math.isclose(b.vel.magnitude(), 0, abs_tol=0.01):
+        # if math.isclose(b.vel.magnitude(), 0, abs_tol=0.01):
+        if not b.is_moving():
             b.lock = True
 
 
@@ -482,8 +491,6 @@ def border_collision(body, terrain_size):
                           relative_vel=-body.vel,
                           collision_normal=Vector(-1, 0))]
     elif body.ptpos.y < 0:
-        eprint('body.vel', body.vel)
-
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
@@ -602,9 +609,9 @@ def resolve_collisions(dt, collisions):
             c.body1.vel -= (c.collision_normal / c.body1.mass) * impulse
             c.body1.ptpos += c.body1.vel * dt
 
-            eprint('vel', c.body1.vel)
+            # eprint('vel', c.body1.vel)
             # eprint('normal', c.collision_normal)
-            eprint('pos 2', c.body1.ptpos)
+            # eprint('pos 2', c.body1.ptpos)
             # time.sleep(100)
 
 
