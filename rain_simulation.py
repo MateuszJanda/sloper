@@ -66,9 +66,6 @@ def main(scr):
         # Body(ptpos=Vector(23, 80), mass=1, velocity=Vector(0, -40)),
     ]
 
-    for b in bodies:
-        b.forces = Vector(0, 0)
-
     t = 0
     freq = 100
     dt = 1/freq
@@ -78,9 +75,9 @@ def main(scr):
 
         step_simulation(dt, bodies, terrain)
 
-        for b in bodies:
-            # screen.draw_hailstone(b.ptpos)
-            screen.draw_point(b.ptpos)
+        for body in bodies:
+            # screen.draw_hailstone(body.ptpos)
+            screen.draw_point(body.ptpos)
         screen.refresh()
 
         time.sleep(dt)
@@ -436,27 +433,27 @@ def calc_forces(dt, bodies):
 
 
 def integrate(dt, bodies):
-    for b in bodies:
-        if b.lock:
+    for body in bodies:
+        if body.lock:
             eprint('LOCK')
             continue
 
-        # b.acc = Vector(0, -GRAVITY_ACC) + b.forces/b.mass
-        b.acc = b.forces / b.mass
-        b.vel = b.vel + b.acc * dt
-        b.prev_ptpos = b.ptpos
-        b.ptpos = b.ptpos + b.vel * dt
+        # body.acc = Vector(0, -GRAVITY_ACC) + body.forces/body.mass
+        body.acc = body.forces / body.mass
+        body.vel = body.vel + body.acc * dt
+        body.prev_ptpos = body.ptpos
+        body.ptpos = body.ptpos + body.vel * dt
 
-        # eprint('Integrate current', b.ptpos, 'prev', b.prev_ptpos,)
-        # eprint(b.ptpos)
-        # if int(b.ptpos.y) == 38:
+        # eprint('Integrate current', body.ptpos, 'prev', body.prev_ptpos,)
+        # eprint(body.ptpos)
+        # if int(body.ptpos.y) == 38:
         #     time.sleep(5000)
         #     eprint('col')
 
         # Don't calculate collision if body is not moving
-        # if math.isclose(b.vel.magnitude(), 0, abs_tol=0.01):
-        if not b.is_moving():
-            b.lock = True
+        # if math.isclose(body.vel.magnitude(), 0, abs_tol=0.01):
+        if not body.is_moving():
+            body.lock = True
 
 
 class Collision:
