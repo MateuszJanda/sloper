@@ -45,6 +45,10 @@ def main(scr):
     screen.add_ascii(ascii_arr)
     # screen.add_norm_arr(norm_arr)
 
+    for x in range(terrain._terrain.shape[1]):
+        if terrain._terrain[-1, x].any():
+            eprint('POS', x)
+
     assert(np.all(Vector(50, 38) == Vector(50, 38)))
     arrpos = ptpos_to_arrpos(Vector(50,38))
     assert(np.all(Vector(50, 38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
@@ -71,7 +75,7 @@ def main(scr):
             screen.draw_point(body.ptpos)
         screen.refresh()
 
-        time.sleep(dt)
+        # time.sleep(dt)
         t += dt
 
     curses.endwin()
@@ -250,6 +254,7 @@ class Screen:
 class Body:
     def __init__(self, ptpos, mass, velocity):
         self.ptpos = ptpos
+        self.prev_prev_ptpos = ptpos
         self.prev_ptpos = ptpos
         self.mass = mass
         self.vel = velocity
@@ -280,8 +285,12 @@ class Terrain:
     def get_normal_vec(self, pt):
         arrpos = ptpos_to_arrpos(pt)
 
+        if (pt.x == 28 or pt.x == 29) and pt.y == 0:
+            eprint('PYK')
+
         normal_vec = self._terrain[arrpos.y, arrpos.x]
         if np.any(normal_vec != 0):
+            eprint('NORM VEC')
             return Vector(normal_vec[0], normal_vec[1])
 
         return None
@@ -456,7 +465,8 @@ def integrate(dt, bodies):
         # body.acc = Vector(0, -GRAVITY_ACC) + body.forces/body.mass
         body.acc = body.forces / body.mass
         body.vel = body.vel + body.acc * dt
-        body.prev_ptpos = body.ptpos
+        body.prev_prev_ptpos = body.prev_ptpos
+        body.prev_ptpos = copy.copy(body.ptpos)
         body.ptpos = body.ptpos + body.vel * dt
 
         # Don't calculate collision if body is not moving
@@ -478,8 +488,14 @@ def detect_collisions(bodies, terrain):
     for body in bodies:
         if body.lock:
             continue
-        collisions += border_collision(body, terrain.size())
-        collisions += obstacle_collisions(body, terrain)
+        # collisions += obstacle_collisions(body, terrain)
+        c = obstacle_collisions(body, terrain)
+        if c:
+            eprint('OBSTACLE')
+        if not c:
+        # collisions += border_collision(body, terrain.size())
+            c = border_collision(body, terrain.size())
+        collisions += c
 
     return collisions
 
@@ -511,7 +527,7 @@ def border_collision(body, terrain_size):
 
 
 def obstacle_collisions(body, terrain):
-    norml_vec = obstacle_pos(terrain, body.prev_ptpos, body.ptpos)
+    norml_vec = obstacle_pos(terrain, body.prev_prev_ptpos, body.ptpos)
     if np.any(norml_vec):
         return [Collision(body1=body,
                           body2=None,
@@ -547,6 +563,8 @@ def obstacle_pos(terrain, prev_ptpos, ptpos):
 
     normal_vec = terrain.get_normal_vec(check_pt)
     # If body collide with different obstacle than in previous step
+    if np.any(normal_vec) and not (check_pt.y != prev_ptpos.y or check_pt.x != prev_ptpos.x):
+        eprint('--->  UPS', check_pt.x, prev_ptpos.x)
     if np.any(normal_vec) and (check_pt.y != prev_ptpos.y or check_pt.x != prev_ptpos.x):
         return normal_vec
 
