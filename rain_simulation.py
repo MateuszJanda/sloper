@@ -209,13 +209,22 @@ class Screen:
         if not (0 <= pt.x < self._arr_size.width and 0 <= pt.y < self._arr_size.height):
             return
 
-        block = self._terrain.get_block_for_pt(pt)
-        if np.any(block):
-            eprint('IMPACT')
-
         bufpos = ptpos_to_bufpos(pt)
-        uchar = ord(self._buf[bufpos.y][bufpos.x])
+        block = self._terrain.get_block_for_pt(bufpos)
+        if np.any(block):
+            uchar = self._block_to_uchar(block)
+        else:
+            uchar = ord(self._buf[bufpos.y][bufpos.x])
+
         self._buf[bufpos.y][bufpos.x] = chr(uchar | self._braille_char(pt))
+
+    def _block_to_uchar(self, block):
+        height, width = block.shape
+        uchar = ord(EMPTY_BRAILLE)
+        for x, y in it.product(range(width), range(height)):
+            uchar |= self._braille_char(Vector(x, y))
+
+        return uchar
 
     def _braille_char(self, pt):
         """Point as braille character in buffer cell"""
@@ -290,8 +299,7 @@ class Terrain:
 
         return None
 
-    def get_block_for_pt(self, pt):
-        bufpos = ptpos_to_bufpos(pt)
+    def get_block_for_pt(self, bufpos):
         pt = Vector(bufpos.x * BUF_CELL_SIZE.width, bufpos.y * BUF_CELL_SIZE.height)
 
         block = self._terrain[pt.y:pt.y+BUF_CELL_SIZE.height,
