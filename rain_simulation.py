@@ -42,9 +42,12 @@ def main(scr):
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_arr(norm_arr)
-    screen.add_ascii(ascii_arr)
-    # screen.add_norm_arr(norm_arr)
+    # screen.add_ascii(ascii_arr)
+    screen.add_norm_arr(norm_arr)
+    # screen.add_norm_arr(terrain._terrain)
 
+    # eprint(terrain._terrain[-1, :])
+    # eprint(norm_arr[-1, :])
 
     # for y in range(terrain._terrain_size.height):
     #     if np.any(terrain._terrain[y, 50]):
@@ -170,6 +173,7 @@ class Screen:
         bottom left corner.
 
         TODO: shift should be buf_shift
+        TODO: replace by redraw_terain
         """
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
@@ -645,7 +649,7 @@ def fix_penetration(bodies, terrain_size):
         body.ptpos.x = max(0, min(body.ptpos.x, terrain_size.width))
         body.ptpos.y = max(0, min(body.ptpos.y, terrain_size.height))
 
-        eprint('body.ptpos, body.prev_ptpos', body.ptpos, body.prev_ptpos)
+        # eprint('body.ptpos, body.prev_ptpos', body.ptpos, body.prev_ptpos)
 
 
 if __name__ == '__main__':
