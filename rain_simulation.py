@@ -42,28 +42,12 @@ def main(scr):
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_arr(norm_arr)
-    # eprint('xxx')
-    # eprint(terrain._terrain[-1, :])
     screen.add_ascii(ascii_arr)
-    # norm_arr = np.array([[1, 1], [1, 1], [1, 1], [1, 1]]  )
-    # norm_arr = np.array([[1, 1, 1, 1], [1, 1, 1, 1]]  )
     # screen.add_norm_arr(norm_arr)
-    # screen.add_norm_arr(terrain._terrain)
-
-    # eprint(terrain._terrain[-1, :])
-    # eprint(norm_arr[-1, :])
-
-    # for y in range(terrain._terrain_size.height):
-    #     if np.any(terrain._terrain[y, 50]):
-    #         eprint('YYY', y)
-    #         eprint(arrpos_to_ptpos(50, y, terrain._terrain_size))
-
-    #         exit()
 
     assert(np.all(Vector(50, 38) == Vector(50, 38)))
     arrpos = ptpos_to_arrpos(Vector(50,38))
     assert(np.all(Vector(50, 38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
-    # eprint('line', curses.LINES )
 
     bodies = [
         # Body(ptpos=Vector(30, 80), mass=10, velocity=Vector(0, -40))
@@ -180,17 +164,10 @@ class Screen:
         TODO: replace by redraw_terain
         """
         height, width, _ = arr.shape
-        # height, width  = arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
                 ptpos = arrpos_to_ptpos(x, self._arr_size.height - height  + y) + shift
                 self.draw_point(ptpos)
-
-            # if y == height - 1:
-            #     ptpos = arrpos_to_ptpos(x, height - height  + y) + shift
-            #     # ptpos = arrpos_to_ptpos(x, self._arr_size.height - height  + y) + shift
-            #     # eprint('XXX ', x, y, ptpos)
-            #     self.draw_point(ptpos)
 
         self._save_in_backup_buf()
 
@@ -301,18 +278,10 @@ class Terrain:
         self._terrain[y1:y2, x1:x2] = arr
 
     def get_normal_vec(self, pt):
-        # pt = np.floor(pt)
-        # eprint('checking', pt)
         arrpos = ptpos_to_arrpos(pt)
 
-        # if int(pt.y) == 38:
-        #     eprint('col', arrpos.y)
-        #     time.sleep(100)
-
-        # eprint('arrpos', arrpos)
         normal_vec = self._terrain[arrpos.y, arrpos.x]
         if np.any(normal_vec != 0):
-            # eprint('at point', pt, 'norm vec', Vector(normal_vec[0], normal_vec[1]))
             return Vector(normal_vec[0], normal_vec[1])
 
         return None
@@ -341,11 +310,8 @@ class Importer:
         ascii_arr = self._remove_ascii_margin(ascii_arr)
 
         norm_arr = self._import_norm_arr(norm_file)
-        # eprint(norm_arr[-1, :])
         norm_arr = self._remove_norm_margin(norm_arr)
 
-        # eprint('----')
-        # eprint(norm_arr[-1, :])
         self._transform_norm(norm_arr)
 
         self._validate_arrays(ascii_arr, norm_arr)
@@ -493,12 +459,6 @@ def integrate(dt, bodies):
         body.prev_ptpos = body.ptpos
         body.ptpos = body.ptpos + body.vel * dt
 
-        # eprint('Integrate current', body.ptpos, 'prev', body.prev_ptpos,)
-        # eprint(body.ptpos)
-        # if int(body.ptpos.y) == 38:
-        #     time.sleep(5000)
-        #     eprint('col')
-
         # Don't calculate collision if body is not moving
         # if math.isclose(body.vel.magnitude(), 0, abs_tol=0.01):
         if not body.is_moving():
@@ -552,10 +512,6 @@ def border_collision(body, terrain_size):
 
 def obstacle_collisions(body, terrain):
     norml_vec = obstacle_pos(terrain, body.prev_ptpos, body.ptpos)
-    # eprint(body.prev_ptpos)
-    # eprint(body.ptpos)
-    # eprint('----')
-    # exit()
     if np.any(norml_vec):
         return [Collision(body1=body,
                           body2=None,
@@ -568,15 +524,10 @@ def obstacle_pos(terrain, prev_ptpos, ptpos):
     """Bresenham's line algorithm
     https://pl.wikipedia.org/wiki/Algorytm_Bresenhama
     """
-    # x, y = prev_ptpos.x, prev_ptpos.y
-    # eprint('start')
     check_pt = np.floor(prev_ptpos)
-    # eprint(check_pt)
     prev_ptpos = np.floor(prev_ptpos)
     ptpos = np.floor(ptpos)
-    # return None
 
-    # Drawing direction
     if prev_ptpos.x < ptpos.x:
         xi = 1
         dx = ptpos.x - prev_ptpos.x
@@ -666,8 +617,6 @@ def fix_penetration(bodies, terrain_size):
     for body in bodies:
         body.ptpos.x = max(0, min(body.ptpos.x, terrain_size.width))
         body.ptpos.y = max(0, min(body.ptpos.y, terrain_size.height))
-
-        # eprint('body.ptpos, body.prev_ptpos', body.ptpos, body.prev_ptpos)
 
 
 if __name__ == '__main__':
