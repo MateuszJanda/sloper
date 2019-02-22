@@ -42,7 +42,11 @@ def main(scr):
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_arr(norm_arr)
+    # eprint('xxx')
+    # eprint(terrain._terrain[-1, :])
     screen.add_ascii(ascii_arr)
+    # norm_arr = np.array([[1, 1], [1, 1], [1, 1], [1, 1]]  )
+    # norm_arr = np.array([[1, 1, 1, 1], [1, 1, 1, 1]]  )
     # screen.add_norm_arr(norm_arr)
     # screen.add_norm_arr(terrain._terrain)
 
@@ -176,10 +180,17 @@ class Screen:
         TODO: replace by redraw_terain
         """
         height, width, _ = arr.shape
+        # height, width  = arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
-                ptpos = arrpos_to_ptpos(x, self._arr_size.height - height + y) + shift
+                ptpos = arrpos_to_ptpos(x, self._arr_size.height - height  + y) + shift
                 self.draw_point(ptpos)
+
+            # if y == height - 1:
+            #     ptpos = arrpos_to_ptpos(x, height - height  + y) + shift
+            #     # ptpos = arrpos_to_ptpos(x, self._arr_size.height - height  + y) + shift
+            #     # eprint('XXX ', x, y, ptpos)
+            #     self.draw_point(ptpos)
 
         self._save_in_backup_buf()
 
@@ -211,6 +222,7 @@ class Screen:
     def draw_point(self, pt):
         # Out of the screen
         if not (0 <= pt.x < self._arr_size.width and 0 <= pt.y < self._arr_size.height):
+            eprint('ERR')
             return
 
         bufpos = ptpos_to_bufpos(pt)
@@ -329,7 +341,12 @@ class Importer:
         ascii_arr = self._remove_ascii_margin(ascii_arr)
 
         norm_arr = self._import_norm_arr(norm_file)
+        # eprint(norm_arr[-1, :])
         norm_arr = self._remove_norm_margin(norm_arr)
+
+        # eprint('----')
+        # eprint(norm_arr[-1, :])
+        self._transform_norm(norm_arr)
 
         self._validate_arrays(ascii_arr, norm_arr)
         return ascii_arr, norm_arr
@@ -438,12 +455,12 @@ def ptpos_to_bufpos(pt):
 
 def arrpos_to_ptpos(x, y):
     """Array position to Cartesian coordinate system"""
-    y = curses.LINES * BUF_CELL_SIZE.height - y
+    y = curses.LINES * BUF_CELL_SIZE.height - 1 - y
     return Vector(x, y)
 
 
 def ptpos_to_arrpos(pt):
-    y = curses.LINES * BUF_CELL_SIZE.height - pt.y
+    y = curses.LINES * BUF_CELL_SIZE.height - 1 - pt.y
     return Vector(int(pt.x), int(y))
 
 
