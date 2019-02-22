@@ -216,13 +216,22 @@ class Screen:
         else:
             uchar = ord(self._buf[bufpos.y][bufpos.x])
 
+        if block.any():
+            exit()
+
         self._buf[bufpos.y][bufpos.x] = chr(uchar | self._braille_char(pt))
 
     def _block_to_uchar(self, block):
         height, width = block.shape
         uchar = ord(EMPTY_BRAILLE)
         for x, y in it.product(range(width), range(height)):
-            uchar |= self._braille_char(Vector(x, y))
+            if block[y, x]:
+                uchar |= self._braille_char(Vector(x, BUF_CELL_SIZE.height-y))
+
+            if block.any():
+                eprint(chr(uchar))
+
+
 
         return uchar
 
@@ -307,6 +316,9 @@ class Terrain:
 
         EMPTY = np.array([0, 0])
         block = np.logical_or.reduce(block != EMPTY, axis=-1)
+
+        if block.any():
+            eprint(block)
 
         return block
 
