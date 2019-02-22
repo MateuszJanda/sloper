@@ -42,8 +42,8 @@ def main(scr):
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_arr(norm_arr)
-    # screen.add_ascii(ascii_arr)
-    screen.add_norm_arr(norm_arr)
+    screen.add_ascii(ascii_arr)
+    # screen.add_norm_arr(norm_arr)
     # screen.add_norm_arr(terrain._terrain)
 
     # eprint(terrain._terrain[-1, :])
@@ -215,8 +215,9 @@ class Screen:
 
         bufpos = ptpos_to_bufpos(pt)
         block = self._terrain.get_block_for_pt(bufpos)
-        if np.any(block):
+        if ord(self._buf[bufpos.y][bufpos.x]) < ord(EMPTY_BRAILLE) and np.any(block):
             uchar = self._block_to_uchar(block)
+            # uchar = ord(self._buf[bufpos.y][bufpos.x])
         else:
             uchar = ord(self._buf[bufpos.y][bufpos.x])
 
