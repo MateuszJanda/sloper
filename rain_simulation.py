@@ -35,8 +35,8 @@ COEFFICIENT_OF_FRICTION = 0.9
 
 def main(scr):
     setup_curses(scr)
-    screen = Screen(scr)
     terrain = Terrain()
+    screen = Screen(scr, terrain)
 
     im = Importer()
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
@@ -149,8 +149,9 @@ class Vector(np.ndarray):
 
 
 class Screen:
-    def __init__(self, scr):
+    def __init__(self, scr, terrain):
         self._scr = scr
+        self._terrain = terrain
 
         self._buf_size = Size(curses.COLS-1, curses.LINES)
         self._arr_size = Size(self._buf_size.width*BUF_CELL_SIZE.width,
@@ -207,6 +208,10 @@ class Screen:
         # Out of the screen
         if not (0 <= pt.x < self._arr_size.width and 0 <= pt.y < self._arr_size.height):
             return
+
+        block = self._terrain.get_block_for_pt(pt)
+        if np.any(block):
+            eprint('IMPACT')
 
         bufpos = ptpos_to_bufpos(pt)
         uchar = ord(self._buf[bufpos.y][bufpos.x])
@@ -284,6 +289,18 @@ class Terrain:
             return Vector(normal_vec[0], normal_vec[1])
 
         return None
+
+    def get_block_for_pt(self, pt):
+        bufpos = ptpos_to_bufpos(pt)
+        pt = Vector(bufpos.x * BUF_CELL_SIZE.width, bufpos.y * BUF_CELL_SIZE.height)
+
+        block = self._terrain[pt.y:pt.y+BUF_CELL_SIZE.height,
+                              pt.x:pt.x+BUF_CELL_SIZE.width]
+
+        EMPTY = np.array([0, 0])
+        block = np.logical_or.reduce(block != EMPTY, axis=-1)
+
+        return block
 
     def in_border(self, pt):
         arrpos = ptpos_to_arrpos(pt)
@@ -428,7 +445,8 @@ def calc_forces(dt, bodies):
     for body in bodies:
         body.forces = Vector(0, -GRAVITY_ACC) * body.mass
 
-        if int(body.prev_ptpos.y) == 0 and int(body.ptpos.y) == 0 and int(body.prev_ptpos.x) != int(body.ptpos.x):
+        # if int(body.prev_ptpos.y) == 0 and int(body.ptpos.y) == 0 and int(body.prev_ptpos.x) != int(body.ptpos.x):
+        if int(body.prev_ptpos.y) == 0 and int(body.ptpos.y) == 0:
             body.forces *= COEFFICIENT_OF_FRICTION
 
 
