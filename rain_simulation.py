@@ -465,7 +465,7 @@ def integrate(dt, bodies):
         # body.acc = Vector(0, -GRAVITY_ACC) + body.forces/body.mass
         body.acc = body.forces / body.mass
         body.vel = body.vel + body.acc * dt
-        body.prev_prev_ptpos = body.prev_ptpos
+        body.prev_prev_ptpos = copy.copy(body.prev_ptpos)
         body.prev_ptpos = copy.copy(body.ptpos)
         body.ptpos = body.ptpos + body.vel * dt
 
