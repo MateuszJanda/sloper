@@ -75,7 +75,7 @@ def main(scr):
             screen.draw_point(body.ptpos)
         screen.refresh()
 
-        time.sleep(dt)
+        # time.sleep(dt)
         t += dt
 
     curses.endwin()
@@ -207,7 +207,7 @@ class Screen:
             return
 
         bufpos = ptpos_to_bufpos(pt)
-        block = self._terrain.get_block_for_pt(bufpos)
+        block = self._terrain.get_buff_size_block(bufpos)
         if ord(self._buf[bufpos.y][bufpos.x]) < ord(EMPTY_BRAILLE) and np.any(block):
             uchar = self._block_to_uchar(block)
             # uchar = ord(self._buf[bufpos.y][bufpos.x])
@@ -286,17 +286,13 @@ class Terrain:
     def get_normal_vec(self, pt):
         arrpos = ptpos_to_arrpos(pt)
 
-        if (pt.x == 28 or pt.x == 29) and pt.y == 0:
-            eprint('PYK')
+        # if (pt.x == 28 or pt.x == 29) and pt.y == 0:
+            # eprint('PYK')
 
         normal_vec = self._terrain[arrpos.y, arrpos.x]
-        if np.any(normal_vec != 0):
-            eprint('NORM VEC')
-            return Vector(normal_vec[0], normal_vec[1])
+        return Vector(normal_vec[0], normal_vec[1])
 
-        return None
-
-    def get_block_for_pt(self, bufpos):
+    def get_buff_size_block(self, bufpos):
         pt = Vector(bufpos.x * BUF_CELL_SIZE.width, bufpos.y * BUF_CELL_SIZE.height)
 
         block = self._terrain[pt.y:pt.y+BUF_CELL_SIZE.height,
