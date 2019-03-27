@@ -168,6 +168,7 @@ class Screen:
         TODO: replace by redraw_terain
         """
         height, width, _ = arr.shape
+        # moze np.argwhere ???
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
                 ptpos = arrpos_to_ptpos(x, self._arr_size.height - height  + y) + shift
@@ -492,8 +493,8 @@ def detect_collisions(bodies, terrain):
     for body in bodies:
         if body.lock:
             continue
-        c = obstacle_collisions(body, terrain)
-        # c = obstacle_collisions2(body, terrain)
+        # c = obstacle_collisions(body, terrain)
+        c = obstacle_collisions2(body, terrain)
         if c:
             eprint('OBSTACLE')
         if not c:
@@ -540,6 +541,21 @@ def obstacle_collisions(body, terrain):
 
 
 def obstacle_collisions2(body, terrain):
+    for check_pt in path(body):
+        if not terrain.in_border(check_pt):
+            break
+
+        normal_vec = terrain.get_normal_vec(check_pt)
+        if np.any(normal_vec):
+            return [Collision(body1=body,
+                      body2=None,
+                      relative_vel=-body.vel,
+                      collision_normal=normal_vec)]
+
+    return []
+
+
+def obstacle_collisions3(body, terrain):
     for check_pt in path(body):
         if not terrain.in_border(check_pt):
             break
