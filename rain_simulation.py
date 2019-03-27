@@ -256,7 +256,7 @@ class Body:
         self.ptpos = ptpos
         # self.prev_prev_ptpos = ptpos
         self.prev_ptpos = ptpos
-        self.next_ptpos = None
+        # self.next_ptpos = None
         self.mass = mass
         self.vel = velocity
         self.lock = False
@@ -460,16 +460,18 @@ def integrate(dt, bodies):
             continue
 
         body.prev_ptpos = copy.copy(body.ptpos)
-        if np.any(body.next_ptpos):
-            body.ptpos = copy.copy(body.next_ptpos)
-            body.next_ptpos = None
-        else:
-            # body.acc = Vector(0, -GRAVITY_ACC) + body.forces/body.mass
-            body.acc = body.forces / body.mass
-            body.vel = body.vel + body.acc * dt
-            # body.prev_prev_ptpos = body.prev_ptpos
-            # body.prev_ptpos = body.ptpos
-            body.ptpos = body.ptpos + body.vel * dt
+        # if np.any(body.next_ptpos):
+        #     body.ptpos = copy.copy(body.next_ptpos)
+        #     body.next_ptpos = None
+        # else:
+
+
+        # body.acc = Vector(0, -GRAVITY_ACC) + body.forces/body.mass
+        body.acc = body.forces / body.mass
+        body.vel = body.vel + body.acc * dt
+        # body.prev_prev_ptpos = body.prev_ptpos
+        # body.prev_ptpos = body.ptpos
+        body.ptpos = body.ptpos + body.vel * dt
 
         # Don't calculate collision if body is not moving
         # if math.isclose(body.vel.magnitude(), 0, abs_tol=0.01):
@@ -625,8 +627,8 @@ def resolve_collisions(dt, collisions):
             # eprint('pos 1', c.body1.ptpos)
             # eprint('prev 1', c.body1.prev_ptpos)
             c.body1.vel -= (c.collision_normal / c.body1.mass) * impulse
-            # c.body1.ptpos += c.body1.vel * dt
-            c.body1.next_ptpos = c.body1.ptpos + c.body1.vel * dt
+            c.body1.ptpos += c.body1.vel * dt
+            # c.body1.next_ptpos = c.body1.ptpos + c.body1.vel * dt
 
             # eprint('vel', c.body1.vel)
             # eprint('normal', c.collision_normal)
