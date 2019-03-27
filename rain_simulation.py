@@ -492,12 +492,11 @@ def detect_collisions(bodies, terrain):
     for body in bodies:
         if body.lock:
             continue
-        # collisions += obstacle_collisions(body, terrain)
         c = obstacle_collisions(body, terrain)
+        # c = obstacle_collisions2(body, terrain)
         if c:
             eprint('OBSTACLE')
         if not c:
-        # collisions += border_collision(body, terrain.size())
             c = border_collision(body, terrain.size())
         collisions += c
 
@@ -531,13 +530,85 @@ def border_collision(body, terrain_size):
 
 
 def obstacle_collisions(body, terrain):
-    norml_vec = obstacle_pos(terrain, body.prev_ptpos, body.ptpos)
-    if np.any(norml_vec):
+    normal_vec = obstacle_pos(terrain, body.prev_ptpos, body.ptpos)
+    if np.any(normal_vec):
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=norml_vec)]
+                          collision_normal=normal_vec)]
     return []
+
+
+def obstacle_collisions2(body, terrain):
+    for check_pt in path(body):
+        if not terrain.in_border(check_pt):
+            break
+
+        normal_vec = terrain.get_normal_vec(check_pt)
+        if np.any(normal_vec):
+            return [Collision(body1=body,
+                      body2=None,
+                      relative_vel=-body.vel,
+                      collision_normal=normal_vec)]
+
+    return []
+
+
+def path(body):
+    """Bresenham's line algorithm
+    https://pl.wikipedia.org/wiki/Algorytm_Bresenhama
+    """
+    check_pt = np.floor(body.prev_ptpos)
+    prev_ptpos = np.floor(body.prev_ptpos)
+    ptpos = np.floor(body.ptpos)
+
+    if prev_ptpos.x < ptpos.x:
+        xi = 1
+        dx = ptpos.x - prev_ptpos.x
+    else:
+        xi = -1
+        dx = prev_ptpos.x - ptpos.x
+
+    if prev_ptpos.y < ptpos.y:
+        yi = 1
+        dy = ptpos.y - prev_ptpos.y
+    else:
+        yi = -1
+        dy = prev_ptpos.y - ptpos.y
+
+    yield check_pt
+
+    # X axis
+    if dx > dy:
+        ai = (dy - dx) * 2
+        bi = dy * 2
+        d = bi - dx
+        while check_pt.x != ptpos.x:
+            # coordinate test
+            if d >= 0:
+                check_pt.x += xi
+                check_pt.y += yi
+                d += ai
+            else:
+                d += bi
+                check_pt.x += xi
+
+            yield check_pt
+    else:
+        ai = (dx - dy) * 2
+        bi = dx * 2
+        d = bi - dy
+        while check_pt.y != ptpos.y:
+            # coordinate test
+            if d >= 0:
+                check_pt.x += xi
+                check_pt.y += yi
+                d += ai
+            else:
+                d += bi
+                check_pt.y += yi
+
+            yield check_pt
 
 
 def obstacle_pos(terrain, prev_ptpos, ptpos):
