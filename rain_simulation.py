@@ -49,16 +49,16 @@ def main(scr):
         if terrain._terrain[-1, x].any():
             eprint('POS', x)
 
-    assert(np.all(Vector(50, 38) == Vector(50, 38)))
-    arrpos = ptpos_to_arrpos(Vector(50,38))
-    assert(np.all(Vector(50, 38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
+    assert(np.all(Vector(x=50, y=38) == Vector(x=50, y=38)))
+    arrpos = ptpos_to_arrpos(Vector(x=50, y=38))
+    assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
 
     bodies = [
-        # Body(ptpos=Vector(30, 80), mass=10, velocity=Vector(0, -40))
-        Body(ptpos=Vector(50, 80), mass=10, velocity=Vector(0, -40)),  # TODO: check interaction with normal vector
-        # Body(ptpos=Vector(95, 80), mass=1, velocity=Vector(0, -40)),
-        # Body(ptpos=Vector(110, 80), mass=1, velocity=Vector(0, -40)),
-        # Body(ptpos=Vector(23, 80), mass=1, velocity=Vector(0, -40)),
+        # Body(ptpos=Vector(x=30, y=80), mass=10, velocity=Vector(x=0, y=-40))
+        Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),  # TODO: check interaction with normal vector
+        # Body(ptpos=Vector(x=95, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        # Body(ptpos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        # Body(ptpos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
     ]
 
     t = 0
@@ -110,25 +110,26 @@ def setup_curses(scr):
 
 
 class Vector(np.ndarray):
-    def __new__(cls, x, y):
-        obj = np.asarray([x, y]).view(cls)
+    # TODO: inna kolejność (y, x)
+    def __new__(cls, y, x):
+        obj = np.asarray([y, x]).view(cls)
         return obj
 
     @property
     def x(self):
-        return self[0]
+        return self[1]
 
     @x.setter
     def x(self, value):
-        self[0] = value
+        self[1] = value
 
     @property
     def y(self):
-        return self[1]
+        return self[0]
 
     @y.setter
     def y(self, value):
-        self[1] = value
+        self[0] = value
 
     def magnitude(self):
         """Calculate vector magnitude"""
@@ -158,7 +159,7 @@ class Screen:
     def _get_empty_buf(self):
         return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
 
-    def add_norm_arr(self, arr, shift=Vector(0, 0)):
+    def add_norm_arr(self, arr, shift=Vector(x=0, y=0)):
         """
         Add static element to screen buffer. Every element in array will be
         represent as braille character. By default all arrays are drawn in
@@ -168,7 +169,7 @@ class Screen:
         TODO: replace by redraw_terain
         """
         height, width, _ = arr.shape
-        # moze np.argwhere ???
+        # TODO: moze np.argwhere ???
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
                 ptpos = arrpos_to_ptpos(x, self._arr_size.height - height  + y) + shift
@@ -176,11 +177,11 @@ class Screen:
 
         self._save_in_backup_buf()
 
-    def add_ascii(self, ascii_arr, shift=Vector(0, 0)):
+    def add_ascii(self, ascii_arr, shift=Vector(x=0, y=0)):
         height, width = ascii_arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(ascii_arr[y, x] != ' '):
-                buffpos = Vector(x, self._buf_size.height - height + y)
+                buffpos = Vector(x=x, y=self._buf_size.height - height + y)
                 self._buf[buffpos.y][buffpos.x] = ascii_arr[y, x]
 
         self._save_in_backup_buf()
@@ -188,12 +189,12 @@ class Screen:
     def add_border(self):
         """For debug, draw screen border in braille characters"""
         for x in range(self._arr_size.width):
-            self.draw_point(Vector(x, 0))
-            self.draw_point(Vector(x, self._arr_size.height-1))
+            self.draw_point(Vector(x=x, y=0))
+            self.draw_point(Vector(x=x, y=self._arr_size.height-1))
 
         for y in range(self._arr_size.height):
-            self.draw_point(Vector(0, y))
-            self.draw_point(Vector(self._arr_size.width-1, y))
+            self.draw_point(Vector(x=0, y=y))
+            self.draw_point(Vector(x=self._arr_size.width-1, y=y))
 
         self._save_in_backup_buf()
 
@@ -222,7 +223,7 @@ class Screen:
         uchar = ord(EMPTY_BRAILLE)
         for x, y in it.product(range(width), range(height)):
             if block[y, x]:
-                uchar |= self._braille_char(Vector(x, BUF_CELL_SIZE.height-y))
+                uchar |= self._braille_char(Vector(x=x, y=BUF_CELL_SIZE.height-y))
 
         return uchar
 
@@ -267,6 +268,8 @@ class Body:
 
 
 class Terrain:
+    NO_VECTOR = np.array([0, 0])
+
     def __init__(self):
         self._terrain_size = Size((curses.COLS-1)*BUF_CELL_SIZE.width, curses.LINES*BUF_CELL_SIZE.height)
         self._terrain = np.zeros(shape=[self._terrain_size.height, self._terrain_size.width, VECTOR_DIM])
@@ -274,7 +277,7 @@ class Terrain:
     def size(self):
         return self._terrain_size
 
-    def add_arr(self, arr, shift=Vector(0, 0)):
+    def add_arr(self, arr, shift=Vector(x=0, y=0)):
         """By default all arrays are drawn in bottom left corner."""
         arr_size = Size(arr.shape[1], arr.shape[0])
 
@@ -291,7 +294,7 @@ class Terrain:
             # eprint('PYK')
 
         normal_vec = self._terrain[arrpos.y, arrpos.x]
-        return Vector(normal_vec[0], normal_vec[1])
+        return Vector(x=normal_vec[0], y=normal_vec[1])
 
     def get_buff_size_block(self, bufpos):
         pt = Vector(bufpos.x * BUF_CELL_SIZE.width, bufpos.y * BUF_CELL_SIZE.height)
@@ -299,9 +302,8 @@ class Terrain:
         block = self._terrain[pt.y:pt.y+BUF_CELL_SIZE.height,
                               pt.x:pt.x+BUF_CELL_SIZE.width]
 
-        EMPTY = np.array([0, 0])
-        block = np.logical_or.reduce(block != EMPTY, axis=-1)
 
+        block = np.logical_or.reduce(block != Terrain.NO_VECTOR, axis=-1)
         return block
 
     def in_border(self, pt):
@@ -309,6 +311,29 @@ class Terrain:
         return 0 <= arrpos.x < self._terrain_size.width and \
                0 <= arrpos.y < self._terrain_size.height
 
+    def _bounding_box(self, ptpos, prev_ptpos):
+        arr_pos = ptpos_to_arrpos(ptpos)
+        arr_prev_pos = ptpos_to_arrpos(prev_ptpos)
+
+        x1, x2 = min(arr_pos.x, arr_prev_pos.x), max(arr_pos.x, arr_prev_pos.x)
+        y1, y2 = min(arr_pos.y, arr_prev_pos.y), max(arr_pos.y, arr_prev_pos.y)
+
+        return x1, x2, y1, y2
+
+    def fff(self, ptpos, prev_ptpos):
+        x1, x2, y1, y2 = self._bounding_box(ptpos, prev_ptpos)
+
+        box_normal_vec = self._terrain[y1:y2, x1:x2]
+        box_markers = np.logical_or.reduce(box_normal_vec != Terrain.NO_VECTOR, axis=-1)
+        indices = np.argwhere(box_markers)
+
+        result = []
+        for arrpos in indices:
+            obstacle_pos = arrpos_to_ptpos(Vector(x=x1, y=y1) + Vector(*arrpos))
+            normal_vec = Vector(*box_normal_vec[arrpos.y, arrpos.x])
+            result.append(obstacle_pos, normal_vec)
+
+        return result
 
 class Importer:
     def load(self, ascii_file, norm_file):
@@ -423,18 +448,18 @@ class Importer:
 def ptpos_to_bufpos(pt):
     x = int(pt.x/BUF_CELL_SIZE.width)
     y = curses.LINES - 1 - int(pt.y/BUF_CELL_SIZE.height)
-    return Vector(x, y)
+    return Vector(x=x, y=y)
 
 
 def arrpos_to_ptpos(x, y):
     """Array position to Cartesian coordinate system"""
     y = curses.LINES * BUF_CELL_SIZE.height - 1 - y
-    return Vector(x, y)
+    return Vector(x=x, y=y)
 
 
 def ptpos_to_arrpos(pt):
     y = curses.LINES * BUF_CELL_SIZE.height - 1 - pt.y
-    return Vector(int(pt.x), int(y))
+    return Vector(x=int(pt.x), y=int(y))
 
 
 def step_simulation(dt, bodies, terrain):
@@ -447,7 +472,7 @@ def step_simulation(dt, bodies, terrain):
 
 def calc_forces(dt, bodies):
     for body in bodies:
-        body.forces = Vector(0, -GRAVITY_ACC) * body.mass
+        body.forces = Vector(x=0, y=-GRAVITY_ACC) * body.mass
 
         # if int(body.prev_ptpos.y) == 0 and int(body.ptpos.y) == 0 and int(body.prev_ptpos.x) != int(body.ptpos.x):
         if int(body.prev_ptpos.y) == 0 and int(body.ptpos.y) == 0:
@@ -467,7 +492,7 @@ def integrate(dt, bodies):
         # else:
 
 
-        # body.acc = Vector(0, -GRAVITY_ACC) + body.forces/body.mass
+        # body.acc = Vector(x=0, y=-GRAVITY_ACC) + body.forces/body.mass
         body.acc = body.forces / body.mass
         body.vel = body.vel + body.acc * dt
         # body.prev_prev_ptpos = body.prev_ptpos
@@ -495,8 +520,8 @@ def detect_collisions(bodies, terrain):
             continue
         # c = obstacle_collisions(body, terrain)
         c = obstacle_collisions2(body, terrain)
-        if c:
-            eprint('OBSTACLE')
+        # if c:
+        #     eprint('OBSTACLE')
         if not c:
             c = border_collision(body, terrain.size())
         collisions += c
@@ -510,22 +535,22 @@ def border_collision(body, terrain_size):
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=Vector(1, 0))]
+                          collision_normal=Vector(x=1, y=0))]
     elif body.ptpos.x > terrain_size.width:
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=Vector(-1, 0))]
+                          collision_normal=Vector(x=-1, y=0))]
     elif body.ptpos.y < 0:
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=Vector(0, 1))]
+                          collision_normal=Vector(x=0, y=1))]
     elif body.ptpos.y > terrain_size.height:
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=Vector(0, -1))]
+                          collision_normal=Vector(x=0, y=-1))]
 
     return []
 
@@ -556,18 +581,26 @@ def obstacle_collisions2(body, terrain):
 
 
 def obstacle_collisions3(body, terrain):
-    for check_pt in path(body):
-        if not terrain.in_border(check_pt):
-            break
+    terrain.fff(body.ptpos. body.prev_ptpos)
 
-        normal_vec = terrain.get_normal_vec(check_pt)
-        if np.any(normal_vec):
-            return [Collision(body1=body,
-                      body2=None,
-                      relative_vel=-body.vel,
-                      collision_normal=normal_vec)]
 
-    return []
+    Collision(body1=body,
+              body2=None,
+              relative_vel=-body.vel,
+              collision_normal=normal_vec)
+
+    # for check_pt in path(body):
+    #     if not terrain.in_border(check_pt):
+    #         break
+
+    #     normal_vec = terrain.get_normal_vec(check_pt)
+    #     if np.any(normal_vec):
+    #         return [Collision(body1=body,
+    #                   body2=None,
+    #                   relative_vel=-body.vel,
+    #                   collision_normal=normal_vec)]
+
+    # return []
 
 
 def path(body):
