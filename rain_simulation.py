@@ -330,7 +330,8 @@ class Terrain:
         result = []
         for arrpos in indices:
             obstacle_pos = arrpos_to_ptpos(Vector(x=x1, y=y1) + Vector(*arrpos))
-            normal_vec = Vector(*box_normal_vec[arrpos.y, arrpos.x])
+            normal_vec = box_normal_vec[arrpos.y, arrpos.x]
+            normal_vec = Vector(x=normal_vec[0], y=normal_vec[1])
             result.append(obstacle_pos, normal_vec)
 
         return result
@@ -506,11 +507,12 @@ def integrate(dt, bodies):
 
 
 class Collision:
-    def __init__(self, body1, body2, relative_vel, collision_normal):
+    def __init__(self, body1, body2, relative_vel, normal_vec, dist=0):
         self.body1 = body1
         self.body2 = body2
         self.relative_vel = relative_vel
-        self.collision_normal = collision_normal
+        self.dist = dist
+        self.normal_vec = normal_vec
 
 
 def detect_collisions(bodies, terrain):
@@ -535,22 +537,22 @@ def border_collision(body, terrain_size):
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=Vector(x=1, y=0))]
+                          normal_vec=Vector(x=1, y=0))]
     elif body.ptpos.x > terrain_size.width:
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=Vector(x=-1, y=0))]
+                          normal_vec=Vector(x=-1, y=0))]
     elif body.ptpos.y < 0:
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=Vector(x=0, y=1))]
+                          normal_vec=Vector(x=0, y=1))]
     elif body.ptpos.y > terrain_size.height:
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=Vector(x=0, y=-1))]
+                          normal_vec=Vector(x=0, y=-1))]
 
     return []
 
@@ -561,7 +563,7 @@ def obstacle_collisions(body, terrain):
         return [Collision(body1=body,
                           body2=None,
                           relative_vel=-body.vel,
-                          collision_normal=normal_vec)]
+                          normal_vec=normal_vec)]
     return []
 
 
@@ -575,19 +577,24 @@ def obstacle_collisions2(body, terrain):
             return [Collision(body1=body,
                       body2=None,
                       relative_vel=-body.vel,
-                      collision_normal=normal_vec)]
+                      normal_vec=normal_vec)]
 
     return []
 
 
 def obstacle_collisions3(body, terrain):
-    terrain.fff(body.ptpos. body.prev_ptpos)
+    result = []
+    for ptpos, normal_vec in terrain.fff(body.ptpos. body.prev_ptpos):
+        collision = Collision(body1=body,
+                              body2=None,
+                              relative_vel=-body.vel,
+                              dist=body.ptpos - ptpos,
+                              normal_vec=normal_vec)
 
+        result.append(collision)
 
-    Collision(body1=body,
-              body2=None,
-              relative_vel=-body.vel,
-              collision_normal=normal_vec)
+    return result
+
 
     # for check_pt in path(body):
     #     if not terrain.in_border(check_pt):
@@ -598,7 +605,7 @@ def obstacle_collisions3(body, terrain):
     #         return [Collision(body1=body,
     #                   body2=None,
     #                   relative_vel=-body.vel,
-    #                   collision_normal=normal_vec)]
+    #                   normal_vec=normal_vec)]
 
     # return []
 
@@ -741,17 +748,17 @@ def resolve_collisions(dt, collisions):
     for c in collisions:
         # Collision with screen border
         if not c.body2:
-            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.collision_normal)) / \
+            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.normal_vec)) / \
                     (1/c.body1.mass)
 
             # eprint('pos 1', c.body1.ptpos)
             # eprint('prev 1', c.body1.prev_ptpos)
-            c.body1.vel -= (c.collision_normal / c.body1.mass) * impulse
+            c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
             c.body1.ptpos += c.body1.vel * dt
             # c.body1.next_ptpos = c.body1.ptpos + c.body1.vel * dt
 
             # eprint('vel', c.body1.vel)
-            # eprint('normal', c.collision_normal)
+            # eprint('normal', c.normal_vec)
             # eprint('pos 2', c.body1.ptpos)
             # time.sleep(100)
 
