@@ -316,22 +316,23 @@ class Terrain:
 
         x1, x2 = min(arr_pos.x, arr_prev_pos.x), max(arr_pos.x, arr_prev_pos.x)
         y1, y2 = min(arr_pos.y, arr_prev_pos.y), max(arr_pos.y, arr_prev_pos.y)
+        return Vector(x=x1-1, y=y1-1), Vector(x=x2+1, y=y2+1)
 
-        return x1, x2, y1, y2
+    def obstacles(self, ptpos, prev_ptpos):
+        corner1, corner2 = self._bounding_box(ptpos, prev_ptpos)
 
-    def fff(self, ptpos, prev_ptpos):
-        x1, x2, y1, y2 = self._bounding_box(ptpos, prev_ptpos)
-
-        box_normal_vec = self._terrain[y1:y2, x1:x2]
+        box_normal_vec = self._terrain[corner1.y:corner2.y, corner1.x:corner2.x]
         box_markers = np.logical_or.reduce(box_normal_vec != Terrain.NO_VECTOR, axis=-1)
-        indices = np.argwhere(box_markers)
 
         result = []
-        for arrpos in indices:
-            obstacle_pos = arrpos_to_ptpos(Vector(x=x1, y=y1) + Vector(*arrpos))
+        for arrpos in np.argwhere(box_markers):
+            arrpos = Vector(*arrpos)
             normal_vec = box_normal_vec[arrpos.y, arrpos.x]
             normal_vec = Vector(x=normal_vec[0], y=normal_vec[1])
-            result.append(obstacle_pos, normal_vec)
+
+            global_pos = Vector(*(corner1 + arrpos))
+            global_pos = arrpos_to_ptpos(x=global_pos.x, y=global_pos.y)
+            result.append((global_pos, normal_vec))
 
         return result
 
@@ -583,11 +584,12 @@ def obstacle_collisions2(body, terrain):
 
 def obstacle_collisions3(body, terrain):
     result = []
-    for ptpos, normal_vec in terrain.fff(body.ptpos, body.prev_ptpos):
+    for ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
+        dist = Vector(*(body.ptpos - ptpos))
         collision = Collision(body1=body,
                               body2=None,
                               relative_vel=-body.vel,
-                              dist=body.ptpos - ptpos,
+                              dist=dist.magnitude(),
                               normal_vec=normal_vec)
 
         result.append(collision)
@@ -744,9 +746,6 @@ def obstacle_pos(terrain, prev_ptpos, ptpos):
 
 
 def resolve_collisions(dt, collisions):
-    if collisions:
-        eprint('RESOLV')
-
     for i in range(3):
         for c in collisions:
             # Collision with screen border
