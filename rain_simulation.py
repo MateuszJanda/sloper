@@ -524,8 +524,10 @@ def detect_collisions(bodies, terrain):
         c = obstacle_collisions3(body, terrain)
         # if c:
         #     eprint('OBSTACLE')
-        if not c:
-            c = border_collision(body, terrain.size())
+
+        # if not c:
+        #     c = border_collision(body, terrain.size())
+
         collisions += c
 
     return collisions
@@ -586,20 +588,28 @@ def obstacle_collisions3(body, terrain):
     result = []
     for ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
         # eprint('pt to distance', body.ptpos, ptpos)
-        dist = Vector(*(ptpos - body.ptpos))
+        # dist = Vector(*(ptpos - body.ptpos))
         # eprint('dist ', dist.magnitude())
 
-        dist = min(
-            Vector(*(ptpos - body.ptpos)).magnitude(),
-            Vector(*(ptpos + Vector(x=1, y=0) - body.ptpos)).magnitude(),
-            Vector(*(ptpos + Vector(x=0, y=1) - body.ptpos)).magnitude(),
-            Vector(*(ptpos + Vector(x=1, y=1) - body.ptpos)).magnitude(),
-            )
+        # dist = min(
+        #     Vector(*(ptpos - body.ptpos)).magnitude(),
+        #     Vector(*(ptpos + Vector(x=1, y=0) - body.ptpos)).magnitude(),
+        #     Vector(*(ptpos + Vector(x=0, y=1) - body.ptpos)).magnitude(),
+        #     Vector(*(ptpos + Vector(x=1, y=1) - body.ptpos)).magnitude(),
+        #     )
+
+        r = 0.5
+        p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
+        p2 = np.floor(ptpos) + Vector(x=r, y=r)
+        dist = Vector(*(p1 - p2)).magnitude() - 2*r
+
         collision = Collision(body1=body,
                               body2=None,
                               relative_vel=-body.vel,
                               dist=dist,
                               normal_vec=normal_vec)
+
+        collision.obs_pos = ptpos
 
         result.append(collision)
 
@@ -764,7 +774,7 @@ def resolve_collisions(dt, collisions):
                 relative_vel = -c.body1.vel
 
                 # eprint(c.normal_vec)
-                eprint('CCC', relative_vel, c.normal_vec, np.dot(relative_vel, c.normal_vec))
+                eprint('CCC relV=%s, norm=%s, dot=%s, len=%d, o_pos=%s' % (relative_vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), len(collisions), c.obs_pos))
                 # eprint('np.dot ', np.dot(relative_vel, c.normal_vec))
                 remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
                 # eprint('remove', remove)
