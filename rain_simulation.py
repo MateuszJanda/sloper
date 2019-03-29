@@ -588,10 +588,17 @@ def obstacle_collisions3(body, terrain):
         # eprint('pt to distance', body.ptpos, ptpos)
         dist = Vector(*(ptpos - body.ptpos))
         # eprint('dist ', dist.magnitude())
+
+        dist = min(
+            Vector(*(ptpos - body.ptpos)).magnitude(),
+            Vector(*(ptpos + Vector(x=1, y=0) - body.ptpos)).magnitude(),
+            Vector(*(ptpos + Vector(x=0, y=1) - body.ptpos)).magnitude(),
+            Vector(*(ptpos + Vector(x=1, y=1) - body.ptpos)).magnitude(),
+            )
         collision = Collision(body1=body,
                               body2=None,
                               relative_vel=-body.vel,
-                              dist=dist.magnitude(),
+                              dist=dist,
                               normal_vec=normal_vec)
 
         result.append(collision)
@@ -749,7 +756,7 @@ def obstacle_pos(terrain, prev_ptpos, ptpos):
 
 def resolve_collisions(dt, collisions):
     mark = False
-    for i in range(3):
+    for i in range(1):
         for c in collisions:
             # Collision with screen border
             if not c.body2:
@@ -774,7 +781,7 @@ def resolve_collisions(dt, collisions):
                     impulse = (remove) / \
                             (1/c.body1.mass)
 
-                    eprint('body BEFORE', c.body1.ptpos, c.body1.vel)
+                    eprint('body BEFORE pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
                     # eprint('prev 1', c.body1.prev_ptpos)
                     c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
                     c.body1.ptpos += c.body1.vel * dt
@@ -782,7 +789,7 @@ def resolve_collisions(dt, collisions):
 
                     # eprint('vel', c.body1.vel)
                     # eprint('normal', c.normal_vec)
-                    eprint('body AFTER', c.body1.ptpos, c.body1.vel)
+                    eprint('body AFTER pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
                     # time.sleep(100)
 
 
