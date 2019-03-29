@@ -41,19 +41,23 @@ def main(scr):
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_arr(norm_arr)
-    screen.add_ascii(ascii_arr)
-    # screen.add_norm_arr(norm_arr)
+    # screen.add_ascii(ascii_arr)
+    screen.add_norm_arr(norm_arr)
 
-    for x in range(terrain._terrain.shape[1]):
-        if terrain._terrain[-1, x].any():
-            eprint('POS', x)
+    for y in range(terrain._terrain.shape[0]):
+        if terrain._terrain[y, 34].any():
+            eprint('POS', (34, y))
 
     assert(np.all(Vector(x=50, y=38) == Vector(x=50, y=38)))
     arrpos = ptpos_to_arrpos(Vector(x=50, y=38))
     assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
 
+    ptpos = Vector(x=34.0, y=46.25706000000003)
+    arrpos = ptpos_to_arrpos(ptpos)
+    assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arrpos.x, arrpos.y)), arrpos_to_ptpos(arrpos.x, arrpos.y)
+
     bodies = [
-        Body(ptpos=Vector(x=32, y=80), mass=10, velocity=Vector(x=0, y=-40))
+        Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40))
         # Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=95, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
@@ -314,14 +318,27 @@ class Terrain:
         arr_pos = ptpos_to_arrpos(ptpos)
         arr_prev_pos = ptpos_to_arrpos(prev_ptpos)
 
+        # eprint('what ', arr_pos.y, arr_prev_pos.y)
         x1, x2 = min(arr_pos.x, arr_prev_pos.x), max(arr_pos.x, arr_prev_pos.x)
         y1, y2 = min(arr_pos.y, arr_prev_pos.y), max(arr_pos.y, arr_prev_pos.y)
-        return Vector(x=x1-1, y=y1-1), Vector(x=x2+1, y=y2+1)
+        # eprint(x1, y1, x2, y2)
+        # eprint('from arrr', arrpos_to_ptpos(x1, y1), arrpos_to_ptpos(x2, y2))
+        return Vector(x=x1-1, y=y1-1), Vector(x=x2+2, y=y2+2)
 
     def obstacles(self, ptpos, prev_ptpos):
         corner1, corner2 = self._bounding_box(ptpos, prev_ptpos)
 
+        # if np.floor(ptpos.y) == 45:
+        #     eprint('CORNER prev=%s, c1=%s, c2=%s' % (prev_ptpos, arrpos_to_ptpos(corner1.x, corner1.y), arrpos_to_ptpos(corner2.x, corner2.y)))
+        #     exit()
+
         box_normal_vec = self._terrain[corner1.y:corner2.y, corner1.x:corner2.x]
+
+        # if np.floor(ptpos.y) == 45:
+        #     eprint(box_normal_vec)
+        #     eprint('CORNER prev=%s, c1=%s, c2=%s' % (prev_ptpos, corner1, corner2))
+        #     exit()
+
         box_markers = np.logical_or.reduce(box_normal_vec != Terrain.NO_VECTOR, axis=-1)
 
         result = []
@@ -333,6 +350,12 @@ class Terrain:
             global_pos = Vector(*(corner1 + arrpos))
             global_pos = arrpos_to_ptpos(x=global_pos.x, y=global_pos.y)
             result.append((global_pos, normal_vec))
+
+
+        # if np.floor(ptpos.y) == 45:
+        #     eprint('box result ', result)
+        #     exit()
+
 
         return result
 
@@ -459,7 +482,7 @@ def arrpos_to_ptpos(x, y):
 
 
 def ptpos_to_arrpos(pt):
-    y = curses.LINES * BUF_CELL_SIZE.height - 1 - pt.y
+    y = curses.LINES * BUF_CELL_SIZE.height - 1 - int(pt.y)
     return Vector(x=int(pt.x), y=int(y))
 
 
@@ -499,6 +522,7 @@ def integrate(dt, bodies):
         # body.prev_prev_ptpos = body.prev_ptpos
         # body.prev_ptpos = body.ptpos
         body.ptpos = body.ptpos + body.vel * dt
+        eprint("NEW POS", body.ptpos)
 
         # Don't calculate collision if body is not moving
         # if math.isclose(body.vel.magnitude(), 0, abs_tol=0.01):
@@ -586,7 +610,12 @@ def obstacle_collisions2(body, terrain):
 
 def obstacle_collisions3(body, terrain):
     result = []
-    for ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
+
+   # if int(body.ptpos.y) == 45:
+   #      eprint('ALL collision', len(result))
+   #      exit()
+
+    for obstacle_ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
         # eprint('pt to distance', body.ptpos, ptpos)
         # dist = Vector(*(ptpos - body.ptpos))
         # eprint('dist ', dist.magnitude())
@@ -600,7 +629,7 @@ def obstacle_collisions3(body, terrain):
 
         r = 0.5
         p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
-        p2 = np.floor(ptpos) + Vector(x=r, y=r)
+        p2 = np.floor(obstacle_ptpos) + Vector(x=r, y=r)
         dist = Vector(*(p1 - p2)).magnitude() - 2*r
 
         collision = Collision(body1=body,
@@ -609,9 +638,14 @@ def obstacle_collisions3(body, terrain):
                               dist=dist,
                               normal_vec=normal_vec)
 
-        collision.obs_pos = ptpos
+        collision.obs_pos = obstacle_ptpos
 
         result.append(collision)
+
+
+    # if int(body.ptpos.y) == 45:
+    #     eprint('ALL collision', len(result))
+    #     exit()
 
     return result
 
@@ -777,7 +811,7 @@ def resolve_collisions(dt, collisions):
                 eprint('CCC relV=%s, norm=%s, dot=%s, len=%d, o_pos=%s' % (relative_vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), len(collisions), c.obs_pos))
                 # eprint('np.dot ', np.dot(relative_vel, c.normal_vec))
                 remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
-                # eprint('remove', remove)
+                eprint('remove=%f, dist=%f, vvvel=%f' % (remove, c.dist, c.dist/dt))
 
                 if remove < 0:
                     mark = True
@@ -791,7 +825,7 @@ def resolve_collisions(dt, collisions):
                     impulse = (remove) / \
                             (1/c.body1.mass)
 
-                    eprint('body BEFORE pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
+                    # eprint('body BEFORE pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
                     # eprint('prev 1', c.body1.prev_ptpos)
                     c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
                     c.body1.ptpos += c.body1.vel * dt
