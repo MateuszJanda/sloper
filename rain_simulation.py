@@ -53,8 +53,8 @@ def main(scr):
     assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
 
     bodies = [
-        # Body(ptpos=Vector(x=30, y=80), mass=10, velocity=Vector(x=0, y=-40))
-        Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),  # TODO: check interaction with normal vector
+        Body(ptpos=Vector(x=32, y=80), mass=10, velocity=Vector(x=0, y=-40))
+        # Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=95, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
@@ -528,7 +528,6 @@ def detect_collisions(bodies, terrain):
             c = border_collision(body, terrain.size())
         collisions += c
 
-    eprint('len ', len(collisions))
     return collisions
 
 
@@ -586,9 +585,9 @@ def obstacle_collisions2(body, terrain):
 def obstacle_collisions3(body, terrain):
     result = []
     for ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
-        eprint('pt to distance', body.ptpos, ptpos)
+        # eprint('pt to distance', body.ptpos, ptpos)
         dist = Vector(*(ptpos - body.ptpos))
-        eprint('dist ', dist.magnitude())
+        # eprint('dist ', dist.magnitude())
         collision = Collision(body1=body,
                               body2=None,
                               relative_vel=-body.vel,
@@ -758,9 +757,10 @@ def resolve_collisions(dt, collisions):
                 relative_vel = -c.body1.vel
 
                 # eprint(c.normal_vec)
-                eprint('relative_vel ', np.dot(relative_vel, c.normal_vec))
-                remove = np.dot(relative_vel, c.normal_vec) + c.dist/dt
-                eprint('remove', remove)
+                eprint('CCC', relative_vel, c.normal_vec, np.dot(relative_vel, c.normal_vec))
+                # eprint('np.dot ', np.dot(relative_vel, c.normal_vec))
+                remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
+                # eprint('remove', remove)
 
                 if remove < 0:
                     mark = True
@@ -768,10 +768,13 @@ def resolve_collisions(dt, collisions):
                     # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.normal_vec)) / \
                     #         (1/c.body1.mass)
 
-                    impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
+                    # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
+                    #         (1/c.body1.mass)
+
+                    impulse = (remove) / \
                             (1/c.body1.mass)
 
-                    eprint('pos 1', c.body1.ptpos)
+                    eprint('body BEFORE', c.body1.ptpos, c.body1.vel)
                     # eprint('prev 1', c.body1.prev_ptpos)
                     c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
                     c.body1.ptpos += c.body1.vel * dt
@@ -779,7 +782,7 @@ def resolve_collisions(dt, collisions):
 
                     # eprint('vel', c.body1.vel)
                     # eprint('normal', c.normal_vec)
-                    eprint('pos 2', c.body1.ptpos)
+                    eprint('body AFTER', c.body1.ptpos, c.body1.vel)
                     # time.sleep(100)
 
 
