@@ -3,9 +3,9 @@
 
 """
 Coordinates systems:
-    ptpos      - position in Cartesian coordinate system
-    buffpos    - position on screen (of one character). Y from top to bottom
-    arrpos     - similar to ptpos, but Y from top to bottom
+    pos         - position in Cartesian coordinate system
+    buf_pos     - position on screen (of one character). Y from top to bottom
+    arr_pos     - similar to ptpos, but Y from top to bottom
 """
 
 
@@ -21,11 +21,39 @@ import pdb
 import numpy as np
 
 
-Size = co.namedtuple('Size', ['width', 'height'])
+class Size(np.ndarray):
+    def __new__(cls, height, width):
+        obj = np.asarray([height, width]).view(cls)
+        return obj
+
+    @property
+    def width(self):
+        return self[1]
+
+    @width.setter
+    def width(self, value):
+        self[1] = value
+
+    @property
+    def height(self):
+        return self[0]
+
+    @height.setter
+    def height(self, value):
+        self[0] = value
+
+    def __str__(self):
+        """string representation of object."""
+        return "Size(width=" + str(self.width) + ", height=" + str(self.height) + ")"
+
+    def __repr__(self):
+        """string representation of object."""
+        return "Size(width=" + str(self.width) + ", height=" + str(self.height) + ")"
+
 
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
-BUF_CELL_SIZE = Size(2, 4)
+BUF_CELL_SIZE = Size(4, 2)
 VECTOR_DIM = 2
 
 # Physical values
@@ -143,9 +171,8 @@ class Screen:
         self._scr = scr
         self._terrain = terrain
 
-        self._buf_size = Size(curses.COLS-1, curses.LINES)
-        self._arr_size = Size(self._buf_size.width*BUF_CELL_SIZE.width,
-                              self._buf_size.height*BUF_CELL_SIZE.height)
+        self._buf_size = Size(curses.LINES, curses.COLS-1)
+        self._arr_size = self._buf_size*BUF_CELL_SIZE
 
         self._buf = self._create_empty_buf()
         self._buf_backup = copy.deepcopy(self._buf)
@@ -183,8 +210,8 @@ class Screen:
         height, width = ascii_arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(ascii_arr[y, x] != ' '):
-                buffpos = Vector(x=x, y=self._buf_size.height - height + y)
-                self._buf[buffpos.y][buffpos.x] = ascii_arr[y, x]
+                bufpos = Vector(x=x, y=self._buf_size.height - height + y)
+                self._buf[bufpos.y][bufpos.x] = ascii_arr[y, x]
 
         self._save_in_backup_buf()
 
@@ -282,15 +309,17 @@ class Terrain:
     NO_VECTOR = np.array([0, 0])
 
     def __init__(self):
-        self._terrain_size = Size((curses.COLS-1)*BUF_CELL_SIZE.width, curses.LINES*BUF_CELL_SIZE.height)
-        self._terrain = np.zeros(shape=[self._terrain_size.height, self._terrain_size.width, VECTOR_DIM])
+        self._terrain_size = Size(curses.LINES*BUF_CELL_SIZE.height,
+                                  (curses.COLS-1)*BUF_CELL_SIZE.width)
+        self._terrain = np.zeros(shape=(self._terrain_size.height,
+                                        self._terrain_size.width, VECTOR_DIM))
 
     def size(self):
         return self._terrain_size
 
     def add_arr(self, arr, shift=Vector(x=0, y=0)):
         """By default all arrays are drawn in bottom left corner."""
-        arr_size = Size(arr.shape[1], arr.shape[0])
+        arr_size = Size(*arr.shape[:2])
 
         x1 = shift.x
         x2 = x1 + arr_size.width
@@ -502,18 +531,18 @@ class Importer:
             for x in range(0, norm_reduce.shape[1], BUF_CELL_SIZE.width):
                 result.append(int(np.any(norm_reduce[y:y+BUF_CELL_SIZE.height, x:x+BUF_CELL_SIZE.width])))
 
-        size = Size(norm_reduce.shape[1]//BUF_CELL_SIZE.width, norm_reduce.shape[0]//BUF_CELL_SIZE.height)
-        result = np.reshape(result, (size.height, size.width))
+        size = norm_reduce.shape//BUF_CELL_SIZE
+        result = np.reshape(result, size)
 
         eprint(result)
         return result
 
     def _validate_arrays(self, ascii_arr, norm_arr):
         """Validate if both arrays describe same thing"""
-        ascii_arr_size = Size(ascii_arr.shape[1], ascii_arr.shape[0])
-        norm_arr_size = Size(norm_arr.shape[1]//BUF_CELL_SIZE.width, norm_arr.shape[0]//BUF_CELL_SIZE.height)
+        ascii_arr_size = Size(*ascii_arr.shape)
+        norm_arr_size = norm_arr.shape[:2]//BUF_CELL_SIZE
 
-        if ascii_arr_size != norm_arr_size:
+        if np.any(ascii_arr_size != norm_arr_size):
             raise Exception('Imported arrays (ascii/norm) - mismatch size', ascii_arr_size, norm_arr_size)
 
         eprint('Validation OK')
