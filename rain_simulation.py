@@ -23,16 +23,19 @@ import numpy as np
 
 Size = co.namedtuple('Size', ['width', 'height'])
 
+REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = Size(2, 4)
 VECTOR_DIM = 2
 
+# Physical values
 GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.3
 COEFFICIENT_OF_FRICTION = 0.9
 
 
 def main(scr):
+    test_converters()
     setup_curses(scr)
     terrain = Terrain()
     screen = Screen(scr, terrain)
@@ -44,18 +47,6 @@ def main(scr):
     # screen.add_ascii(ascii_arr)
     screen.add_norm_arr(norm_arr)
 
-    for y in range(terrain._terrain.shape[0]):
-        if terrain._terrain[y, 34].any():
-            eprint('POS', (34, y))
-
-    assert(np.all(Vector(x=50, y=38) == Vector(x=50, y=38)))
-    arrpos = ptpos_to_arrpos(Vector(x=50, y=38))
-    assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
-
-    ptpos = Vector(x=34.0, y=46.25706000000003)
-    arrpos = ptpos_to_arrpos(ptpos)
-    assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arrpos.x, arrpos.y)), arrpos_to_ptpos(arrpos.x, arrpos.y)
-
     bodies = [
         # Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40))
         Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
@@ -65,11 +56,10 @@ def main(scr):
     ]
 
     t = 0
-    freq = 100
-    dt = 1/freq
+    dt = 1/REFRESH_RATE
 
     while True:
-        screen.restore_backup()
+        screen.restore_buffer()
 
         step_simulation(dt, bodies, terrain)
 
@@ -85,7 +75,9 @@ def main(scr):
 
 
 def setup_stderr():
-    """Redirect stderr to other terminal. Run tty command, to get terminal id."""
+    """
+    Redirect stderr to other terminal. Run tty command, to get terminal id.
+    """
     sys.stderr = open('/dev/pts/3', 'w')
 
 
@@ -95,7 +87,7 @@ def eprint(*args, **kwargs):
 
 
 def eassert(condition):
-    """Assert. Disable curses and run pdb"""
+    """Assert. Disable curses and run pdb."""
     if not condition:
         curses.endwin()
         sys.stderr = sys.stdout
@@ -103,7 +95,7 @@ def eassert(condition):
 
 
 def setup_curses(scr):
-    """Setup curses screen"""
+    """Setup curses screen."""
     curses.start_color()
     curses.use_default_colors()
     curses.halfdelay(5)
@@ -113,7 +105,6 @@ def setup_curses(scr):
 
 
 class Vector(np.ndarray):
-    # TODO: inna kolejność (y, x)
     def __new__(cls, y, x):
         obj = np.asarray([y, x]).view(cls)
         return obj
@@ -135,15 +126,15 @@ class Vector(np.ndarray):
         self[0] = value
 
     def magnitude(self):
-        """Calculate vector magnitude"""
+        """Calculate vector magnitude."""
         return np.linalg.norm(self)
 
     def __str__(self):
-        """string representation of object"""
+        """string representation of object."""
         return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
 
     def __repr__(self):
-        """string representation of object"""
+        """string representation of object."""
         return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
 
 
@@ -156,31 +147,39 @@ class Screen:
         self._arr_size = Size(self._buf_size.width*BUF_CELL_SIZE.width,
                               self._buf_size.height*BUF_CELL_SIZE.height)
 
-        self._buf = self._get_empty_buf()
+        self._buf = self._create_empty_buf()
         self._buf_backup = copy.deepcopy(self._buf)
 
-    def _get_empty_buf(self):
+    def _create_empty_buf(self):
+        """
+        Create empty screen buffer filled with "empty braille" chracters.
+        TODO: Repleace it by np.array (constrained type)
+        """
         return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
 
-    def add_norm_arr(self, arr, shift=Vector(x=0, y=0)):
-        """
+    def add_norm_arr(self, arr, buf_shift=Vector(x=0, y=0)):
+        """For DEBUG
         Add static element to screen buffer. Every element in array will be
         represent as braille character. By default all arrays are drawn in
         bottom left corner.
 
-        TODO: shift should be buf_shift
         TODO: replace by redraw_terain
         """
+        arr_shift = Vector(x=buf_shift.x*BUF_CELL_SIZE.width, y=buf_shift.y*BUF_CELL_SIZE.height)
         height, width, _ = arr.shape
         # TODO: moze np.argwhere ???
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
-                ptpos = arrpos_to_ptpos(x, self._arr_size.height - height  + y) + shift
+                ptpos = arrpos_to_ptpos(x, self._arr_size.height - height  + y) + arr_shift
                 self.draw_point(ptpos)
 
         self._save_in_backup_buf()
 
-    def add_ascii(self, ascii_arr, shift=Vector(x=0, y=0)):
+    def add_ascii(self, ascii_arr, buf_shift=Vector(x=0, y=0)):
+        """
+        Add static element to screen buffer. By default array will be drawn in
+        bottom left corner.
+        """
         height, width = ascii_arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(ascii_arr[y, x] != ' '):
@@ -190,7 +189,9 @@ class Screen:
         self._save_in_backup_buf()
 
     def add_border(self):
-        """For debug, draw screen border in braille characters"""
+        """For DEBUG
+        Draw screen border in braille characters.
+        """
         for x in range(self._arr_size.width):
             self.draw_point(Vector(x=x, y=0))
             self.draw_point(Vector(x=x, y=self._arr_size.height-1))
@@ -202,36 +203,42 @@ class Screen:
         self._save_in_backup_buf()
 
     def _save_in_backup_buf(self):
-        """Backup screen buffer"""
+        """Backup screen buffer."""
         self._buf_backup = copy.deepcopy(self._buf)
 
     def draw_point(self, pt):
-        # Out of the screen
+        """
+        Draw (put in screen buffer) single point. If theres is any ASCII
+        character in screen cell, function will replace this character to his
+        braille representation and merge this single point.
+        """
+        # Don't draw point when they are out of the screen
         if not (0 <= pt.x < self._arr_size.width and 0 <= pt.y < self._arr_size.height):
-            eprint('ERR')
             return
 
         bufpos = ptpos_to_bufpos(pt)
-        block = self._terrain.get_buff_size_block(bufpos)
-        if ord(self._buf[bufpos.y][bufpos.x]) < ord(EMPTY_BRAILLE) and np.any(block):
-            uchar = self._block_to_uchar(block)
-            # uchar = ord(self._buf[bufpos.y][bufpos.x])
+        cell_box = self._terrain.cut_bufcell_box(bufpos)
+        if ord(self._buf[bufpos.y][bufpos.x]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
+            uchar = self._cell_box_to_uchar(cell_box)
         else:
             uchar = ord(self._buf[bufpos.y][bufpos.x])
 
-        self._buf[bufpos.y][bufpos.x] = chr(uchar | self._braille_char(pt))
+        self._buf[bufpos.y][bufpos.x] = chr(uchar | self._pos_to_braille(pt))
 
-    def _block_to_uchar(self, block):
-        height, width = block.shape
+    def _cell_box_to_uchar(self, cell_box):
+        """
+        Convert BUF_CELL_SIZE cell_box to his braille character representation.
+        """
+        height, width = cell_box.shape
         uchar = ord(EMPTY_BRAILLE)
         for x, y in it.product(range(width), range(height)):
-            if block[y, x]:
-                uchar |= self._braille_char(Vector(x=x, y=BUF_CELL_SIZE.height-y))
+            if cell_box[y, x]:
+                uchar |= self._pos_to_braille(Vector(x=x, y=BUF_CELL_SIZE.height-y))
 
         return uchar
 
-    def _braille_char(self, pt):
-        """Point as braille character in buffer cell"""
+    def _pos_to_braille(self, pt):
+        """Point position as braille character in BUF_CELL."""
         bx = int(pt.x) % BUF_CELL_SIZE.width
         by = int(pt.y) % BUF_CELL_SIZE.height
 
@@ -246,11 +253,12 @@ class Screen:
             else:
                 return ord(EMPTY_BRAILLE) | (0x20 >> (by - 1))
 
-    def restore_backup(self):
-        """Restore static elements added to screen"""
+    def restore_buffer(self):
+        """Restore static elements added to screen."""
         self._buf = copy.deepcopy(self._buf_backup)
 
     def refresh(self):
+        """Draw buffer content to screen."""
         for num, line in enumerate(self._buf):
             self._scr.addstr(num, 0, ''.join(line))
         self._scr.refresh()
@@ -299,15 +307,14 @@ class Terrain:
         normal_vec = self._terrain[arrpos.y, arrpos.x]
         return Vector(x=normal_vec[0], y=normal_vec[1])
 
-    def get_buff_size_block(self, bufpos):
-        pt = Vector(bufpos.x * BUF_CELL_SIZE.width, bufpos.y * BUF_CELL_SIZE.height)
+    def cut_bufcell_box(self, bufpos):
+        pt = Vector(x=bufpos.x * BUF_CELL_SIZE.width, y=bufpos.y * BUF_CELL_SIZE.height)
 
-        block = self._terrain[pt.y:pt.y+BUF_CELL_SIZE.height,
-                              pt.x:pt.x+BUF_CELL_SIZE.width]
+        cell_box = self._terrain[pt.y:pt.y+BUF_CELL_SIZE.height,
+                                 pt.x:pt.x+BUF_CELL_SIZE.width]
 
-
-        block = np.logical_or.reduce(block != Terrain.NO_VECTOR, axis=-1)
-        return block
+        cell_box = np.logical_or.reduce(cell_box != Terrain.NO_VECTOR, axis=-1)
+        return cell_box
 
     def in_border(self, pt):
         arrpos = ptpos_to_arrpos(pt)
@@ -325,7 +332,7 @@ class Terrain:
         # eprint('from arrr', arrpos_to_ptpos(x1, y1), arrpos_to_ptpos(x2, y2))
         return Vector(x=x1-1, y=y1-1), Vector(x=x2+2, y=y2+2)
 
-    def _cut_normal_vec(self, arr_tl, arr_br):
+    def _cut_normal_vec_box(self, arr_tl, arr_br):
         # Fit array corner coordinates to not go out-of-bounds
         tl = Vector(x=max(arr_tl.x, 0), y=max(arr_tl.y, 0))
         br = Vector(x=min(arr_br.x, self._terrain_size.width),
@@ -375,7 +382,7 @@ class Terrain:
         #     eprint('CORNER prev=%s, c1=%s, c2=%s' % (prev_ptpos, arrpos_to_ptpos(corner1.x, corner1.y), arrpos_to_ptpos(corner2.x, corner2.y)))
         #     exit()
 
-        box, arr_shift = self._cut_normal_vec(arr_tl, arr_br)
+        box, arr_shift = self._cut_normal_vec_box(arr_tl, arr_br)
 
         # if np.floor(ptpos.y) == 45:
         #     eprint(box_normal_vec)
@@ -889,10 +896,19 @@ def resolve_collisions(dt, collisions):
         # if mark:
         #     exit()
 
-def fix_penetration(bodies, terrain_size):
-    for body in bodies:
-        body.ptpos.x = max(0, min(body.ptpos.x, terrain_size.width))
-        body.ptpos.y = max(0, min(body.ptpos.y, terrain_size.height))
+
+def test_converters():
+    """
+    For DEBUG.
+    CHeck if converters work properly.
+    """
+    assert(np.all(Vector(x=50, y=38) == Vector(x=50, y=38)))
+    arrpos = ptpos_to_arrpos(Vector(x=50, y=38))
+    assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
+
+    ptpos = Vector(x=34.0, y=46.25706000000003)
+    arrpos = ptpos_to_arrpos(ptpos)
+    assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arrpos.x, arrpos.y)), arrpos_to_ptpos(arrpos.x, arrpos.y)
 
 
 if __name__ == '__main__':
