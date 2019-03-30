@@ -800,7 +800,7 @@ def obstacle_pos(terrain, prev_ptpos, ptpos):
 
 def resolve_collisions(dt, collisions):
     mark = False
-    for i in range(1):
+    for i in range(3):
         for c in collisions:
             # Collision with screen border
             if not c.body2:
@@ -810,26 +810,31 @@ def resolve_collisions(dt, collisions):
                 # eprint(c.normal_vec)
                 eprint('CCC relV=%s, norm=%s, dot=%s, len=%d, o_pos=%s' % (relative_vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), len(collisions), c.obs_pos))
                 # eprint('np.dot ', np.dot(relative_vel, c.normal_vec))
-                remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
+                remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
                 eprint('remove=%f, dist=%f, vvvel=%f' % (remove, c.dist, c.dist/dt))
 
-                if remove < 0:
+                if remove < 0 and c.dist <= 0:
                     mark = True
 
                     # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.normal_vec)) / \
                     #         (1/c.body1.mass)
 
-                    # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
-                    #         (1/c.body1.mass)
-
-                    impulse = (remove) / \
+                    impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                             (1/c.body1.mass)
+
+                    # impulse = (remove) / \
+                            # (1/c.body1.mass)
 
                     # eprint('body BEFORE pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
                     # eprint('prev 1', c.body1.prev_ptpos)
-                    c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
-                    c.body1.ptpos += c.body1.vel * dt
-                    # c.body1.next_ptpos = c.body1.ptpos + c.body1.vel * dt
+
+                    # c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
+                    # c.body1.ptpos += c.body1.vel * dt
+
+                    c.body1.vel += (c.normal_vec / c.body1.mass) * impulse
+                    c.body1.ptpos -= c.body1.vel * dt
+
+
 
                     # eprint('vel', c.body1.vel)
                     # eprint('normal', c.normal_vec)
