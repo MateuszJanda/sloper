@@ -57,8 +57,8 @@ def main(scr):
     assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arrpos.x, arrpos.y)), arrpos_to_ptpos(arrpos.x, arrpos.y)
 
     bodies = [
-        Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40))
-        # Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        # Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40))
+        Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=95, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
@@ -325,6 +325,47 @@ class Terrain:
         # eprint('from arrr', arrpos_to_ptpos(x1, y1), arrpos_to_ptpos(x2, y2))
         return Vector(x=x1-1, y=y1-1), Vector(x=x2+2, y=y2+2)
 
+    def _cut_normal_vec(self, arr_tl, arr_br):
+        # Fit array corner coordinates to not go out-of-bounds
+        tl = Vector(x=max(arr_tl.x, 0), y=max(arr_tl.y, 0))
+        br = Vector(x=min(arr_br.x, self._terrain_size.width),
+                    y=min(arr_br.y, self._terrain_size.height))
+        # Cut normal vectors from terrain array
+        box = self._terrain[tl.y:br.y, tl.x:br.x]
+
+        # If bounding box is out of terrain bounds, we need to add border padding
+        expected_shape = (arr_br.y - arr_tl.y, arr_br.x - arr_tl.x, VECTOR_DIM)
+        if expected_shape == box.shape:
+            return box
+
+        # Pad borders. If bounding box top-left corner is out of bound,
+        # we need also create shit for terrain top-left corner position. It
+        # will be needed to calculate distance.
+        if arr_tl.x < 0:
+            box = np.hstack((np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=[1,0]), box))
+        if arr_tl.y < 0:
+            box = np.vstack((np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=[0,-1]), box))
+
+        if arr_br.x > self._terrain_size.width:
+            box = np.hstack((box, np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=[-1,0])))
+        if arr_br.y > self._terrain_size.height:
+            box = np.vstack((box, np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=[0,1])))
+
+        pdb.set_trace()
+        # Fix corners position, normal vector should guide to center of screen
+        if arr_tl.x < 0 and arr_tl.y < 0:
+            box[0, 0] = Vector(x=0.7071, y=-0.7071)
+        if arr_tl.x < 0 and arr_br.y > self._terrain_size.height:
+            box[-1, 0] = Vector(x=0.7071, y=0.7071)
+
+        if arr_br.x > self._terrain_size.width and arr_tl.y < 0:
+            box[0, -1] = Vector(x=-0.7071, y=-0.7071)
+        if arr_br.x > self._terrain_size.width and arr_br.y > self._terrain_size.height:
+            box[0, -1] = Vector(x=-0.7071, y=0.7071)
+
+        return box
+
+
     def obstacles(self, ptpos, prev_ptpos):
         corner1, corner2 = self._bounding_box(ptpos, prev_ptpos)
 
@@ -491,7 +532,7 @@ def step_simulation(dt, bodies, terrain):
     integrate(dt, bodies)
     collisions = detect_collisions(bodies, terrain)
     resolve_collisions(dt, collisions)
-    fix_penetration(bodies, terrain.size())
+    # fix_penetration(bodies, terrain.size())
 
 
 def calc_forces(dt, bodies):
@@ -505,9 +546,9 @@ def calc_forces(dt, bodies):
 
 def integrate(dt, bodies):
     for body in bodies:
-        if body.lock:
-            eprint('LOCK')
-            continue
+        # if body.lock:
+        #     eprint('LOCK')
+        #     continue
 
         body.prev_ptpos = copy.copy(body.ptpos)
         # if np.any(body.next_ptpos):
@@ -522,7 +563,7 @@ def integrate(dt, bodies):
         # body.prev_prev_ptpos = body.prev_ptpos
         # body.prev_ptpos = body.ptpos
         body.ptpos = body.ptpos + body.vel * dt
-        eprint("NEW POS", body.ptpos)
+        # eprint("NEW POS", body.ptpos)
 
         # Don't calculate collision if body is not moving
         # if math.isclose(body.vel.magnitude(), 0, abs_tol=0.01):
@@ -542,8 +583,8 @@ class Collision:
 def detect_collisions(bodies, terrain):
     collisions = []
     for body in bodies:
-        if body.lock:
-            continue
+        # if body.lock:
+        #     continue
         # c = obstacle_collisions(body, terrain)
         c = obstacle_collisions3(body, terrain)
         # if c:
@@ -629,6 +670,7 @@ def obstacle_collisions3(body, terrain):
 
         r = 0.5
         p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
+        # p1 = body.ptpos + Vector(x=r, y=r)
         p2 = np.floor(obstacle_ptpos) + Vector(x=r, y=r)
         dist = Vector(*(p1 - p2)).magnitude() - 2*r
 
@@ -813,7 +855,7 @@ def resolve_collisions(dt, collisions):
                 remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
                 eprint('remove=%f, dist=%f, vvvel=%f' % (remove, c.dist, c.dist/dt))
 
-                if remove < 0 and c.dist <= 0:
+                if remove < 0 :
                     mark = True
 
                     # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.normal_vec)) / \
