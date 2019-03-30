@@ -332,18 +332,21 @@ class Terrain:
                     y=min(arr_br.y, self._terrain_size.height))
         # Cut normal vectors from terrain array
         box = self._terrain[tl.y:br.y, tl.x:br.x]
+        arr_shift = Vector(x=0, y=0)
 
         # If bounding box is out of terrain bounds, we need to add border padding
         expected_shape = (arr_br.y - arr_tl.y, arr_br.x - arr_tl.x, VECTOR_DIM)
         if expected_shape == box.shape:
-            return box
+            return box, arr_shift
 
         # Pad borders. If bounding box top-left corner is out of bound,
         # we need also create shit for terrain top-left corner position. It
         # will be needed to calculate distance.
         if arr_tl.x < 0:
             box = np.hstack((np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=[1,0]), box))
+            arr_shift = Vector(x=arr_shift.x+1, y=arr_shift.y)
         if arr_tl.y < 0:
+            arr_shift = Vector(x=arr_shift.x, y=arr_shift.y+1)
             box = np.vstack((np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=[0,-1]), box))
 
         if arr_br.x > self._terrain_size.width:
@@ -351,7 +354,6 @@ class Terrain:
         if arr_br.y > self._terrain_size.height:
             box = np.vstack((box, np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=[0,1])))
 
-        pdb.set_trace()
         # Fix corners position, normal vector should guide to center of screen
         if arr_tl.x < 0 and arr_tl.y < 0:
             box[0, 0] = Vector(x=0.7071, y=-0.7071)
@@ -363,32 +365,32 @@ class Terrain:
         if arr_br.x > self._terrain_size.width and arr_br.y > self._terrain_size.height:
             box[0, -1] = Vector(x=-0.7071, y=0.7071)
 
-        return box
+        return box, arr_shift
 
 
     def obstacles(self, ptpos, prev_ptpos):
-        corner1, corner2 = self._bounding_box(ptpos, prev_ptpos)
+        arr_tl, arr_br = self._bounding_box(ptpos, prev_ptpos)
 
         # if np.floor(ptpos.y) == 45:
         #     eprint('CORNER prev=%s, c1=%s, c2=%s' % (prev_ptpos, arrpos_to_ptpos(corner1.x, corner1.y), arrpos_to_ptpos(corner2.x, corner2.y)))
         #     exit()
 
-        box_normal_vec = self._terrain[corner1.y:corner2.y, corner1.x:corner2.x]
+        box, arr_shift = self._cut_normal_vec(arr_tl, arr_br)
 
         # if np.floor(ptpos.y) == 45:
         #     eprint(box_normal_vec)
         #     eprint('CORNER prev=%s, c1=%s, c2=%s' % (prev_ptpos, corner1, corner2))
         #     exit()
 
-        box_markers = np.logical_or.reduce(box_normal_vec != Terrain.NO_VECTOR, axis=-1)
+        box_markers = np.logical_or.reduce(box != Terrain.NO_VECTOR, axis=-1)
 
         result = []
         for arrpos in np.argwhere(box_markers):
             arrpos = Vector(*arrpos)
-            normal_vec = box_normal_vec[arrpos.y, arrpos.x]
+            normal_vec = box[arrpos.y, arrpos.x]
             normal_vec = Vector(x=normal_vec[0], y=normal_vec[1])
 
-            global_pos = Vector(*(corner1 + arrpos))
+            global_pos = Vector(*(arr_tl + arr_shift + arrpos))
             global_pos = arrpos_to_ptpos(x=global_pos.x, y=global_pos.y)
             result.append((global_pos, normal_vec))
 
