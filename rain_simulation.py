@@ -556,14 +556,14 @@ def ptpos_to_arrpos(pos):
 def test_converters():
     """
     For DEBUG.
-    CHeck if converters work properly.
+    Check if converters work properly.
     """
     assert(np.all(Vector(x=50, y=38) == Vector(x=50, y=38)))
+
     arr_pos = ptpos_to_arrpos(Vector(x=50, y=38))
     assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arr_pos)))
 
-    ptpos = Vector(x=34.0, y=46.25706000000003)
-    arr_pos = ptpos_to_arrpos(ptpos)
+    arr_pos = ptpos_to_arrpos(Vector(x=34.0, y=46.25706000000003))
     assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arr_pos)), arrpos_to_ptpos(arr_pos)
 
 
