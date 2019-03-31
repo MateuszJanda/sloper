@@ -35,16 +35,16 @@ def main():
     cont_img = smooth_contours(cont_img)
 
     contour = contour_points(cont_img)
-    norm_vec_arr = approximate_surface_slopes(contour, grid)
+    normal_vec_arr = approximate_surface_slopes(contour, grid)
 
     braille_arr = braille_array(gray_img, grid)
     export_braille_data(file_name, braille_arr)
-    export_norm_vector_arr(file_name, norm_vec_arr)
+    export_normal_vec_arr(file_name, normal_vec_arr)
 
     debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
     # draw_filled_cell(term_img, grid.start, grid)
-    # draw_braille_dots(debug_img, norm_vec_arr, grid)
-    draw_braille_norm_vec(debug_img, norm_vec_arr, grid)
+    # draw_braille_dots(debug_img, normal_vec_arr, grid)
+    draw_braille_normal_vec(debug_img, normal_vec_arr, grid)
     # draw_grid(debug_img, grid)
     draw_contour(debug_img, contour)
 
@@ -164,7 +164,7 @@ def draw_braille_dots(img, arr, grid):
     foreach_arr_elements(img, arr, grid, draw_dot)
 
 
-def draw_braille_norm_vec(img, arr, grid):
+def draw_braille_normal_vec(img, arr, grid):
     foreach_arr_elements(img, arr, grid, draw_norm_vec)
 
 
@@ -195,7 +195,7 @@ def draw_norm_vec(img, field_pt, value, grid):
 
     start = Point(int(field_pt.x + dot_field_size.width//2), int(field_pt.y + dot_field_size.height//2))
     # Y with minus, because OpenCV use different coordinate system
-    vec_end = Point(value[0], -value[1])
+    vec_end = Point(value[1], -value[0])
     end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
     cv2.line(img, start, end, GREEN, 1)
 
@@ -311,10 +311,10 @@ def contour_points(img):
 def approximate_surface_slopes(contour, grid):
     height = ((grid.end.y - grid.start.y)//grid.cell_size.height) * BRAILLE_CELL_SIZE.height
     width = ((grid.end.x - grid.start.x)//grid.cell_size.width) * BRAILLE_CELL_SIZE.width
-    norm_vec_arr = np.zeros(shape=[height, width, VECTOR_DIM], dtype=np.float32)
+    normal_vec_arr = np.zeros(shape=[height, width, VECTOR_DIM], dtype=np.float32)
 
     first_pt, last_pt = None, None
-    norm_vec = np.array([0, 0])
+    normal_vec = np.array([0, 0])
     for c in contour:
         if not first_pt:
             first_pt = c
@@ -324,23 +324,23 @@ def approximate_surface_slopes(contour, grid):
         if in_boundaries(c, tl_pt, br_pt):
             last_pt = c
         elif last_pt:
-            norm_vec = calculate_norm_vector(first_pt, last_pt)
-            norm_vec_arr[idx.y, idx.x] = norm_vec
+            normal_vec = calc_normal_unit_vec(first_pt, last_pt)
+            normal_vec_arr[idx.y, idx.x] = normal_vec
             first_pt = c
             last_pt = None
         else:
-            norm_vec_arr[idx.y, idx.x] = norm_vec
+            normal_vec_arr[idx.y, idx.x] = normal_vec
             first_pt = c
             last_pt = None
 
-    return norm_vec_arr
+    return normal_vec_arr
 
 
 def in_boundaries(test_pt, tl_pt, br_pt):
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
 
-def calculate_norm_vector(pt1, pt2):
+def calc_normal_unit_vec(pt1, pt2):
     # Calculation tangent line (ax + by + c = 0) to points
     # Y should be with minus, because OpenCV use different coordinate system
     if pt2.x - pt1.x == 0:
@@ -350,11 +350,14 @@ def calculate_norm_vector(pt1, pt2):
         a = (-pt2.y + pt1.y)/float(pt2.x - pt1.x)
         b = 1.0
 
-    # Normalized perpendicular vector to line (ax + by + c = 0) equal to v = [-a, b]
+    # Normalized (unit) perpendicular vector to line (ax + by + c = 0)
+    # equal to v = [-a, b].
+    # Values as stored in numpy.array where by convention dimensions should
+    # start from Y followed by X [Y, X]
     mag = math.sqrt(a**2 + b**2)
     if pt2.x <= pt1.x:
-        return np.array([-a/mag, b/mag])
-    return np.array([a/mag, -b/mag])
+        return np.array([b/mag, -a/mag])
+    return np.array([-b/mag, a/mag])
 
 
 def dot_field(pt, grid):
@@ -381,7 +384,7 @@ def export_braille_data(file_name, braille_arr):
     np.savetxt(file_name+'.braille', braille_arr, fmt='%02x')
 
 
-def export_norm_vector_arr(file_name, arr):
+def export_normal_vec_arr(file_name, arr):
     """ Export braille data to file """
     height, width, vec_dim = arr.shape
     np.savetxt(file_name+'.norm', arr.reshape([height, width*vec_dim]), fmt='%.04f')
