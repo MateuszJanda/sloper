@@ -69,15 +69,17 @@ def main(scr):
     im = Importer()
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
-    terrain.add_arr(norm_arr)
-    screen.add_ascii_array(ascii_arr)
-    terrain.add_arr(norm_arr, buf_shift=Vector(x=40, y=0))
-    screen.add_common_array(norm_arr, buf_shift=Vector(x=40, y=0))
+    terrain.add_array(norm_arr)
+    # screen.add_ascii_array(ascii_arr)
+    screen.add_terrain_data()
+    terrain.add_array(norm_arr, buf_shift=Vector(x=40, y=0))
+    # screen.add_common_array(norm_arr, buf_shift=Vector(x=40, y=0))
+    screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
-        # Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40))
-        Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        # Body(ptpos=Vector(x=95, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        # Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        Body(ptpos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
     ]
@@ -157,11 +159,13 @@ class Vector(np.ndarray):
 
     def __str__(self):
         """string representation of object."""
-        return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
+        # return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
+        return "Vector(x=%.5f, y=%.5f)" % (self.x, self.y)
 
     def __repr__(self):
         """string representation of object."""
-        return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
+        # return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
+        return "Vector(x=%.5f, y=%.5f)" % (self.x, self.y)
 
 
 class Screen:
@@ -183,6 +187,18 @@ class Screen:
         """
         return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
 
+    def add_ascii_array(self, ascii_arr, buf_shift=Vector(x=0, y=0)):
+        """
+        Add static element to screen buffer. By default array will be drawn in
+        bottom left corner.
+        """
+        height, width = ascii_arr.shape
+        for y, x in np.argwhere(ascii_arr != ' '):
+            buf_pos = Vector(x=x, y=self._buf_size.height - height + y) + buf_shift
+            self._buf[buf_pos.y][buf_pos.x] = ascii_arr[y, x]
+
+        self._save_in_backup_buf()
+
     def add_common_array(self, arr, buf_shift=Vector(x=0, y=0)):
         """For DEBUG
         Add static element to screen buffer. Every element in array will be
@@ -199,15 +215,16 @@ class Screen:
 
         self._save_in_backup_buf()
 
-    def add_ascii_array(self, ascii_arr, buf_shift=Vector(x=0, y=0)):
+    def add_terrain_data(self):
+        """For DEBUG
+        Redraw terrain array.
         """
-        Add static element to screen buffer. By default array will be drawn in
-        bottom left corner.
-        """
-        height, width = ascii_arr.shape
-        for y, x in np.argwhere(ascii_arr != ' '):
-            buf_pos = Vector(x=x, y=self._buf_size.height - height + y) + buf_shift
-            self._buf[buf_pos.y][buf_pos.x] = ascii_arr[y, x]
+        height, width, _ = self._terrain._terrain.shape
+        for x, y in it.product(range(width), range(height)):
+            if np.any(self._terrain._terrain[y, x] != 0):
+                arr_pos = Vector(x=x, y=y)
+                pos = arrpos_to_ptpos(arr_pos)
+                self.draw_point(pos)
 
         self._save_in_backup_buf()
 
@@ -255,7 +272,7 @@ class Screen:
         height, width = cell_box.shape
         uchar = ord(EMPTY_BRAILLE)
         for y, x in np.argwhere(cell_box):
-            uchar |= self._pos_to_braille(Vector(x=x, y=BUF_CELL_SIZE.height-y))
+            uchar |= self._pos_to_braille(Vector(x=x, y=BUF_CELL_SIZE.height-1-y))
 
         return uchar
 
@@ -304,7 +321,7 @@ class Terrain:
         self._terrain = np.zeros(shape=(self._terrain_size.height,
                                         self._terrain_size.width, VECTOR_DIM))
 
-    def add_arr(self, arr, buf_shift=Vector(x=0, y=0)):
+    def add_array(self, arr, buf_shift=Vector(x=0, y=0)):
         """By default all arrays are drawn in bottom left corner."""
         arr_size = Size(*arr.shape[:2])
         arr_shift = bufpos_to_arrpos(buf_shift)
@@ -596,9 +613,9 @@ def obstacle_collisions(body, terrain):
     for obstacle_ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
         r = 0.5
         p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
-        # p1 = body.ptpos + Vector(x=r, y=r)
+        # p1 = body.ptpos
         p2 = np.floor(obstacle_ptpos) + Vector(x=r, y=r)
-        dist = Vector(*(p1 - p2)).magnitude() - 2*r
+        dist = (p1 - p2).magnitude() - 2*r
 
         collision = Collision(body1=body,
                               body2=None,
@@ -618,13 +635,13 @@ def resolve_collisions(dt, collisions):
             if not c.body2:
 
                 relative_vel = -c.body1.vel
-
-                eprint('CCC relV=%s, norm=%s, dot=%s, len=%d, o_pos=%s' % (relative_vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), len(collisions), c.obs_pos))
                 remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
-                eprint('remove=%f, dist=%f, vvvel=%f' % (remove, c.dist, c.dist/dt))
+
+                if int(c.obs_pos.x) == 34:
+                    eprint('CCC pos=%s norm=%s, dot=%.5f, o_pos=%s remove=%f, dist=%f, vvvel=%f'
+                        % (c.body1.ptpos, c.normal_vec, np.dot(relative_vel, c.normal_vec), c.obs_pos, remove, c.dist, c.dist/dt))
 
                 if remove < 0 :
-                    mark = True
 
                     # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.normal_vec)) / \
                     #         (1/c.body1.mass)
@@ -637,7 +654,7 @@ def resolve_collisions(dt, collisions):
                     c.body1.vel += (c.normal_vec / c.body1.mass) * impulse
                     c.body1.ptpos -= c.body1.vel * dt
 
-                    eprint('body AFTER pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
+                    eprint('PEN pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
 
 
 if __name__ == '__main__':
