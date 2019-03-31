@@ -10,7 +10,6 @@ Coordinates systems:
 
 
 import sys
-import collections as co
 import itertools as it
 import copy
 import math
@@ -72,8 +71,8 @@ def main(scr):
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_arr(norm_arr)
-    # screen.add_ascii(ascii_arr)
-    screen.add_norm_arr(norm_arr)
+    screen.add_ascii_array(ascii_arr)
+    # screen.add_common_array(norm_arr)
 
     bodies = [
         # Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40))
@@ -92,7 +91,6 @@ def main(scr):
         step_simulation(dt, bodies, terrain)
 
         for body in bodies:
-            # screen.draw_hailstone(body.ptpos)
             screen.draw_point(body.ptpos)
         screen.refresh()
 
@@ -184,7 +182,7 @@ class Screen:
         """
         return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
 
-    def add_norm_arr(self, arr, buf_shift=Vector(x=0, y=0)):
+    def add_common_array(self, arr, buf_shift=Vector(x=0, y=0)):
         """For DEBUG
         Add static element to screen buffer. Every element in array will be
         represent as braille character. By default all arrays are drawn in
@@ -192,7 +190,7 @@ class Screen:
 
         TODO: replace by redraw_terain
         """
-        arr_shift = Vector(x=buf_shift.x*BUF_CELL_SIZE.width, y=buf_shift.y*BUF_CELL_SIZE.height)
+        arr_shift = buf_shift * BUF_CELL_SIZE
         height, width, _ = arr.shape
         # TODO: moze np.argwhere ???
         for x, y in it.product(range(width), range(height)):
@@ -202,7 +200,7 @@ class Screen:
 
         self._save_in_backup_buf()
 
-    def add_ascii(self, ascii_arr, buf_shift=Vector(x=0, y=0)):
+    def add_ascii_array(self, ascii_arr, buf_shift=Vector(x=0, y=0)):
         """
         Add static element to screen buffer. By default array will be drawn in
         bottom left corner.
@@ -210,8 +208,8 @@ class Screen:
         height, width = ascii_arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(ascii_arr[y, x] != ' '):
-                bufpos = Vector(x=x, y=self._buf_size.height - height + y)
-                self._buf[bufpos.y][bufpos.x] = ascii_arr[y, x]
+                buf_pos = Vector(x=x, y=self._buf_size.height - height + y)
+                self._buf[buf_pos.y][buf_pos.x] = ascii_arr[y, x]
 
         self._save_in_backup_buf()
 
@@ -233,24 +231,25 @@ class Screen:
         """Backup screen buffer."""
         self._buf_backup = copy.deepcopy(self._buf)
 
-    def draw_point(self, pt):
+    def draw_point(self, pos):
         """
         Draw (put in screen buffer) single point. If theres is any ASCII
         character in screen cell, function will replace this character to his
         braille representation and merge this single point.
         """
         # Don't draw point when they are out of the screen
-        if not (0 <= pt.x < self._arr_size.width and 0 <= pt.y < self._arr_size.height):
+        if not (0 <= pos.x < self._arr_size.width and 0 <= pos.y < self._arr_size.height):
             return
 
-        bufpos = ptpos_to_bufpos(pt)
-        cell_box = self._terrain.cut_bufcell_box(bufpos)
-        if ord(self._buf[bufpos.y][bufpos.x]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
+        # eassert(False)
+        buf_pos = ptpos_to_bufpos(pos)
+        cell_box = self._terrain.cut_bufcell_box(buf_pos)
+        if ord(self._buf[buf_pos.y][buf_pos.x]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
             uchar = self._cell_box_to_uchar(cell_box)
         else:
-            uchar = ord(self._buf[bufpos.y][bufpos.x])
+            uchar = ord(self._buf[buf_pos.y][buf_pos.x])
 
-        self._buf[bufpos.y][bufpos.x] = chr(uchar | self._pos_to_braille(pt))
+        self._buf[buf_pos.y][buf_pos.x] = chr(uchar | self._pos_to_braille(pos))
 
     def _cell_box_to_uchar(self, cell_box):
         """
@@ -264,10 +263,10 @@ class Screen:
 
         return uchar
 
-    def _pos_to_braille(self, pt):
+    def _pos_to_braille(self, pos):
         """Point position as braille character in BUF_CELL."""
-        bx = int(pt.x) % BUF_CELL_SIZE.width
-        by = int(pt.y) % BUF_CELL_SIZE.height
+        bx = int(pos.x) % BUF_CELL_SIZE.width
+        by = int(pos.y) % BUF_CELL_SIZE.height
 
         if bx == 0:
             if by == 0:
@@ -336,11 +335,11 @@ class Terrain:
         normal_vec = self._terrain[arrpos.y, arrpos.x]
         return Vector(x=normal_vec[0], y=normal_vec[1])
 
-    def cut_bufcell_box(self, bufpos):
-        pt = Vector(x=bufpos.x * BUF_CELL_SIZE.width, y=bufpos.y * BUF_CELL_SIZE.height)
+    def cut_bufcell_box(self, buf_pos):
+        arr_pos = bufpos_to_arrpos(buf_pos)
 
-        cell_box = self._terrain[pt.y:pt.y+BUF_CELL_SIZE.height,
-                                 pt.x:pt.x+BUF_CELL_SIZE.width]
+        cell_box = self._terrain[arr_pos.y:arr_pos.y+BUF_CELL_SIZE.height,
+                                 arr_pos.x:arr_pos.x+BUF_CELL_SIZE.width]
 
         cell_box = np.logical_or.reduce(cell_box != Terrain.NO_VECTOR, axis=-1)
         return cell_box
@@ -552,6 +551,14 @@ def ptpos_to_bufpos(pt):
     x = int(pt.x/BUF_CELL_SIZE.width)
     y = curses.LINES - 1 - int(pt.y/BUF_CELL_SIZE.height)
     return Vector(x=x, y=y)
+
+
+def bufpos_to_arrpos(buf_pos):
+    """
+    Return top-left corner to buffer cell in array coordinates (Y from top to
+    bottom).
+    """
+    return Vector(x=buf_pos.x*BUF_CELL_SIZE.width, y=buf_pos.y*BUF_CELL_SIZE.height)
 
 
 def arrpos_to_ptpos(x, y):
