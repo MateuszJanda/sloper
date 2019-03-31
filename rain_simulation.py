@@ -292,23 +292,17 @@ class Body:
         self.prev_ptpos = ptpos
         self.mass = mass
         self.vel = velocity
-        self.lock = False
-
-    def is_moving(self):
-        return not math.isclose(self.vel.magnitude(), 0, abs_tol=0.01)
 
 
 class Terrain:
     EMPTY = np.array([0, 0])
 
     def __init__(self):
+        # Redundant
         self._terrain_size = Size(curses.LINES*BUF_CELL_SIZE.height,
                                   (curses.COLS-1)*BUF_CELL_SIZE.width)
         self._terrain = np.zeros(shape=(self._terrain_size.height,
                                         self._terrain_size.width, VECTOR_DIM))
-
-    def size(self):
-        return self._terrain_size
 
     def add_arr(self, arr, buf_shift=Vector(x=0, y=0)):
         """By default all arrays are drawn in bottom left corner."""
@@ -321,11 +315,6 @@ class Terrain:
         y2 = self._terrain_size.height - arr_shift.y
         self._terrain[y1:y2, x1:x2] = arr
 
-    def get_normal_vec(self, pos):
-        arr_pos = ptpos_to_arrpos(pos)
-        normal_vec = self._terrain[arr_pos.y, arr_pos.x]
-        return normal_vec
-
     def cut_bufcell_box(self, buf_pos):
         arr_pos = bufpos_to_arrpos(buf_pos)
 
@@ -334,11 +323,6 @@ class Terrain:
 
         cell_box = np.logical_or.reduce(cell_box != Terrain.EMPTY, axis=-1)
         return cell_box
-
-    def in_border(self, pos):
-        arr_pos = ptpos_to_arrpos(pos)
-        return 0 <= arr_pos.x < self._terrain_size.width and \
-               0 <= arr_pos.y < self._terrain_size.height
 
     def obstacles(self, ptpos, prev_ptpos):
         arr_tl, arr_br = self._bounding_box(ptpos, prev_ptpos)
@@ -577,43 +561,22 @@ def calc_forces(dt, bodies):
     for body in bodies:
         body.forces = Vector(x=0, y=-GRAVITY_ACC) * body.mass
 
-        # if int(body.prev_ptpos.y) == 0 and int(body.ptpos.y) == 0 and int(body.prev_ptpos.x) != int(body.ptpos.x):
         if int(body.prev_ptpos.y) == 0 and int(body.ptpos.y) == 0:
             body.forces *= COEFFICIENT_OF_FRICTION
 
 
 def integrate(dt, bodies):
     for body in bodies:
-        # if body.lock:
-        #     eprint('LOCK')
-        #     continue
-
         body.prev_ptpos = copy.copy(body.ptpos)
-        # if np.any(body.next_ptpos):
-        #     body.ptpos = copy.copy(body.next_ptpos)
-        #     body.next_ptpos = None
-        # else:
-
-
-        # body.acc = Vector(x=0, y=-GRAVITY_ACC) + body.forces/body.mass
         body.acc = body.forces / body.mass
         body.vel = body.vel + body.acc * dt
-        # body.prev_prev_ptpos = body.prev_ptpos
-        # body.prev_ptpos = body.ptpos
         body.ptpos = body.ptpos + body.vel * dt
-        # eprint("NEW POS", body.ptpos)
-
-        # Don't calculate collision if body is not moving
-        # if math.isclose(body.vel.magnitude(), 0, abs_tol=0.01):
-        if not body.is_moving():
-            body.lock = True
 
 
 class Collision:
-    def __init__(self, body1, body2, relative_vel, normal_vec, dist=0):
+    def __init__(self, body1, body2, dist, normal_vec):
         self.body1 = body1
         self.body2 = body2
-        self.relative_vel = relative_vel
         self.dist = dist
         self.normal_vec = normal_vec
 
@@ -621,91 +584,16 @@ class Collision:
 def detect_collisions(bodies, terrain):
     collisions = []
     for body in bodies:
-        # if body.lock:
-        #     continue
-        # c = obstacle_collisions(body, terrain)
-        c = obstacle_collisions3(body, terrain)
-        # if c:
-        #     eprint('OBSTACLE')
-
-        # if not c:
-        #     c = border_collision(body, terrain.size())
-
+        c = obstacle_collisions(body, terrain)
         collisions += c
 
     return collisions
 
 
-def border_collision(body, terrain_size):
-    """Check collisions with border"""
-    if body.ptpos.x < 0:
-        return [Collision(body1=body,
-                          body2=None,
-                          relative_vel=-body.vel,
-                          normal_vec=Vector(x=1, y=0))]
-    elif body.ptpos.x > terrain_size.width:
-        return [Collision(body1=body,
-                          body2=None,
-                          relative_vel=-body.vel,
-                          normal_vec=Vector(x=-1, y=0))]
-    elif body.ptpos.y < 0:
-        return [Collision(body1=body,
-                          body2=None,
-                          relative_vel=-body.vel,
-                          normal_vec=Vector(x=0, y=1))]
-    elif body.ptpos.y > terrain_size.height:
-        return [Collision(body1=body,
-                          body2=None,
-                          relative_vel=-body.vel,
-                          normal_vec=Vector(x=0, y=-1))]
-
-    return []
-
-
 def obstacle_collisions(body, terrain):
-    normal_vec = obstacle_pos(terrain, body.prev_ptpos, body.ptpos)
-    if np.any(normal_vec):
-        return [Collision(body1=body,
-                          body2=None,
-                          relative_vel=-body.vel,
-                          normal_vec=normal_vec)]
-    return []
-
-
-def obstacle_collisions2(body, terrain):
-    for check_pt in path(body):
-        if not terrain.in_border(check_pt):
-            break
-
-        normal_vec = terrain.get_normal_vec(check_pt)
-        if np.any(normal_vec):
-            return [Collision(body1=body,
-                      body2=None,
-                      relative_vel=-body.vel,
-                      normal_vec=normal_vec)]
-
-    return []
-
-
-def obstacle_collisions3(body, terrain):
     result = []
 
-   # if int(body.ptpos.y) == 45:
-   #      eprint('ALL collision', len(result))
-   #      exit()
-
     for obstacle_ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
-        # eprint('pt to distance', body.ptpos, ptpos)
-        # dist = Vector(*(ptpos - body.ptpos))
-        # eprint('dist ', dist.magnitude())
-
-        # dist = min(
-        #     Vector(*(ptpos - body.ptpos)).magnitude(),
-        #     Vector(*(ptpos + Vector(x=1, y=0) - body.ptpos)).magnitude(),
-        #     Vector(*(ptpos + Vector(x=0, y=1) - body.ptpos)).magnitude(),
-        #     Vector(*(ptpos + Vector(x=1, y=1) - body.ptpos)).magnitude(),
-        #     )
-
         r = 0.5
         p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
         # p1 = body.ptpos + Vector(x=r, y=r)
@@ -714,172 +602,16 @@ def obstacle_collisions3(body, terrain):
 
         collision = Collision(body1=body,
                               body2=None,
-                              relative_vel=-body.vel,
                               dist=dist,
                               normal_vec=normal_vec)
 
         collision.obs_pos = obstacle_ptpos
-
         result.append(collision)
-
-
-    # if int(body.ptpos.y) == 45:
-    #     eprint('ALL collision', len(result))
-    #     exit()
 
     return result
 
 
-    # for check_pt in path(body):
-    #     if not terrain.in_border(check_pt):
-    #         break
-
-    #     normal_vec = terrain.get_normal_vec(check_pt)
-    #     if np.any(normal_vec):
-    #         return [Collision(body1=body,
-    #                   body2=None,
-    #                   relative_vel=-body.vel,
-    #                   normal_vec=normal_vec)]
-
-    # return []
-
-
-def path(body):
-    """Bresenham's line algorithm
-    https://pl.wikipedia.org/wiki/Algorytm_Bresenhama
-    """
-    check_pt = np.floor(body.prev_ptpos)
-    prev_ptpos = np.floor(body.prev_ptpos)
-    ptpos = np.floor(body.ptpos)
-
-    if prev_ptpos.x < ptpos.x:
-        xi = 1
-        dx = ptpos.x - prev_ptpos.x
-    else:
-        xi = -1
-        dx = prev_ptpos.x - ptpos.x
-
-    if prev_ptpos.y < ptpos.y:
-        yi = 1
-        dy = ptpos.y - prev_ptpos.y
-    else:
-        yi = -1
-        dy = prev_ptpos.y - ptpos.y
-
-    yield check_pt
-
-    # X axis
-    if dx > dy:
-        ai = (dy - dx) * 2
-        bi = dy * 2
-        d = bi - dx
-        while check_pt.x != ptpos.x:
-            # coordinate test
-            if d >= 0:
-                check_pt.x += xi
-                check_pt.y += yi
-                d += ai
-            else:
-                d += bi
-                check_pt.x += xi
-
-            yield check_pt
-    else:
-        ai = (dx - dy) * 2
-        bi = dx * 2
-        d = bi - dy
-        while check_pt.y != ptpos.y:
-            # coordinate test
-            if d >= 0:
-                check_pt.x += xi
-                check_pt.y += yi
-                d += ai
-            else:
-                d += bi
-                check_pt.y += yi
-
-            yield check_pt
-
-
-def obstacle_pos(terrain, prev_ptpos, ptpos):
-    """Bresenham's line algorithm
-    https://pl.wikipedia.org/wiki/Algorytm_Bresenhama
-    """
-    check_pt = np.floor(prev_ptpos)
-    prev_ptpos = np.floor(prev_ptpos)
-    ptpos = np.floor(ptpos)
-
-    if prev_ptpos.x < ptpos.x:
-        xi = 1
-        dx = ptpos.x - prev_ptpos.x
-    else:
-        xi = -1
-        dx = prev_ptpos.x - ptpos.x
-
-    if prev_ptpos.y < ptpos.y:
-        yi = 1
-        dy = ptpos.y - prev_ptpos.y
-    else:
-        yi = -1
-        dy = prev_ptpos.y - ptpos.y
-
-    if not terrain.in_border(check_pt):
-        return None
-
-    normal_vec = terrain.get_normal_vec(check_pt)
-    # If body collide with different obstacle than in previous step
-    if np.any(normal_vec) and not (check_pt.y != prev_ptpos.y or check_pt.x != prev_ptpos.x):
-        eprint('--->  UPS', check_pt.x, prev_ptpos.x)
-    if np.any(normal_vec) and (check_pt.y != prev_ptpos.y or check_pt.x != prev_ptpos.x):
-        return normal_vec
-
-    # X axis
-    if dx > dy:
-        ai = (dy - dx) * 2
-        bi = dy * 2
-        d = bi - dx
-        while check_pt.x != ptpos.x:
-            # coordinate test
-            if d >= 0:
-                check_pt.x += xi
-                check_pt.y += yi
-                d += ai
-            else:
-                d += bi
-                check_pt.x += xi
-
-            if not terrain.in_border(check_pt):
-                return None
-
-            normal_vec = terrain.get_normal_vec(check_pt)
-            if np.any(normal_vec):
-                return normal_vec
-    else:
-        ai = (dx - dy) * 2
-        bi = dx * 2
-        d = bi - dy
-        while check_pt.y != ptpos.y:
-            # coordinate test
-            if d >= 0:
-                check_pt.x += xi
-                check_pt.y += yi
-                d += ai
-            else:
-                d += bi
-                check_pt.y += yi
-
-            if not terrain.in_border(check_pt):
-                return None
-
-            normal_vec = terrain.get_normal_vec(check_pt)
-            if np.any(normal_vec):
-                return normal_vec
-
-    return None
-
-
 def resolve_collisions(dt, collisions):
-    mark = False
     for i in range(3):
         for c in collisions:
             # Collision with screen border
@@ -887,9 +619,7 @@ def resolve_collisions(dt, collisions):
 
                 relative_vel = -c.body1.vel
 
-                # eprint(c.normal_vec)
                 eprint('CCC relV=%s, norm=%s, dot=%s, len=%d, o_pos=%s' % (relative_vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), len(collisions), c.obs_pos))
-                # eprint('np.dot ', np.dot(relative_vel, c.normal_vec))
                 remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
                 eprint('remove=%f, dist=%f, vvvel=%f' % (remove, c.dist, c.dist/dt))
 
@@ -898,32 +628,16 @@ def resolve_collisions(dt, collisions):
 
                     # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.normal_vec)) / \
                     #         (1/c.body1.mass)
+                    # impulse = (remove) / \
+                            # (1/c.body1.mass)
 
                     impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                             (1/c.body1.mass)
 
-                    # impulse = (remove) / \
-                            # (1/c.body1.mass)
-
-                    # eprint('body BEFORE pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
-                    # eprint('prev 1', c.body1.prev_ptpos)
-
-                    # c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
-                    # c.body1.ptpos += c.body1.vel * dt
-
                     c.body1.vel += (c.normal_vec / c.body1.mass) * impulse
                     c.body1.ptpos -= c.body1.vel * dt
 
-
-
-                    # eprint('vel', c.body1.vel)
-                    # eprint('normal', c.normal_vec)
                     eprint('body AFTER pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
-                    # time.sleep(100)
-
-
-        # if mark:
-        #     exit()
 
 
 if __name__ == '__main__':
