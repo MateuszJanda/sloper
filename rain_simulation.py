@@ -194,7 +194,7 @@ class Screen:
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
                 arr_pos = Vector(x=x, y=self._screen_size.height - height  + y) + arr_shift
-                pos = arrpos_to_ptpos(arr_pos.x, arr_pos.y)
+                pos = arrpos_to_ptpos(arr_pos)
                 self.draw_point(pos)
 
         self._save_in_backup_buf()
@@ -289,9 +289,7 @@ class Screen:
 class Body:
     def __init__(self, ptpos, mass, velocity):
         self.ptpos = ptpos
-        # self.prev_prev_ptpos = ptpos
         self.prev_ptpos = ptpos
-        # self.next_ptpos = None
         self.mass = mass
         self.vel = velocity
         self.lock = False
@@ -353,8 +351,6 @@ class Terrain:
         # eprint('what ', arr_pos.y, arr_prev_pos.y)
         x1, x2 = min(arr_pos.x, arr_prev_pos.x), max(arr_pos.x, arr_prev_pos.x)
         y1, y2 = min(arr_pos.y, arr_prev_pos.y), max(arr_pos.y, arr_prev_pos.y)
-        # eprint(x1, y1, x2, y2)
-        # eprint('from arrr', arrpos_to_ptpos(x1, y1), arrpos_to_ptpos(x2, y2))
         return Vector(x=x1-1, y=y1-1), Vector(x=x2+2, y=y2+2)
 
     def _cut_normal_vec_box(self, arr_tl, arr_br):
@@ -403,10 +399,6 @@ class Terrain:
     def obstacles(self, ptpos, prev_ptpos):
         arr_tl, arr_br = self._bounding_box(ptpos, prev_ptpos)
 
-        # if np.floor(ptpos.y) == 45:
-        #     eprint('CORNER prev=%s, c1=%s, c2=%s' % (prev_ptpos, arrpos_to_ptpos(corner1.x, corner1.y), arrpos_to_ptpos(corner2.x, corner2.y)))
-        #     exit()
-
         box, arr_shift = self._cut_normal_vec_box(arr_tl, arr_br)
 
         # if np.floor(ptpos.y) == 45:
@@ -423,7 +415,7 @@ class Terrain:
             normal_vec = Vector(x=normal_vec[0], y=normal_vec[1])
 
             global_pos = Vector(*(arr_tl + arr_shift + arrpos))
-            global_pos = arrpos_to_ptpos(x=global_pos.x, y=global_pos.y)
+            global_pos = arrpos_to_ptpos(global_pos)
             result.append((global_pos, normal_vec))
 
 
@@ -558,13 +550,16 @@ def bufpos_to_arrpos(buf_pos):
     return Vector(x=buf_pos.x*BUF_CELL_SIZE.width, y=buf_pos.y*BUF_CELL_SIZE.height)
 
 
-def arrpos_to_ptpos(x, y):
+def arrpos_to_ptpos(arr_pos):
     """Array position to Cartesian coordinate system"""
-    y = curses.LINES * BUF_CELL_SIZE.height - 1 - y
-    return Vector(x=x, y=y)
+    return Vector(x=arr_pos.x, y=curses.LINES * BUF_CELL_SIZE.height - 1 - arr_pos.y)
 
 
 def ptpos_to_arrpos(pt):
+    """
+    Point positoin (in Cartesian coordinate system) to array position (Y from
+    top to bottom)
+    """
     y = curses.LINES * BUF_CELL_SIZE.height - 1 - int(pt.y)
     return Vector(x=int(pt.x), y=int(y))
 
@@ -937,11 +932,11 @@ def test_converters():
     """
     assert(np.all(Vector(x=50, y=38) == Vector(x=50, y=38)))
     arrpos = ptpos_to_arrpos(Vector(x=50, y=38))
-    assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arrpos.x, arrpos.y)))
+    assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arrpos)))
 
     ptpos = Vector(x=34.0, y=46.25706000000003)
     arrpos = ptpos_to_arrpos(ptpos)
-    assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arrpos.x, arrpos.y)), arrpos_to_ptpos(arrpos.x, arrpos.y)
+    assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arrpos)), arrpos_to_ptpos(arrpos)
 
 
 if __name__ == '__main__':
