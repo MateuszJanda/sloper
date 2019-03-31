@@ -70,16 +70,16 @@ def main(scr):
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_array(norm_arr)
-    # screen.add_ascii_array(ascii_arr)
-    screen.add_terrain_data()
-    terrain.add_array(norm_arr, buf_shift=Vector(x=40, y=0))
+    screen.add_ascii_array(ascii_arr)
+    # screen.add_terrain_data()
+    # terrain.add_array(norm_arr, buf_shift=Vector(x=40, y=0))
     # screen.add_common_array(norm_arr, buf_shift=Vector(x=40, y=0))
-    screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
+    # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
         Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        Body(ptpos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        # Body(ptpos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         # Body(ptpos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
     ]
@@ -96,7 +96,7 @@ def main(scr):
             screen.draw_point(body.ptpos)
         screen.refresh()
 
-        time.sleep(dt)
+        # time.sleep(dt)
         t += dt
 
     curses.endwin()
@@ -160,12 +160,12 @@ class Vector(np.ndarray):
     def __str__(self):
         """string representation of object."""
         # return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
-        return "Vector(x=%.5f, y=%.5f)" % (self.x, self.y)
+        return "Vector(x=%.4f, y=%.4f)" % (self.x, self.y)
 
     def __repr__(self):
         """string representation of object."""
         # return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
-        return "Vector(x=%.5f, y=%.5f)" % (self.x, self.y)
+        return "Vector(x=%.4f, y=%.4f)" % (self.x, self.y)
 
 
 class Screen:
@@ -612,8 +612,8 @@ def obstacle_collisions(body, terrain):
 
     for obstacle_ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
         r = 0.5
-        p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
-        # p1 = body.ptpos
+        # p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
+        p1 = body.ptpos
         p2 = np.floor(obstacle_ptpos) + Vector(x=r, y=r)
         dist = (p1 - p2).magnitude() - 2*r
 
@@ -638,15 +638,15 @@ def resolve_collisions(dt, collisions):
                 remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
 
                 if int(c.obs_pos.x) == 34:
-                    eprint('CCC pos=%s norm=%s, dot=%.5f, o_pos=%s remove=%f, dist=%f, vvvel=%f'
-                        % (c.body1.ptpos, c.normal_vec, np.dot(relative_vel, c.normal_vec), c.obs_pos, remove, c.dist, c.dist/dt))
+                    eprint('CCC pos=%s vel=%s norm=%s dot=%.4f o_pos=%s remove=%.4f dist=%0.4f vvvel=%.4f'
+                        % (c.body1.ptpos, c.body1.vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), c.obs_pos, remove, c.dist, c.dist/dt))
 
                 if remove < 0 :
 
                     # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.normal_vec)) / \
                     #         (1/c.body1.mass)
                     # impulse = (remove) / \
-                            # (1/c.body1.mass)
+                    #         (1/c.body1.mass)
 
                     impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                             (1/c.body1.mass)
@@ -654,7 +654,7 @@ def resolve_collisions(dt, collisions):
                     c.body1.vel += (c.normal_vec / c.body1.mass) * impulse
                     c.body1.ptpos -= c.body1.vel * dt
 
-                    eprint('PEN pos=%s, vel=%s' % (c.body1.ptpos, c.body1.vel))
+                    eprint('PEN pos=%s vel=%s' % (c.body1.ptpos, c.body1.vel))
 
 
 if __name__ == '__main__':
