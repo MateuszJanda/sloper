@@ -324,7 +324,7 @@ class Terrain:
     def get_normal_vec(self, pos):
         arr_pos = ptpos_to_arrpos(pos)
         normal_vec = self._terrain[arr_pos.y, arr_pos.x]
-        return Vector(x=normal_vec[0], y=normal_vec[1])
+        return normal_vec
 
     def cut_bufcell_box(self, buf_pos):
         arr_pos = bufpos_to_arrpos(buf_pos)
@@ -349,7 +349,6 @@ class Terrain:
         for y, x in np.argwhere(box_markers):
             local_obs_pos = Vector(x=x, y=y)
             normal_vec = box[local_obs_pos.y, local_obs_pos.x]
-            normal_vec = Vector(x=normal_vec[0], y=normal_vec[1])
 
             global_pos = arrpos_to_ptpos(arr_tl + arr_shift + local_obs_pos)
             result.append((global_pos, normal_vec))
@@ -382,16 +381,16 @@ class Terrain:
         # we need also create shit for terrain top-left corner position. It
         # will be needed to calculate distance.
         if arr_tl.x < 0:
-            box = np.hstack((np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=[1,0]), box))
+            box = np.hstack((np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=1, y=0)), box))
             arr_shift = Vector(x=arr_shift.x+1, y=arr_shift.y)
         if arr_tl.y < 0:
             arr_shift = Vector(x=arr_shift.x, y=arr_shift.y+1)
-            box = np.vstack((np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=[0,-1]), box))
+            box = np.vstack((np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=-1)), box))
 
         if arr_br.x > self._terrain_size.width:
-            box = np.hstack((box, np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=[-1,0])))
+            box = np.hstack((box, np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=-1, y=0))))
         if arr_br.y > self._terrain_size.height:
-            box = np.vstack((box, np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=[0,1])))
+            box = np.vstack((box, np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=1))))
 
         # Fix corners position, normal vector should guide to center of screen
         if arr_tl.x < 0 and arr_tl.y < 0:
