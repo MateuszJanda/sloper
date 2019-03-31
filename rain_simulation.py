@@ -72,7 +72,8 @@ def main(scr):
 
     terrain.add_arr(norm_arr)
     screen.add_ascii_array(ascii_arr)
-    # screen.add_common_array(norm_arr)
+    terrain.add_arr(norm_arr, buf_shift=Vector(x=40, y=0))
+    screen.add_common_array(norm_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
         # Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40))
@@ -170,7 +171,7 @@ class Screen:
         self._terrain = terrain
 
         self._buf_size = Size(curses.LINES, curses.COLS-1)
-        self._arr_size = self._buf_size*BUF_CELL_SIZE
+        self._screen_size = self._buf_size*BUF_CELL_SIZE
 
         self._buf = self._create_empty_buf()
         self._buf_backup = copy.deepcopy(self._buf)
@@ -187,16 +188,14 @@ class Screen:
         Add static element to screen buffer. Every element in array will be
         represent as braille character. By default all arrays are drawn in
         bottom left corner.
-
-        TODO: replace by redraw_terain
         """
         arr_shift = buf_shift * BUF_CELL_SIZE
         height, width, _ = arr.shape
-        # TODO: moze np.argwhere ???
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
-                ptpos = arrpos_to_ptpos(x, self._arr_size.height - height  + y) + arr_shift
-                self.draw_point(ptpos)
+                arr_pos = Vector(x=x, y=self._screen_size.height - height  + y) + arr_shift
+                pos = arrpos_to_ptpos(arr_pos.x, arr_pos.y)
+                self.draw_point(pos)
 
         self._save_in_backup_buf()
 
@@ -206,10 +205,9 @@ class Screen:
         bottom left corner.
         """
         height, width = ascii_arr.shape
-        for x, y in it.product(range(width), range(height)):
-            if np.any(ascii_arr[y, x] != ' '):
-                buf_pos = Vector(x=x, y=self._buf_size.height - height + y)
-                self._buf[buf_pos.y][buf_pos.x] = ascii_arr[y, x]
+        for y, x in np.argwhere(ascii_arr != ' '):
+            buf_pos = Vector(x=x, y=self._buf_size.height - height + y) + buf_shift
+            self._buf[buf_pos.y][buf_pos.x] = ascii_arr[y, x]
 
         self._save_in_backup_buf()
 
@@ -217,13 +215,13 @@ class Screen:
         """For DEBUG
         Draw screen border in braille characters.
         """
-        for x in range(self._arr_size.width):
+        for x in range(self._screen_size.width):
             self.draw_point(Vector(x=x, y=0))
-            self.draw_point(Vector(x=x, y=self._arr_size.height-1))
+            self.draw_point(Vector(x=x, y=self._screen_size.height-1))
 
-        for y in range(self._arr_size.height):
+        for y in range(self._screen_size.height):
             self.draw_point(Vector(x=0, y=y))
-            self.draw_point(Vector(x=self._arr_size.width-1, y=y))
+            self.draw_point(Vector(x=self._screen_size.width-1, y=y))
 
         self._save_in_backup_buf()
 
@@ -238,10 +236,9 @@ class Screen:
         braille representation and merge this single point.
         """
         # Don't draw point when they are out of the screen
-        if not (0 <= pos.x < self._arr_size.width and 0 <= pos.y < self._arr_size.height):
+        if not (0 <= pos.x < self._screen_size.width and 0 <= pos.y < self._screen_size.height):
             return
 
-        # eassert(False)
         buf_pos = ptpos_to_bufpos(pos)
         cell_box = self._terrain.cut_bufcell_box(buf_pos)
         if ord(self._buf[buf_pos.y][buf_pos.x]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
@@ -257,9 +254,8 @@ class Screen:
         """
         height, width = cell_box.shape
         uchar = ord(EMPTY_BRAILLE)
-        for x, y in it.product(range(width), range(height)):
-            if cell_box[y, x]:
-                uchar |= self._pos_to_braille(Vector(x=x, y=BUF_CELL_SIZE.height-y))
+        for y, x in np.argwhere(cell_box):
+            uchar |= self._pos_to_braille(Vector(x=x, y=BUF_CELL_SIZE.height-y))
 
         return uchar
 
@@ -316,14 +312,15 @@ class Terrain:
     def size(self):
         return self._terrain_size
 
-    def add_arr(self, arr, shift=Vector(x=0, y=0)):
+    def add_arr(self, arr, buf_shift=Vector(x=0, y=0)):
         """By default all arrays are drawn in bottom left corner."""
         arr_size = Size(*arr.shape[:2])
+        arr_shift = bufpos_to_arrpos(buf_shift)
 
-        x1 = shift.x
+        x1 = arr_shift.x
         x2 = x1 + arr_size.width
-        y1 = self._terrain_size.height - arr_size.height - shift.y
-        y2 = self._terrain_size.height - shift.y
+        y1 = self._terrain_size.height - arr_size.height - arr_shift.y
+        y2 = self._terrain_size.height - arr_shift.y
         self._terrain[y1:y2, x1:x2] = arr
 
     def get_normal_vec(self, pt):
