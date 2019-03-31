@@ -1,11 +1,10 @@
 #! /usr/bin/env python3
-# -*- coding: utf-8 -*-
 
 """
 Coordinates systems:
     pos         - position in Cartesian coordinate system
     buf_pos     - position on screen (of one character). Y from top to bottom
-    arr_pos     - similar to ptpos, but Y from top to bottom
+    arr_pos     - similar to pos, but Y from top to bottom
 """
 
 
@@ -170,6 +169,7 @@ class Screen:
         self._scr = scr
         self._terrain = terrain
 
+        # Redundant
         self._buf_size = Size(curses.LINES, curses.COLS-1)
         self._screen_size = self._buf_size*BUF_CELL_SIZE
 
@@ -178,8 +178,8 @@ class Screen:
 
     def _create_empty_buf(self):
         """
-        Create empty screen buffer filled with "empty braille" chracters.
-        TODO: Repleace it by np.array (constrained type)
+        Create empty screen buffer filled with "empty braille" characters.
+        TODO: Replace it by np.array (constrained type)
         """
         return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
 
@@ -299,7 +299,7 @@ class Body:
 
 
 class Terrain:
-    NO_VECTOR = np.array([0, 0])
+    EMPTY = np.array([0, 0])
 
     def __init__(self):
         self._terrain_size = Size(curses.LINES*BUF_CELL_SIZE.height,
@@ -321,13 +321,9 @@ class Terrain:
         y2 = self._terrain_size.height - arr_shift.y
         self._terrain[y1:y2, x1:x2] = arr
 
-    def get_normal_vec(self, pt):
-        arrpos = ptpos_to_arrpos(pt)
-
-        # if (pt.x == 28 or pt.x == 29) and pt.y == 0:
-            # eprint('PYK')
-
-        normal_vec = self._terrain[arrpos.y, arrpos.x]
+    def get_normal_vec(self, pos):
+        arr_pos = ptpos_to_arrpos(pos)
+        normal_vec = self._terrain[arr_pos.y, arr_pos.x]
         return Vector(x=normal_vec[0], y=normal_vec[1])
 
     def cut_bufcell_box(self, buf_pos):
@@ -336,19 +332,34 @@ class Terrain:
         cell_box = self._terrain[arr_pos.y:arr_pos.y+BUF_CELL_SIZE.height,
                                  arr_pos.x:arr_pos.x+BUF_CELL_SIZE.width]
 
-        cell_box = np.logical_or.reduce(cell_box != Terrain.NO_VECTOR, axis=-1)
+        cell_box = np.logical_or.reduce(cell_box != Terrain.EMPTY, axis=-1)
         return cell_box
 
-    def in_border(self, pt):
-        arrpos = ptpos_to_arrpos(pt)
-        return 0 <= arrpos.x < self._terrain_size.width and \
-               0 <= arrpos.y < self._terrain_size.height
+    def in_border(self, pos):
+        arr_pos = ptpos_to_arrpos(pos)
+        return 0 <= arr_pos.x < self._terrain_size.width and \
+               0 <= arr_pos.y < self._terrain_size.height
+
+    def obstacles(self, ptpos, prev_ptpos):
+        arr_tl, arr_br = self._bounding_box(ptpos, prev_ptpos)
+        box, arr_shift = self._cut_normal_vec_box(arr_tl, arr_br)
+        box_markers = np.logical_or.reduce(box != Terrain.EMPTY, axis=-1)
+
+        result = []
+        for y, x in np.argwhere(box_markers):
+            local_obs_pos = Vector(x=x, y=y)
+            normal_vec = box[local_obs_pos.y, local_obs_pos.x]
+            normal_vec = Vector(x=normal_vec[0], y=normal_vec[1])
+
+            global_pos = arrpos_to_ptpos(arr_tl + arr_shift + local_obs_pos)
+            result.append((global_pos, normal_vec))
+
+        return result
 
     def _bounding_box(self, ptpos, prev_ptpos):
         arr_pos = ptpos_to_arrpos(ptpos)
         arr_prev_pos = ptpos_to_arrpos(prev_ptpos)
 
-        # eprint('what ', arr_pos.y, arr_prev_pos.y)
         x1, x2 = min(arr_pos.x, arr_prev_pos.x), max(arr_pos.x, arr_prev_pos.x)
         y1, y2 = min(arr_pos.y, arr_prev_pos.y), max(arr_pos.y, arr_prev_pos.y)
         return Vector(x=x1-1, y=y1-1), Vector(x=x2+2, y=y2+2)
@@ -396,36 +407,6 @@ class Terrain:
         return box, arr_shift
 
 
-    def obstacles(self, ptpos, prev_ptpos):
-        arr_tl, arr_br = self._bounding_box(ptpos, prev_ptpos)
-
-        box, arr_shift = self._cut_normal_vec_box(arr_tl, arr_br)
-
-        # if np.floor(ptpos.y) == 45:
-        #     eprint(box_normal_vec)
-        #     eprint('CORNER prev=%s, c1=%s, c2=%s' % (prev_ptpos, corner1, corner2))
-        #     exit()
-
-        box_markers = np.logical_or.reduce(box != Terrain.NO_VECTOR, axis=-1)
-
-        result = []
-        for arrpos in np.argwhere(box_markers):
-            arrpos = Vector(*arrpos)
-            normal_vec = box[arrpos.y, arrpos.x]
-            normal_vec = Vector(x=normal_vec[0], y=normal_vec[1])
-
-            global_pos = Vector(*(arr_tl + arr_shift + arrpos))
-            global_pos = arrpos_to_ptpos(global_pos)
-            result.append((global_pos, normal_vec))
-
-
-        # if np.floor(ptpos.y) == 45:
-        #     eprint('box result ', result)
-        #     exit()
-
-
-        return result
-
 class Importer:
     def load(self, ascii_file, norm_file):
         ascii_arr = self._import_ascii_arr(ascii_file)
@@ -441,7 +422,7 @@ class Importer:
         return ascii_arr, norm_arr
 
     def _import_ascii_arr(self, ascii_file):
-        """Import ascii figure from file"""
+        """Import ASCII figure from file."""
         ascii_fig = []
         with open(ascii_file, 'r') as f:
             for line in f:
@@ -453,7 +434,9 @@ class Importer:
         return ascii_arr
 
     def _reshape_ascii(self, ascii_fig):
-        """Fill end of each line in ascii_fig with spaces, and convert it to np.array"""
+        """
+        Fill end of each line in ascii_fig with spaces, and convert it to np.array.
+        """
         max_size = 0
         for line in ascii_fig:
             max_size = max(max_size, len(line))
@@ -468,12 +451,14 @@ class Importer:
         return ascii_arr
 
     def _remove_ascii_marker(self, ascii_arr):
-        """Erase 3x3 marker at the left-top position from ascii"""
+        """Erase 3x3 marker at the left-top position from ASCII."""
         ascii_arr[0:3, 0:3] = np.array([' ' for _ in range(9)]).reshape(3, 3)
         return ascii_arr
 
     def _remove_ascii_margin(self, ascii_arr):
-        """Remove margin from ascii_arr (line and columns with spaces at the edges"""
+        """
+        Remove margin from ascii_arr (line and columns with spaces at the edges.
+        """
         del_rows = [idx for idx, margin in enumerate(np.all(ascii_arr == ' ', axis=0)) if margin]
         ascii_arr = np.delete(ascii_arr, del_rows, axis=1)
 
@@ -483,7 +468,7 @@ class Importer:
         return ascii_arr
 
     def _import_norm_arr(self, norm_file):
-        """Import array with normal vector"""
+        """Import array with normal vector."""
         arr = np.loadtxt(norm_file)
         height, width = arr.shape
         norm_arr = arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
@@ -491,8 +476,10 @@ class Importer:
         return norm_arr
 
     def _remove_norm_margin(self, norm_arr):
-        """Remove margin from array with normal vectors (line and columns with
-        np.array([0, 0]) at the edges"""
+        """
+        Remove margin from array with normal vectors (line and columns with
+        np.array([0, 0]) at the edges.
+        """
         if norm_arr.shape[1] % BUF_CELL_SIZE.width or norm_arr.shape[0] % BUF_CELL_SIZE.height:
             raise Exception("Arrays with normal vector can't be transformed to buffer")
 
@@ -508,9 +495,11 @@ class Importer:
         return norm_arr
 
     def _transform_norm(self, norm_arr):
-        """Transform array with normal vectors (for braille characters), to
-        dimmensions of ascii figure, and mark if in ascii cell there was any
-        character"""
+        """
+        Transform array with normal vectors (for braille characters), to
+        dimensions of ASCII figure, and mark if in ASCII cell there was any
+        character.
+        """
         EMPTY = np.array([0, 0])
         norm_reduce = np.logical_or.reduce(norm_arr != EMPTY, axis=-1)
 
@@ -526,7 +515,7 @@ class Importer:
         return result
 
     def _validate_arrays(self, ascii_arr, norm_arr):
-        """Validate if both arrays describe same thing"""
+        """Validate if both arrays describe same thing."""
         ascii_arr_size = Size(*ascii_arr.shape)
         norm_arr_size = norm_arr.shape[:2]//BUF_CELL_SIZE
 
@@ -536,9 +525,9 @@ class Importer:
         eprint('Validation OK')
 
 
-def ptpos_to_bufpos(pt):
-    x = int(pt.x/BUF_CELL_SIZE.width)
-    y = curses.LINES - 1 - int(pt.y/BUF_CELL_SIZE.height)
+def ptpos_to_bufpos(pos):
+    x = int(pos.x/BUF_CELL_SIZE.width)
+    y = curses.LINES - 1 - int(pos.y/BUF_CELL_SIZE.height)
     return Vector(x=x, y=y)
 
 
@@ -555,13 +544,27 @@ def arrpos_to_ptpos(arr_pos):
     return Vector(x=arr_pos.x, y=curses.LINES * BUF_CELL_SIZE.height - 1 - arr_pos.y)
 
 
-def ptpos_to_arrpos(pt):
+def ptpos_to_arrpos(pos):
     """
-    Point positoin (in Cartesian coordinate system) to array position (Y from
-    top to bottom)
+    Point position (in Cartesian coordinate system) to array position (Y from
+    top to bottom).
     """
-    y = curses.LINES * BUF_CELL_SIZE.height - 1 - int(pt.y)
-    return Vector(x=int(pt.x), y=int(y))
+    y = curses.LINES * BUF_CELL_SIZE.height - 1 - int(pos.y)
+    return Vector(x=int(pos.x), y=int(y))
+
+
+def test_converters():
+    """
+    For DEBUG.
+    CHeck if converters work properly.
+    """
+    assert(np.all(Vector(x=50, y=38) == Vector(x=50, y=38)))
+    arr_pos = ptpos_to_arrpos(Vector(x=50, y=38))
+    assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arr_pos)))
+
+    ptpos = Vector(x=34.0, y=46.25706000000003)
+    arr_pos = ptpos_to_arrpos(ptpos)
+    assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arr_pos)), arrpos_to_ptpos(arr_pos)
 
 
 def step_simulation(dt, bodies, terrain):
@@ -569,7 +572,6 @@ def step_simulation(dt, bodies, terrain):
     integrate(dt, bodies)
     collisions = detect_collisions(bodies, terrain)
     resolve_collisions(dt, collisions)
-    # fix_penetration(bodies, terrain.size())
 
 
 def calc_forces(dt, bodies):
@@ -923,20 +925,6 @@ def resolve_collisions(dt, collisions):
 
         # if mark:
         #     exit()
-
-
-def test_converters():
-    """
-    For DEBUG.
-    CHeck if converters work properly.
-    """
-    assert(np.all(Vector(x=50, y=38) == Vector(x=50, y=38)))
-    arrpos = ptpos_to_arrpos(Vector(x=50, y=38))
-    assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arrpos)))
-
-    ptpos = Vector(x=34.0, y=46.25706000000003)
-    arrpos = ptpos_to_arrpos(ptpos)
-    assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arrpos)), arrpos_to_ptpos(arrpos)
 
 
 if __name__ == '__main__':
