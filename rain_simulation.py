@@ -78,10 +78,10 @@ def main(scr):
 
     bodies = [
         Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        # Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        # Body(ptpos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        # Body(ptpos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        # Body(ptpos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        Body(ptpos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(ptpos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(ptpos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
     ]
 
     t = 0
@@ -93,10 +93,12 @@ def main(scr):
         step_simulation(dt, bodies, terrain)
 
         for body in bodies:
-            screen.draw_point(body.ptpos)
+            # screen.draw_point(body.ptpos)
+            tl, br = terrain._bounding_box(body.ptpos, body.prev_ptpos)
+            screen.draw_rect(arrpos_to_ptpos(tl), arrpos_to_ptpos(br))
         screen.refresh()
 
-        # time.sleep(dt)
+        time.sleep(dt)
         t += dt
 
     curses.endwin()
@@ -246,6 +248,14 @@ class Screen:
         """Backup screen buffer."""
         self._buf_backup = copy.deepcopy(self._buf)
 
+    def draw_rect(self, tl_pos, br_pos):
+        """For DEBUG
+        Draw rectangle
+        """
+        for x in range(tl_pos.x, br_pos.x):
+            for y in range(br_pos.y, tl_pos.y):
+                self.draw_point(Vector(x=x, y=y))
+
     def draw_point(self, pos):
         """
         Draw (put in screen buffer) single point. If theres is any ASCII
@@ -357,6 +367,9 @@ class Terrain:
         return result
 
     def _bounding_box(self, ptpos, prev_ptpos):
+        """
+        Return top-left, bottom-right position of bounding box.
+        """
         arr_pos = ptpos_to_arrpos(ptpos)
         arr_prev_pos = ptpos_to_arrpos(prev_ptpos)
 
@@ -641,7 +654,7 @@ def resolve_collisions(dt, collisions):
                     eprint('CCC pos=%s vel=%s norm=%s dot=%.4f o_pos=%s remove=%.4f dist=%0.4f vvvel=%.4f'
                         % (c.body1.ptpos, c.body1.vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), c.obs_pos, remove, c.dist, c.dist/dt))
 
-                if remove < 0 :
+                if remove < 0:
 
                     # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.normal_vec)) / \
                     #         (1/c.body1.mass)
