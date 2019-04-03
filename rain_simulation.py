@@ -94,11 +94,6 @@ def main(scr):
 
         for body in bodies:
             screen.draw_point(body.ptpos)
-            if hasattr(body, 'obs_pos'):
-                for pos in body.obs_pos:
-                    screen.draw_point(pos)
-            # tl, br = terrain._bounding_box(body.ptpos, body.prev_ptpos)
-            # screen.draw_rect(arrpos_to_ptpos(tl), arrpos_to_ptpos(br))
         screen.refresh()
 
         # time.sleep(dt)
@@ -626,7 +621,6 @@ def detect_collisions(bodies, terrain):
 def obstacle_collisions(body, terrain):
     result = []
 
-    body.obs_pos = []
     for obstacle_ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
         r = 0.5
         # p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
@@ -640,7 +634,6 @@ def obstacle_collisions(body, terrain):
                               normal_vec=normal_vec)
 
         collision.obs_pos = obstacle_ptpos
-        body.obs_pos.append(obstacle_ptpos)
         result.append(collision)
 
     return result
