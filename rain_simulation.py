@@ -93,9 +93,12 @@ def main(scr):
         step_simulation(dt, bodies, terrain)
 
         for body in bodies:
-            # screen.draw_point(body.ptpos)
-            tl, br = terrain._bounding_box(body.ptpos, body.prev_ptpos)
-            screen.draw_rect(arrpos_to_ptpos(tl), arrpos_to_ptpos(br))
+            screen.draw_point(body.ptpos)
+            if hasattr(body, 'obs_pos'):
+                for pos in body.obs_pos:
+                    screen.draw_point(pos)
+            # tl, br = terrain._bounding_box(body.ptpos, body.prev_ptpos)
+            # screen.draw_rect(arrpos_to_ptpos(tl), arrpos_to_ptpos(br))
         screen.refresh()
 
         # time.sleep(dt)
@@ -358,10 +361,10 @@ class Terrain:
 
         result = []
         for y, x in np.argwhere(box_markers):
-            local_obs_pos = Vector(x=x, y=y)
-            normal_vec = box[local_obs_pos.y, local_obs_pos.x]
+            box_obs_pos = Vector(x=x, y=y)
+            normal_vec = box[box_obs_pos.y, box_obs_pos.x]
 
-            global_pos = arrpos_to_ptpos(arr_tl + arr_shift + local_obs_pos)
+            global_pos = arrpos_to_ptpos(arr_tl + arr_shift + box_obs_pos)
             result.append((global_pos, normal_vec))
 
         return result
@@ -396,12 +399,12 @@ class Terrain:
         # will be needed to calculate distance.
         if arr_tl.x < 0:
             box = np.hstack((np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=1, y=0)), box))
-            arr_shift = Vector(x=arr_shift.x+1, y=arr_shift.y)
+            arr_shift = Vector(x=arr_shift.x-1, y=arr_shift.y)
         elif arr_br.x > self._terrain_size.width:
             box = np.hstack((box, np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=-1, y=0))))
 
         if arr_tl.y < 0:
-            arr_shift = Vector(x=arr_shift.x, y=arr_shift.y+1)
+            arr_shift = Vector(x=arr_shift.x, y=arr_shift.y-1)
             box = np.vstack((np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=-1)), box))
         elif arr_br.y > self._terrain_size.height:
             box = np.vstack((box, np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=1))))
@@ -623,6 +626,7 @@ def detect_collisions(bodies, terrain):
 def obstacle_collisions(body, terrain):
     result = []
 
+    body.obs_pos = []
     for obstacle_ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
         r = 0.5
         # p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
@@ -636,6 +640,7 @@ def obstacle_collisions(body, terrain):
                               normal_vec=normal_vec)
 
         collision.obs_pos = obstacle_ptpos
+        body.obs_pos.append(obstacle_ptpos)
         result.append(collision)
 
     return result
@@ -650,9 +655,9 @@ def resolve_collisions(dt, collisions):
                 relative_vel = -c.body1.vel
                 remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
 
-                if int(c.obs_pos.x) == 34:
-                    eprint('CCC pos=%s vel=%s norm=%s dot=%.4f o_pos=%s remove=%.4f dist=%0.4f vvvel=%.4f'
-                        % (c.body1.ptpos, c.body1.vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), c.obs_pos, remove, c.dist, c.dist/dt))
+                # if int(c.obs_pos.x) == 34:
+                eprint('CCC pos=%s vel=%s norm=%s dot=%.4f o_pos=%s remove=%.4f dist=%0.4f vvvel=%.4f'
+                    % (c.body1.ptpos, c.body1.vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), c.obs_pos, remove, c.dist, c.dist/dt))
 
                 if remove < 0:
 
