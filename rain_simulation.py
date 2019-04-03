@@ -98,7 +98,7 @@ def main(scr):
             screen.draw_rect(arrpos_to_ptpos(tl), arrpos_to_ptpos(br))
         screen.refresh()
 
-        time.sleep(dt)
+        # time.sleep(dt)
         t += dt
 
     curses.endwin()
@@ -397,24 +397,24 @@ class Terrain:
         if arr_tl.x < 0:
             box = np.hstack((np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=1, y=0)), box))
             arr_shift = Vector(x=arr_shift.x+1, y=arr_shift.y)
+        elif arr_br.x > self._terrain_size.width:
+            box = np.hstack((box, np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=-1, y=0))))
+
         if arr_tl.y < 0:
             arr_shift = Vector(x=arr_shift.x, y=arr_shift.y+1)
             box = np.vstack((np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=-1)), box))
-
-        if arr_br.x > self._terrain_size.width:
-            box = np.hstack((box, np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=-1, y=0))))
-        if arr_br.y > self._terrain_size.height:
+        elif arr_br.y > self._terrain_size.height:
             box = np.vstack((box, np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=1))))
 
         # Fix corners position, normal vector should guide to center of screen
+        # value = ±√(1² + 1²) = 0.7071
         if arr_tl.x < 0 and arr_tl.y < 0:
             box[0, 0] = Vector(x=0.7071, y=-0.7071)
-        if arr_tl.x < 0 and arr_br.y > self._terrain_size.height:
+        elif arr_tl.x < 0 and arr_br.y > self._terrain_size.height:
             box[-1, 0] = Vector(x=0.7071, y=0.7071)
-
-        if arr_br.x > self._terrain_size.width and arr_tl.y < 0:
+        elif arr_br.x > self._terrain_size.width and arr_tl.y < 0:
             box[0, -1] = Vector(x=-0.7071, y=-0.7071)
-        if arr_br.x > self._terrain_size.width and arr_br.y > self._terrain_size.height:
+        elif arr_br.x > self._terrain_size.width and arr_br.y > self._terrain_size.height:
             box[0, -1] = Vector(x=-0.7071, y=0.7071)
 
         return box, arr_shift
