@@ -351,7 +351,7 @@ class Terrain:
 
     def obstacles(self, ptpos, prev_ptpos):
         arr_tl, arr_br = self._bounding_box(ptpos, prev_ptpos)
-        box, arr_shift = self._cut_normal_vec_box(arr_tl, arr_br)
+        box = self._cut_normal_vec_box(arr_tl, arr_br)
         box_markers = np.logical_or.reduce(box != Terrain.EMPTY, axis=-1)
 
         result = []
@@ -359,7 +359,7 @@ class Terrain:
             box_obs_pos = Vector(x=x, y=y)
             normal_vec = box[box_obs_pos.y, box_obs_pos.x]
 
-            global_pos = arrpos_to_ptpos(arr_tl + arr_shift + box_obs_pos)
+            global_pos = arrpos_to_ptpos(arr_tl + box_obs_pos)
             result.append((global_pos, normal_vec))
 
         return result
@@ -382,24 +382,21 @@ class Terrain:
                     y=min(arr_br.y, self._terrain_size.height))
         # Cut normal vectors from terrain array
         box = self._terrain[tl.y:br.y, tl.x:br.x]
-        arr_shift = Vector(x=0, y=0)
 
         # If bounding box is out of terrain bounds, we need to add border padding
         expected_shape = (arr_br.y - arr_tl.y, arr_br.x - arr_tl.x, VECTOR_DIM)
         if expected_shape == box.shape:
-            return box, arr_shift
+            return box
 
         # Pad borders. If bounding box top-left corner is out of bound,
         # we need also create shit for terrain top-left corner position. It
         # will be needed to calculate distance.
         if arr_tl.x < 0:
             box = np.hstack((np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=1, y=0)), box))
-            arr_shift = Vector(x=arr_shift.x-1, y=arr_shift.y)
         elif arr_br.x > self._terrain_size.width:
             box = np.hstack((box, np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=-1, y=0))))
 
         if arr_tl.y < 0:
-            arr_shift = Vector(x=arr_shift.x, y=arr_shift.y-1)
             box = np.vstack((np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=-1)), box))
         elif arr_br.y > self._terrain_size.height:
             box = np.vstack((box, np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=1))))
@@ -415,7 +412,7 @@ class Terrain:
         elif arr_br.x > self._terrain_size.width and arr_br.y > self._terrain_size.height:
             box[0, -1] = Vector(x=-0.7071, y=0.7071)
 
-        return box, arr_shift
+        return box
 
 
 class Importer:
@@ -663,7 +660,7 @@ def resolve_collisions(dt, collisions):
                             (1/c.body1.mass)
 
                     c.body1.vel += (c.normal_vec / c.body1.mass) * impulse
-                    c.body1.ptpos -= c.body1.vel * dt
+                    c.body1.ptpos += c.body1.vel * dt
 
                     eprint('PEN pos=%s vel=%s' % (c.body1.ptpos, c.body1.vel))
 
