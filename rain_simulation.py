@@ -56,7 +56,7 @@ VECTOR_DIM = 2
 
 # Physical values
 GRAVITY_ACC = 9.8  # [m/s^2]
-COEFFICIENT_OF_RESTITUTION = 0.3
+COEFFICIENT_OF_RESTITUTION = 0.5
 COEFFICIENT_OF_FRICTION = 0.9
 
 
@@ -641,28 +641,21 @@ def resolve_collisions(dt, collisions):
         for c in collisions:
             # Collision with screen border
             if not c.body2:
-
                 relative_vel = -c.body1.vel
                 remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
 
-                # if int(c.obs_pos.x) == 34:
-                eprint('CCC pos=%s vel=%s norm=%s dot=%.4f o_pos=%s remove=%.4f dist=%0.4f vvvel=%.4f'
-                    % (c.body1.ptpos, c.body1.vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), c.obs_pos, remove, c.dist, c.dist/dt))
+                # eprint('CCC pos=%s vel=%s norm=%s dot=%.4f o_pos=%s remove=%.4f dist=%0.4f vvvel=%.4f'
+                    # % (c.body1.ptpos, c.body1.vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), c.obs_pos, remove, c.dist, c.dist/dt))
 
                 if remove < 0:
-
-                    # impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * np.dot(c.relative_vel, c.normal_vec)) / \
-                    #         (1/c.body1.mass)
-                    # impulse = (remove) / \
-                    #         (1/c.body1.mass)
-
-                    impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
+                    impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * -remove) / \
                             (1/c.body1.mass)
 
-                    c.body1.vel += (c.normal_vec / c.body1.mass) * impulse
-                    c.body1.ptpos += c.body1.vel * dt
+                    c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
 
-                    eprint('PEN pos=%s vel=%s' % (c.body1.ptpos, c.body1.vel))
+                    # c.body1.ptpos += c.body1.vel * dt
+
+                    # eprint('PEN pos=%s vel=%s' % (c.body1.ptpos, c.body1.vel))
 
 
 if __name__ == '__main__':
