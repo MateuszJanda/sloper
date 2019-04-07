@@ -49,6 +49,7 @@ class Size(np.ndarray):
         return "Size(width=" + str(self.width) + ", height=" + str(self.height) + ")"
 
 
+DEBUG_MODE = True
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = Size(4, 2)
@@ -107,12 +108,14 @@ def setup_stderr():
     """
     Redirect stderr to other terminal. Run tty command, to get terminal id.
     """
-    sys.stderr = open('/dev/pts/3', 'w')
+    if DEBUG_MODE:
+        sys.stderr = open('/dev/pts/3', 'w')
 
 
 def eprint(*args, **kwargs):
     """Print on stderr"""
-    print(*args, file=sys.stderr)
+    if DEBUG_MODE:
+        print(*args, file=sys.stderr)
 
 
 def eassert(condition):
