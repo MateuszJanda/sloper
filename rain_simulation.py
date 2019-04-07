@@ -599,6 +599,7 @@ def calc_forces(dt, bodies):
     for body in bodies:
         body.forces = Vector(x=0, y=-GRAVITY_ACC) * body.mass
 
+        # TODO: replace by better solution
         if math.floor(body.prev_pos.y) == 0 and math.floor(body.pos.y) == 0:
             body.forces *= COEFFICIENT_OF_FRICTION
 
@@ -651,20 +652,18 @@ def resolve_collisions(dt, collisions):
     References:
     https://wildbunny.co.uk/blog/2011/03/25/speculative-contacts-an-continuous-collision-engine-approach-part-1/
     """
-    for _ in range(NUM_ITERATION):
-        for c in collisions:
+    for _, c in it.product(range(NUM_ITERATION), collisions):
+        # Collision with screen borders
+        if not c.body2:
+            relative_vel = -c.body1.vel
+            remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
 
-            # Collision with screen borders
-            if not c.body2:
-                relative_vel = -c.body1.vel
-                remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
+            if remove >= 0:
+                continue
 
-                if remove >= 0:
-                    continue
-
-                impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * -remove) / \
-                        (1/c.body1.mass)
-                c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
+            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * -remove) / \
+                    (1/c.body1.mass)
+            c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
 
 
 if __name__ == '__main__':
