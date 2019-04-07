@@ -78,11 +78,11 @@ def main(scr):
     # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
-        Body(ptpos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        Body(ptpos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        Body(ptpos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        Body(ptpos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        Body(ptpos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
     ]
 
     t = 0
@@ -94,7 +94,7 @@ def main(scr):
         step_simulation(dt, bodies, terrain)
 
         for body in bodies:
-            screen.draw_point(body.ptpos)
+            screen.draw_point(body.pos)
         screen.refresh()
 
         # time.sleep(dt)
@@ -211,7 +211,7 @@ class Screen:
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x] != 0):
                 arr_pos = Vector(x=x, y=self._screen_size.height - height  + y) + arr_shift
-                pos = arrpos_to_ptpos(arr_pos)
+                pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
 
         self._save_in_backup_buf()
@@ -224,7 +224,7 @@ class Screen:
         for x, y in it.product(range(width), range(height)):
             if np.any(self._terrain._terrain[y, x] != 0):
                 arr_pos = Vector(x=x, y=y)
-                pos = arrpos_to_ptpos(arr_pos)
+                pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
 
         self._save_in_backup_buf()
@@ -265,7 +265,7 @@ class Screen:
         if not (0 <= pos.x < self._screen_size.width and 0 <= pos.y < self._screen_size.height):
             return
 
-        buf_pos = ptpos_to_bufpos(pos)
+        buf_pos = pos_to_bufpos(pos)
         cell_box = self._terrain.cut_bufcell_box(buf_pos)
         if ord(self._buf[buf_pos.y][buf_pos.x]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
             uchar = self._cell_box_to_uchar(cell_box)
@@ -314,9 +314,9 @@ class Screen:
 class Body:
     RADIUS = 0.5
 
-    def __init__(self, ptpos, mass, velocity):
-        self.ptpos = ptpos
-        self.prev_ptpos = ptpos
+    def __init__(self, pos, mass, velocity):
+        self.pos = pos
+        self.prev_pos = pos
         self.mass = mass
         self.vel = velocity
 
@@ -351,8 +351,8 @@ class Terrain:
         cell_box = np.logical_or.reduce(cell_box != Terrain.EMPTY, axis=-1)
         return cell_box
 
-    def obstacles(self, ptpos, prev_ptpos):
-        arr_tl, arr_br = self._bounding_box(ptpos, prev_ptpos)
+    def obstacles(self, pos, prev_pos):
+        arr_tl, arr_br = self._bounding_box(pos, prev_pos)
         box = self._cut_normal_vec_box(arr_tl, arr_br)
         box_markers = np.logical_or.reduce(box != Terrain.EMPTY, axis=-1)
 
@@ -361,17 +361,17 @@ class Terrain:
             box_obs_pos = Vector(x=x, y=y)
             normal_vec = box[box_obs_pos.y, box_obs_pos.x]
 
-            global_pos = arrpos_to_ptpos(arr_tl + box_obs_pos)
+            global_pos = arrpos_to_pos(arr_tl + box_obs_pos)
             result.append((global_pos, normal_vec))
 
         return result
 
-    def _bounding_box(self, ptpos, prev_ptpos):
+    def _bounding_box(self, pos, prev_pos):
         """
         Return top-left, bottom-right position of bounding box.
         """
-        arr_pos = ptpos_to_arrpos(ptpos)
-        arr_prev_pos = ptpos_to_arrpos(prev_ptpos)
+        arr_pos = pos_to_arrpos(pos)
+        arr_prev_pos = pos_to_arrpos(prev_pos)
 
         x1, x2 = min(arr_pos.x, arr_prev_pos.x), max(arr_pos.x, arr_prev_pos.x)
         y1, y2 = min(arr_pos.y, arr_prev_pos.y), max(arr_pos.y, arr_prev_pos.y)
@@ -535,7 +535,7 @@ class Importer:
         eprint('Validation OK')
 
 
-def ptpos_to_bufpos(pos):
+def pos_to_bufpos(pos):
     x = math.floor(pos.x/BUF_CELL_SIZE.width)
     y = curses.LINES - 1 - math.floor(pos.y/BUF_CELL_SIZE.height)
     return Vector(x=x, y=y)
@@ -549,12 +549,12 @@ def bufpos_to_arrpos(buf_pos):
     return Vector(x=buf_pos.x*BUF_CELL_SIZE.width, y=buf_pos.y*BUF_CELL_SIZE.height)
 
 
-def arrpos_to_ptpos(arr_pos):
+def arrpos_to_pos(arr_pos):
     """Array position to Cartesian coordinate system"""
     return Vector(x=arr_pos.x, y=curses.LINES * BUF_CELL_SIZE.height - 1 - arr_pos.y)
 
 
-def ptpos_to_arrpos(pos):
+def pos_to_arrpos(pos):
     """
     Point position (in Cartesian coordinate system) to array position (Y from
     top to bottom).
@@ -570,11 +570,11 @@ def test_converters():
     """
     assert(np.all(Vector(x=50, y=38) == Vector(x=50, y=38)))
 
-    arr_pos = ptpos_to_arrpos(Vector(x=50, y=38))
-    assert(np.all(Vector(x=50, y=38) == arrpos_to_ptpos(arr_pos)))
+    arr_pos = pos_to_arrpos(Vector(x=50, y=38))
+    assert(np.all(Vector(x=50, y=38) == arrpos_to_pos(arr_pos)))
 
-    arr_pos = ptpos_to_arrpos(Vector(x=34.0, y=46.25706000000003))
-    assert np.all(Vector(x=34, y=46) == arrpos_to_ptpos(arr_pos)), arrpos_to_ptpos(arr_pos)
+    arr_pos = pos_to_arrpos(Vector(x=34.0, y=46.25706000000003))
+    assert np.all(Vector(x=34, y=46) == arrpos_to_pos(arr_pos)), arrpos_to_pos(arr_pos)
 
 
 def step_simulation(dt, bodies, terrain):
@@ -588,16 +588,16 @@ def calc_forces(dt, bodies):
     for body in bodies:
         body.forces = Vector(x=0, y=-GRAVITY_ACC) * body.mass
 
-        if math.floor(body.prev_ptpos.y) == 0 and math.floor(body.ptpos.y) == 0:
+        if math.floor(body.prev_pos.y) == 0 and math.floor(body.pos.y) == 0:
             body.forces *= COEFFICIENT_OF_FRICTION
 
 
 def integrate(dt, bodies):
     for body in bodies:
-        body.prev_ptpos = copy.copy(body.ptpos)
+        body.prev_pos = copy.copy(body.pos)
         body.acc = body.forces / body.mass
         body.vel = body.vel + body.acc * dt
-        body.ptpos = body.ptpos + body.vel * dt
+        body.pos = body.pos + body.vel * dt
 
 
 class Collision:
@@ -619,9 +619,9 @@ def detect_collisions(bodies, terrain):
 def obstacle_collisions(body, terrain):
     result = []
 
-    for obstacle_ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
-        pos2 = np.floor(obstacle_ptpos) + Vector(x=Body.RADIUS, y=Body.RADIUS)
-        dist = (body.ptpos - pos2).magnitude() - 2*Body.RADIUS
+    for obstacle_pos, normal_vec in terrain.obstacles(body.pos, body.prev_pos):
+        floor_pos = np.floor(obstacle_pos) + Vector(x=Body.RADIUS, y=Body.RADIUS)
+        dist = (floor_pos - body.pos).magnitude() - 2*Body.RADIUS
 
         collision = Collision(body1=body,
                               body2=None,
