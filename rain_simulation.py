@@ -79,11 +79,11 @@ def main(scr):
     # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
-        Body(pos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        # Body(pos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        # Body(pos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        # Body(pos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         Body(pos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        # Body(pos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
     ]
 
     t = 0
@@ -160,6 +160,10 @@ class Vector(np.ndarray):
     def magnitude(self):
         """Calculate vector magnitude."""
         return np.linalg.norm(self)
+
+    def normal(self):
+        """Normal vector - perpendicular normalized vector."""
+        return Vector(x=-self.y, y=self.x) / self.magnitude()
 
     def __str__(self):
         """string representation of object."""
@@ -624,6 +628,8 @@ def detect_collisions(bodies, terrain):
     collisions = []
     for body in bodies:
         collisions += obstacle_collisions(body, terrain)
+    for body1, body2 in it.combinations(bodies, 2):
+        collisions += bodies_collisions(body1, body2)
 
     return collisions
 
@@ -637,6 +643,27 @@ def obstacle_collisions(body, terrain):
 
         collision = Collision(body1=body,
                               body2=None,
+                              dist=dist,
+                              normal_vec=normal_vec)
+
+        result.append(collision)
+
+    return result
+
+
+def bodies_collisions(body1, body2):
+    result = []
+
+    dist = body2.pos - body1.pos
+    normal_vec = dist.normal()
+    relative_vel = body2.vel - body1.vel
+    # Normal component of relative velocity - does two bodies are on collision course
+    relative_vel_n = vp.dot(relative_vel, normal_vec)
+
+    real_dist = dist.magnitude() - 2*Body.RADIUS
+    if real_dist < 0.01 and relative_vel_n < 0:
+        collision = Collision(body1=body1,
+                              body2=body2,
                               dist=dist,
                               normal_vec=normal_vec)
 
@@ -664,6 +691,17 @@ def resolve_collisions(dt, collisions):
             impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                     (1/c.body1.mass)
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
+        else:
+            relative_vel = c.body2.vel - c.body1.vel
+            remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
+
+            if remove < 0:
+                continue
+
+            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
+                    (1/c.body1.mass)
+            c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
+            c.body2.vel += (c.normal_vec / c.body2.mass) * impulse
 
 
 if __name__ == '__main__':
