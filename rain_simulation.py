@@ -656,14 +656,12 @@ def resolve_collisions(dt, collisions):
         # Collision with screen borders
         if not c.body2:
             relative_vel = -c.body1.vel
-            rrr = -relative_vel
-            # rrr = Vector(x=relative_vel.x, y=-relative_vel.y)
-            remove = np.dot(rrr, c.normal_vec) + c.dist/dt
+            remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
 
-            if remove >= 0:
+            if remove < 0:
                 continue
 
-            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * -remove) / \
+            impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                     (1/c.body1.mass)
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
 
