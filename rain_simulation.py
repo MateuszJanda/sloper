@@ -13,6 +13,7 @@ import itertools as it
 import copy
 import math
 import time
+import random
 import curses
 import locale
 import pdb
@@ -82,7 +83,8 @@ def main(scr):
         # Body(pos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
         # Body(pos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
         # Body(pos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=110.5, y=70), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-30)),
         # Body(pos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
     ]
 
@@ -656,18 +658,13 @@ def bodies_collisions(body1, body2):
 
     dist = body2.pos - body1.pos
     normal_vec = dist.normal()
-    relative_vel = body2.vel - body1.vel
-    # Normal component of relative velocity - does two bodies are on collision course
-    relative_vel_n = vp.dot(relative_vel, normal_vec)
-
     real_dist = dist.magnitude() - 2*Body.RADIUS
-    if real_dist < 0.01 and relative_vel_n < 0:
-        collision = Collision(body1=body1,
-                              body2=body2,
-                              dist=dist,
-                              normal_vec=normal_vec)
+    collision = Collision(body1=body1,
+                          body2=body2,
+                          dist=real_dist,
+                          normal_vec=normal_vec)
 
-        result.append(collision)
+    result.append(collision)
 
     return result
 
@@ -699,7 +696,7 @@ def resolve_collisions(dt, collisions):
                 continue
 
             impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
-                    (1/c.body1.mass)
+                    (1/c.body1.mass  + 1/c.body2.mass)
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
             c.body2.vel += (c.normal_vec / c.body2.mass) * impulse
 
