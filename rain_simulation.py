@@ -53,6 +53,7 @@ REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = Size(4, 2)
 VECTOR_DIM = 2
+NUM_ITERATION = 3
 
 # Physical values
 GRAVITY_ACC = 9.8  # [m/s^2]
@@ -312,6 +313,8 @@ class Screen:
 
 
 class Body:
+    RADIUS = 0.5
+
     def __init__(self, ptpos, mass, velocity):
         self.ptpos = ptpos
         self.prev_ptpos = ptpos
@@ -609,8 +612,7 @@ class Collision:
 def detect_collisions(bodies, terrain):
     collisions = []
     for body in bodies:
-        c = obstacle_collisions(body, terrain)
-        collisions += c
+        collisions += obstacle_collisions(body, terrain)
 
     return collisions
 
@@ -619,43 +621,40 @@ def obstacle_collisions(body, terrain):
     result = []
 
     for obstacle_ptpos, normal_vec in terrain.obstacles(body.ptpos, body.prev_ptpos):
-        r = 0.5
-        # p1 = np.floor(body.ptpos) + Vector(x=r, y=r)
-        p1 = body.ptpos
-        p2 = np.floor(obstacle_ptpos) + Vector(x=r, y=r)
-        dist = (p1 - p2).magnitude() - 2*r
+        pos2 = np.floor(obstacle_ptpos) + Vector(x=Body.RADIUS, y=Body.RADIUS)
+        dist = (body.ptpos - pos2).magnitude() - 2*Body.RADIUS
 
         collision = Collision(body1=body,
                               body2=None,
                               dist=dist,
                               normal_vec=normal_vec)
 
-        collision.obs_pos = obstacle_ptpos
         result.append(collision)
 
     return result
 
 
 def resolve_collisions(dt, collisions):
-    for i in range(3):
+    """
+    Speculative contacts solver.
+
+    References:
+    https://wildbunny.co.uk/blog/2011/03/25/speculative-contacts-an-continuous-collision-engine-approach-part-1/
+    """
+    for _ in range(NUM_ITERATION):
         for c in collisions:
-            # Collision with screen border
+
+            # Collision with screen borders
             if not c.body2:
                 relative_vel = -c.body1.vel
                 remove = np.dot(-relative_vel, c.normal_vec) + c.dist/dt
 
-                # eprint('CCC pos=%s vel=%s norm=%s dot=%.4f o_pos=%s remove=%.4f dist=%0.4f vvvel=%.4f'
-                    # % (c.body1.ptpos, c.body1.vel, c.normal_vec, np.dot(relative_vel, c.normal_vec), c.obs_pos, remove, c.dist, c.dist/dt))
+                if remove >= 0:
+                    continue
 
-                if remove < 0:
-                    impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * -remove) / \
-                            (1/c.body1.mass)
-
-                    c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
-
-                    # c.body1.ptpos += c.body1.vel * dt
-
-                    # eprint('PEN pos=%s vel=%s' % (c.body1.ptpos, c.body1.vel))
+                impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * -remove) / \
+                        (1/c.body1.mass)
+                c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
 
 
 if __name__ == '__main__':
