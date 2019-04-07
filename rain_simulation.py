@@ -418,15 +418,16 @@ class Terrain:
 
 
 class Importer:
-    def load(self, ascii_file, norm_file):
+    def load(self, ascii_file, normal_vec_file):
         ascii_arr = self._import_ascii_arr(ascii_file)
         ascii_arr = self._remove_ascii_marker(ascii_arr)
         ascii_arr = self._remove_ascii_margin(ascii_arr)
 
-        norm_arr = self._import_norm_arr(norm_file)
+        norm_arr = self._import_norm_arr(normal_vec_file)
         norm_arr = self._remove_norm_margin(norm_arr)
 
-        self._transform_norm(norm_arr)
+        self._reduce_norm(norm_arr)
+        self._print_ascii_markers(norm_arr)
 
         self._validate_arrays(ascii_arr, norm_arr)
         return ascii_arr, norm_arr
@@ -462,26 +463,27 @@ class Importer:
 
     def _remove_ascii_marker(self, ascii_arr):
         """Erase 3x3 marker at the left-top position from ASCII."""
-        ascii_arr[0:3, 0:3] = np.array([' ' for _ in range(9)]).reshape(3, 3)
+        DIM = 3
+        ascii_arr[0:DIM, 0:DIM] = np.array([' ' for _ in range(DIM*DIM)]).reshape(DIM, DIM)
         return ascii_arr
 
     def _remove_ascii_margin(self, ascii_arr):
         """
         Remove margin from ascii_arr (line and columns with spaces at the edges.
         """
-        del_rows = [idx for idx, margin in enumerate(np.all(ascii_arr == ' ', axis=0)) if margin]
+        del_rows = [idx for idx, margin in enumerate(np.all(ascii_arr==' ', axis=0)) if margin]
         ascii_arr = np.delete(ascii_arr, del_rows, axis=1)
 
-        del_columns = [idx for idx, margin in enumerate(np.all(ascii_arr == ' ', axis=1)) if margin]
+        del_columns = [idx for idx, margin in enumerate(np.all(ascii_arr==' ', axis=1)) if margin]
         ascii_arr = np.delete(ascii_arr, del_columns, axis=0)
 
         return ascii_arr
 
-    def _import_norm_arr(self, norm_file):
+    def _import_norm_arr(self, normal_vec_file):
         """Import array with normal vector."""
-        arr = np.loadtxt(norm_file)
+        arr = np.loadtxt(normal_vec_file)
         height, width = arr.shape
-        norm_arr = arr.reshape(height, width//VECTOR_DIM, VECTOR_DIM)
+        norm_arr = arr.reshape(height, width // VECTOR_DIM, VECTOR_DIM)
 
         return norm_arr
 
@@ -493,41 +495,47 @@ class Importer:
         if norm_arr.shape[1] % BUF_CELL_SIZE.width or norm_arr.shape[0] % BUF_CELL_SIZE.height:
             raise Exception("Arrays with normal vector can't be transformed to buffer")
 
-        ascii_markers = self._transform_norm(norm_arr)
+        ascii_markers = self._reduce_norm(norm_arr)
         del_rows = [list(range(idx*BUF_CELL_SIZE.height, idx*BUF_CELL_SIZE.height+BUF_CELL_SIZE.height))
-                    for idx, margin in enumerate(np.all(ascii_markers == False, axis=1)) if margin]
+                    for idx, margin in enumerate(np.all(ascii_markers==False, axis=1)) if margin]
         norm_arr = np.delete(norm_arr, del_rows, axis=0)
 
         del_columns = [list(range(idx*BUF_CELL_SIZE.width, idx*BUF_CELL_SIZE.width+BUF_CELL_SIZE.width))
-                       for idx, margin in enumerate(np.all(ascii_markers == False, axis=0)) if margin]
+                       for idx, margin in enumerate(np.all(ascii_markers==False, axis=0)) if margin]
         norm_arr = np.delete(norm_arr, del_columns, axis=1)
 
         return norm_arr
 
-    def _transform_norm(self, norm_arr):
+    def _reduce_norm(self, norm_arr):
         """
-        Transform array with normal vectors (for braille characters), to
-        dimensions of ASCII figure, and mark if in ASCII cell there was any
-        character.
+        Reduce array with normal vectors (for each braille characters), to
+        "ASCII figure" size array, and mark if in "ASCII cell"/"BUF CELL" there
+        was any character.
         """
-        EMPTY = np.array([0, 0])
-        norm_reduce = np.logical_or.reduce(norm_arr != EMPTY, axis=-1)
+        EMPTY_VEC = np.array([0, 0])
+        marker_arr = np.logical_or.reduce(norm_arr!=EMPTY_VEC, axis=-1)
 
         result = []
-        for y in range(0, norm_reduce.shape[0], BUF_CELL_SIZE.height):
-            for x in range(0, norm_reduce.shape[1], BUF_CELL_SIZE.width):
-                result.append(int(np.any(norm_reduce[y:y+BUF_CELL_SIZE.height, x:x+BUF_CELL_SIZE.width])))
+        for y in range(0, marker_arr.shape[0], BUF_CELL_SIZE.height):
+            for x in range(0, marker_arr.shape[1], BUF_CELL_SIZE.width):
+                result.append(np.any(marker_arr[y:y+BUF_CELL_SIZE.height, x:x+BUF_CELL_SIZE.width]))
 
-        size = norm_reduce.shape//BUF_CELL_SIZE
+        size = marker_arr.shape // BUF_CELL_SIZE
         result = np.reshape(result, size)
 
-        eprint(result)
         return result
+
+    def _print_ascii_markers(self, norm_arr):
+        """
+        Print ASCII markers for cells in array with normal vectors.
+        """
+        ascii_markers = self._reduce_norm(norm_arr)
+        eprint(ascii_markers.astype(int))
 
     def _validate_arrays(self, ascii_arr, norm_arr):
         """Validate if both arrays describe same thing."""
         ascii_arr_size = Size(*ascii_arr.shape)
-        norm_arr_size = norm_arr.shape[:2]//BUF_CELL_SIZE
+        norm_arr_size = norm_arr.shape[:2] // BUF_CELL_SIZE
 
         if np.any(ascii_arr_size != norm_arr_size):
             raise Exception('Imported arrays (ascii/norm) - mismatch size', ascii_arr_size, norm_arr_size)
