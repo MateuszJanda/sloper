@@ -52,7 +52,7 @@ class Size(np.ndarray):
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = Size(4, 2)
-VECTOR_DIM = 2
+NORM_VEC_DIM = 2
 NUM_ITERATION = 3
 
 # Physical values
@@ -329,7 +329,7 @@ class Terrain:
         self._terrain_size = Size(curses.LINES*BUF_CELL_SIZE.height,
                                   (curses.COLS-1)*BUF_CELL_SIZE.width)
         self._terrain = np.zeros(shape=(self._terrain_size.height,
-                                        self._terrain_size.width, VECTOR_DIM))
+                                        self._terrain_size.width, NORM_VEC_DIM))
 
     def add_array(self, arr, buf_shift=Vector(x=0, y=0)):
         """By default all arrays are drawn in bottom left corner."""
@@ -386,7 +386,7 @@ class Terrain:
         box = self._terrain[tl.y:br.y, tl.x:br.x]
 
         # If bounding box is out of terrain bounds, we need to add border padding
-        expected_shape = (arr_br.y - arr_tl.y, arr_br.x - arr_tl.x, VECTOR_DIM)
+        expected_shape = (arr_br.y - arr_tl.y, arr_br.x - arr_tl.x, NORM_VEC_DIM)
         if expected_shape == box.shape:
             return box
 
@@ -394,17 +394,17 @@ class Terrain:
         # we need also create shit for terrain top-left corner position. It
         # will be needed to calculate distance.
         if arr_tl.x < 0:
-            box = np.hstack((np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=1, y=0)), box))
+            box = np.hstack((np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=Vector(x=1, y=0)), box))
         elif arr_br.x > self._terrain_size.width:
-            box = np.hstack((box, np.full(shape=(box.shape[0], 1, VECTOR_DIM), fill_value=Vector(x=-1, y=0))))
+            box = np.hstack((box, np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=Vector(x=-1, y=0))))
 
         if arr_tl.y < 0:
-            box = np.vstack((np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=-1)), box))
+            box = np.vstack((np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=Vector(x=0, y=-1)), box))
         elif arr_br.y > self._terrain_size.height:
-            box = np.vstack((box, np.full(shape=(1, box.shape[1], VECTOR_DIM), fill_value=Vector(x=0, y=1))))
+            box = np.vstack((box, np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=Vector(x=0, y=1))))
 
         # Fix corners position, normal vector should guide to center of screen
-        # value = ±√(1² + 1²) = 0.7071
+        # value = ±√(1² + 1²) = ±0.7071
         if arr_tl.x < 0 and arr_tl.y < 0:
             box[0, 0] = Vector(x=0.7071, y=-0.7071)
         elif arr_tl.x < 0 and arr_br.y > self._terrain_size.height:
@@ -483,7 +483,7 @@ class Importer:
         """Import array with normal vector."""
         arr = np.loadtxt(normal_vec_file)
         height, width = arr.shape
-        norm_arr = arr.reshape(height, width // VECTOR_DIM, VECTOR_DIM)
+        norm_arr = arr.reshape(height, width // NORM_VEC_DIM, NORM_VEC_DIM)
 
         return norm_arr
 
@@ -628,8 +628,8 @@ def obstacle_collisions(body, terrain):
     result = []
 
     for obstacle_pos, normal_vec in terrain.obstacles(body.pos, body.prev_pos):
-        floor_pos = np.floor(obstacle_pos) + Vector(x=Body.RADIUS, y=Body.RADIUS)
-        dist = (floor_pos - body.pos).magnitude() - 2*Body.RADIUS
+        pos = np.floor(obstacle_pos) + Vector(x=Body.RADIUS, y=Body.RADIUS)
+        dist = (pos - body.pos).magnitude() - 2*Body.RADIUS
 
         collision = Collision(body1=body,
                               body2=None,
