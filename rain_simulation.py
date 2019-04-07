@@ -80,12 +80,15 @@ def main(scr):
     # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
-        # Body(pos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        # Body(pos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        # Body(pos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
         Body(pos=Vector(x=110.5, y=70), mass=1, velocity=Vector(x=0, y=-40)),
         Body(pos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-30)),
-        # Body(pos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=22, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=21, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=20, y=80), mass=1, velocity=Vector(x=0, y=-40)),
     ]
 
     t = 0
