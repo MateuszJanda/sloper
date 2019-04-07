@@ -287,8 +287,7 @@ class Screen:
 
     def _pos_to_braille(self, pos):
         """Point position as braille character in BUF_CELL."""
-        bx = int(pos.x) % BUF_CELL_SIZE.width
-        by = int(pos.y) % BUF_CELL_SIZE.height
+        by, bx = (np.floor(pos) % BUF_CELL_SIZE).astype(int)
 
         if bx == 0:
             if by == 0:
@@ -537,8 +536,8 @@ class Importer:
 
 
 def ptpos_to_bufpos(pos):
-    x = int(pos.x/BUF_CELL_SIZE.width)
-    y = curses.LINES - 1 - int(pos.y/BUF_CELL_SIZE.height)
+    x = math.floor(pos.x/BUF_CELL_SIZE.width)
+    y = curses.LINES - 1 - math.floor(pos.y/BUF_CELL_SIZE.height)
     return Vector(x=x, y=y)
 
 
@@ -560,8 +559,8 @@ def ptpos_to_arrpos(pos):
     Point position (in Cartesian coordinate system) to array position (Y from
     top to bottom).
     """
-    y = curses.LINES * BUF_CELL_SIZE.height - 1 - int(pos.y)
-    return Vector(x=int(pos.x), y=int(y))
+    y = curses.LINES * BUF_CELL_SIZE.height - 1 - math.floor(pos.y)
+    return Vector(x=math.floor(pos.x), y=y)
 
 
 def test_converters():
@@ -589,7 +588,7 @@ def calc_forces(dt, bodies):
     for body in bodies:
         body.forces = Vector(x=0, y=-GRAVITY_ACC) * body.mass
 
-        if int(body.prev_ptpos.y) == 0 and int(body.ptpos.y) == 0:
+        if math.floor(body.prev_ptpos.y) == 0 and math.floor(body.ptpos.y) == 0:
             body.forces *= COEFFICIENT_OF_FRICTION
 
 
