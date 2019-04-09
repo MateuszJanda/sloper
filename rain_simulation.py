@@ -707,17 +707,25 @@ def resolve_collisions(dt, collisions):
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
             c.body2.vel += (c.normal_vec / c.body2.mass) * impulse
 
-            if (c.body1.vel.magnitude() + c.body2.vel.magnitude()) - (vm1+vm2) > 1:
+            vpm1 = c.body1.vel.magnitude()
+            vpm2 = c.body2.vel.magnitude()
+            ee = -(vpm2 - vpm1)/ (vm2 - vm1)
+            # eprint(ee)
+            # if (c.body1.vel.magnitude() + c.body2.vel.magnitude()) - (vm1+vm2) > 1:
+            if ee > 1 or ee < 0:
                 eprint('remove', remove)
+                eprint(ee)
+                # eprint(ee, c.normal_vec.magnitude())
                 # eprint('Vr remove', np.dot(relative_vel, c.normal_vec) > remove, np.dot(relative_vel, c.normal_vec), remove)
-                # eprint('VVV', v1, v2, c.body1.vel, c.body2.vel, 'normal', c.normal_vec)
+                eprint('VVV', v1, v2, c.body1.vel, c.body2.vel, 'normal', c.normal_vec)
                 # eprint('impulse', impulse)
                 # eprint('ERROR', vm1+vm2, c.body1.vel.magnitude()+c.body2.vel.magnitude())
                 # eprint('EEE', (c.body2.vel.magnitude() - c.body1.vel.magnitude())/ (vm2 - vm1) )
-                # exit()
+                exit()
                 pass
             else:
                 # eprint('impulse', impulse)
+                # eprint(ee, c.normal_vec.magnitude())
                 pass
 
 
