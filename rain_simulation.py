@@ -80,15 +80,15 @@ def main(scr):
     # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
-        Body(pos=Vector(x=34, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=50, y=80), mass=10, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=112, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=110.5, y=70), mass=1, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=110, y=80), mass=1, velocity=Vector(x=0, y=-30)),
-        Body(pos=Vector(x=23, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=22, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=21, y=80), mass=1, velocity=Vector(x=0, y=-40)),
-        Body(pos=Vector(x=20, y=80), mass=1, velocity=Vector(x=0, y=-40)),
+        Body(pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
     ]
 
     t = 0
@@ -606,19 +606,19 @@ def step_simulation(dt, bodies, terrain):
 
 def calc_forces(dt, bodies):
     for body in bodies:
-        body.forces = Vector(x=0, y=-GRAVITY_ACC) * body.mass
+        body.forces = Vector(x=0.0, y=-GRAVITY_ACC) * body.mass
 
         # TODO: replace by better solution
-        if math.floor(body.prev_pos.y) == 0 and math.floor(body.pos.y) == 0:
-            body.forces *= COEFFICIENT_OF_FRICTION
+        # if math.floor(body.prev_pos.y) == 0 and math.floor(body.pos.y) == 0:
+        #     body.forces *= COEFFICIENT_OF_FRICTION
 
 
 def integrate(dt, bodies):
     for body in bodies:
         body.prev_pos = copy.copy(body.pos)
         body.acc = body.forces / body.mass
-        body.vel = body.vel + body.acc * dt
-        body.pos = body.pos + body.vel * dt
+        body.vel += body.acc * dt
+        body.pos += body.vel * dt
 
 
 class Collision:
@@ -700,8 +700,25 @@ def resolve_collisions(dt, collisions):
 
             impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                     (1/c.body1.mass  + 1/c.body2.mass)
+            v1 = np.copy(c.body1.vel)
+            v2 = np.copy(c.body2.vel)
+            vm1 = c.body1.vel.magnitude()
+            vm2 = c.body2.vel.magnitude()
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
             c.body2.vel += (c.normal_vec / c.body2.mass) * impulse
+
+            if (c.body1.vel.magnitude() + c.body2.vel.magnitude()) - (vm1+vm2) > 1:
+                eprint('remove', remove)
+                # eprint('Vr remove', np.dot(relative_vel, c.normal_vec) > remove, np.dot(relative_vel, c.normal_vec), remove)
+                # eprint('VVV', v1, v2, c.body1.vel, c.body2.vel, 'normal', c.normal_vec)
+                # eprint('impulse', impulse)
+                # eprint('ERROR', vm1+vm2, c.body1.vel.magnitude()+c.body2.vel.magnitude())
+                # eprint('EEE', (c.body2.vel.magnitude() - c.body1.vel.magnitude())/ (vm2 - vm1) )
+                # exit()
+                pass
+            else:
+                # eprint('impulse', impulse)
+                pass
 
 
 if __name__ == '__main__':
