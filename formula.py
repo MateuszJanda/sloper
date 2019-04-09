@@ -18,7 +18,9 @@ def res(vel1, vel2, m1=2, m2=3, n=np.array([1,0]), e=1):
     print('Calc e1', e1)
     #e2 = (vel2p - vel1p)/(vel2 - vel1)
     e3 = (vel2p[0] - vel1p[0])/(vel2[0] - vel1[0])
-    print('Calc e', e3)
+    print('Calc e3', e3)
+    vpr = np.dot(vel2p - vel1p, n)
+    print('check', vpr, -e*vr)
 
 v1 = np.array([1.53142525 ,-30.50398945])
 v2 = np.array([-2.31223138, -26.98750722])
