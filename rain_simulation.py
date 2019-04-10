@@ -10,7 +10,6 @@ Coordinates systems:
 
 import sys
 import itertools as it
-import copy
 import math
 import time
 import random
@@ -194,14 +193,13 @@ class Screen:
         self._screen_size = self._buf_size*BUF_CELL_SIZE
 
         self._buf = self._create_empty_buf()
-        self._buf_backup = copy.deepcopy(self._buf)
+        self._buf_backup = np.copy(self._buf)
 
     def _create_empty_buf(self):
         """
         Create empty screen buffer filled with "empty braille" characters.
-        TODO: Replace it by np.array (constrained type)
         """
-        return [list(EMPTY_BRAILLE * self._buf_size.width) for _ in range(self._buf_size.height)]
+        return np.full(shape=self._buf_size, fill_value=EMPTY_BRAILLE)
 
     def add_ascii_array(self, ascii_arr, buf_shift=Vector(x=0, y=0)):
         """
@@ -260,7 +258,7 @@ class Screen:
 
     def _save_in_backup_buf(self):
         """Backup screen buffer."""
-        self._buf_backup = copy.deepcopy(self._buf)
+        self._buf_backup = np.copy(self._buf)
 
     def draw_rect(self, tl_pos, br_pos):
         """For DEBUG
@@ -317,7 +315,7 @@ class Screen:
 
     def restore_buffer(self):
         """Restore static elements added to screen."""
-        self._buf = copy.deepcopy(self._buf_backup)
+        self._buf = np.copy(self._buf_backup)
 
     def refresh(self):
         """Draw buffer content to screen."""
@@ -618,7 +616,7 @@ def calc_forces(dt, bodies):
 
 def integrate(dt, bodies):
     for body in bodies:
-        body.prev_pos = copy.copy(body.pos)
+        body.prev_pos = Vector(*np.copy(body.pos))
         body.acc = body.forces / body.mass
         body.vel += body.acc * dt
         body.pos += body.vel * dt
