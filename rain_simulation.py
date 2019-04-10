@@ -50,7 +50,7 @@ class Size(np.ndarray):
         return "Size(width=" + str(self.width) + ", height=" + str(self.height) + ")"
 
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = Size(4, 2)
@@ -96,7 +96,7 @@ def main(scr):
     t = 0
     dt = 1/REFRESH_RATE
 
-    while True:
+    while t < 3:
         screen.restore_buffer()
 
         step_simulation(dt, bodies, terrain)
