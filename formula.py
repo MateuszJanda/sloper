@@ -1,7 +1,53 @@
 import numpy as np
 
+class Vector(np.ndarray):
+    def __new__(cls, y, x):
+        obj = np.asarray([y, x]).view(cls)
+        return obj
+
+    @property
+    def x(self):
+        return self[1]
+
+    @x.setter
+    def x(self, value):
+        self[1] = value
+
+    @property
+    def y(self):
+        return self[0]
+
+    @y.setter
+    def y(self, value):
+        self[0] = value
+
+    def magnitude(self):
+        """Calculate vector magnitude."""
+        return np.linalg.norm(self)
+
+    def normal(self):
+        """Normal vector - perpendicular normalized vector."""
+        # return Vector(x=-self.y, y=self.x) / self.magnitude()
+        mag = self.magnitude()
+        if mag:
+            return self/mag
+        return self
+
+
+    def __str__(self):
+        """string representation of object."""
+        # return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
+        return "Vector(x=%.4f, y=%.4f)" % (self.x, self.y)
+
+    def __repr__(self):
+        """string representation of object."""
+        # return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
+        return "Vector(x=%.4f, y=%.4f)" % (self.x, self.y)
+
+
 def mag(v):
     return np.linalg.norm(v)
+
 
 def res(vel1, vel2, m1=2, m2=3, n=np.array([1,0]), e=1):
     vr = np.dot(vel2 - vel1, n)
@@ -23,19 +69,8 @@ def res(vel1, vel2, m1=2, m2=3, n=np.array([1,0]), e=1):
     vpr = np.dot(vel2p - vel1p, n)
     print('check:', vpr, -e*vr)
 
-v1 = np.array([1.53142525 ,-30.50398945])
-v2 = np.array([-2.31223138, -26.98750722])
-n = np.array([-0.9999, -0.0143])
-res(v1, v2, m1=1, m2=1, e=0.1, n=n)
 
-v1 = np.array([-2, 0])
-v2 = np.array([-3, 0])
-n = np.array([1, 0])
-# res(v1, v2, m1=1, m2=1, e=0.5, n=n)
-# res(v1, v2, m1=10, m2=2, e=0.5, n=n)
-
-v1 = np.array([-2, 0])
-v2 = np.array([3, 0])
-n = np.array([1, 0])
-# res(v1, v2, m1=1, m2=1, e=0.5, n=n)
-# res(v1, v2, m1=10, m2=2, e=0.5, n=n)
+v1 = Vector(x=1.0000, y=0.0858)
+v2 = Vector(x=-1.0000, y=0.1344)
+n = Vector(x=1.0000, y=0.0000)
+res(v1, v2, m1=1, m2=1, e=0.5, n=n)
