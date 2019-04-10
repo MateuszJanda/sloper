@@ -89,6 +89,8 @@ def main(scr):
         Body(pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         Body(pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         Body(pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
+        Body(pos=Vector(x=130, y=1.0), mass=1, velocity=Vector(x=-1, y=0.0)),
     ]
 
     t = 0
@@ -166,9 +168,10 @@ class Vector(np.ndarray):
         """Calculate vector magnitude."""
         return np.linalg.norm(self)
 
-    def normal(self):
-        """Normal vector - perpendicular normalized vector."""
-        return Vector(x=-self.y, y=self.x) / self.magnitude()
+    def unit(self):
+        """Calculate unit vector."""
+        mag = self.magnitude()
+        return self/mag if mag else self
 
     def __str__(self):
         """string representation of object."""
@@ -660,7 +663,7 @@ def bodies_collisions(body1, body2):
     result = []
 
     dist = body2.pos - body1.pos
-    normal_vec = dist.normal()
+    normal_vec = -dist.unit()
     real_dist = dist.magnitude() - 2*Body.RADIUS
     collision = Collision(body1=body1,
                           body2=body2,
@@ -700,33 +703,8 @@ def resolve_collisions(dt, collisions):
 
             impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                     (1/c.body1.mass  + 1/c.body2.mass)
-            v1 = np.copy(c.body1.vel)
-            v2 = np.copy(c.body2.vel)
-            vm1 = c.body1.vel.magnitude()
-            vm2 = c.body2.vel.magnitude()
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
             c.body2.vel += (c.normal_vec / c.body2.mass) * impulse
-
-            vpm1 = c.body1.vel.magnitude()
-            vpm2 = c.body2.vel.magnitude()
-            ee = -(vpm2 - vpm1)/ (vm2 - vm1)
-            # eprint(ee)
-            # if (c.body1.vel.magnitude() + c.body2.vel.magnitude()) - (vm1+vm2) > 1:
-            if ee > 1 or ee < 0:
-                eprint('remove', remove)
-                eprint(ee)
-                # eprint(ee, c.normal_vec.magnitude())
-                # eprint('Vr remove', np.dot(relative_vel, c.normal_vec) > remove, np.dot(relative_vel, c.normal_vec), remove)
-                eprint('VVV', v1, v2, c.body1.vel, c.body2.vel, 'normal', c.normal_vec)
-                # eprint('impulse', impulse)
-                # eprint('ERROR', vm1+vm2, c.body1.vel.magnitude()+c.body2.vel.magnitude())
-                # eprint('EEE', (c.body2.vel.magnitude() - c.body1.vel.magnitude())/ (vm2 - vm1) )
-                exit()
-                pass
-            else:
-                # eprint('impulse', impulse)
-                # eprint(ee, c.normal_vec.magnitude())
-                pass
 
 
 if __name__ == '__main__':
