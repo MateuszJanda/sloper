@@ -360,7 +360,6 @@ class Neighborhood:
             self._map[self._bufpos_hash(buf_pos)].append(body)
 
     def neighbors(self, body):
-        # eassert(False)
         # Body can't collide with itself, so mark pair as checked
         pair_key = self._body_pair_hash(body, body)
         self._checked_pairs[pair_key] = True
@@ -394,7 +393,8 @@ class Neighborhood:
         return buf_pos.y * self._buf_size.width + buf_pos.x
 
     def _bounding_box(self, body):
-        direction = body.prev_pos - body.pos
+        direction = (body.pos - body.prev_pos).unit() * 2 * Body.RADIUS
+        # eprint('PPP', body.prev_pos, body.pos, body.pos + direction)
         buf_pos = pos_to_bufpos(body.prev_pos)
         buf_prev_pos = pos_to_bufpos(body.pos + direction)
 
@@ -706,7 +706,7 @@ def detect_collisions(bodies, terrain):
         collisions += obstacle_collisions(body, terrain)
         collisions += bodies_collisions2(body, neighb)
     # for body1, body2 in it.combinations(bodies, 2):
-    #     collisions += bodies_collisions(body1, body2)
+        # collisions += bodies_collisions(body1, body2)
 
     return collisions
 
@@ -738,7 +738,7 @@ def bodies_collisions(body1, body2):
                           body2=body2,
                           dist=real_dist,
                           normal_vec=normal_vec)
-
+    # eprint(real_dist, body1._id, body2._id)
     result.append(collision)
 
     return result
@@ -748,9 +748,11 @@ def bodies_collisions2(body, neighb):
     result = []
 
     for neigh_body in neighb.neighbors(body):
-        dist = neigh_body.pos - body.pos
-        normal_vec = -dist.unit()
+        dist = body.pos - neigh_body.pos
+        normal_vec = dist.unit()
         real_dist = dist.magnitude() - 2*Body.RADIUS
+        # eprint(body.pos, neigh_body.pos)
+        # eprint(real_dist, neigh_body._id, body._id)
         collision = Collision(body1=body,
                               body2=neigh_body,
                               dist=real_dist,
@@ -758,7 +760,7 @@ def bodies_collisions2(body, neighb):
 
         result.append(collision)
 
-    eprint(len(result))
+    # eprint(len(result))
     return result
 
 
@@ -782,12 +784,14 @@ def resolve_collisions(dt, collisions):
                     (1/c.body1.mass)
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
         else:
+            # eassert(False)
             relative_vel = c.body2.vel - c.body1.vel
             remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
 
             if remove < 0:
                 continue
 
+            # eprint('IMPACT')
             impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                     (1/c.body1.mass  + 1/c.body2.mass)
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
