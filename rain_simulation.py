@@ -68,7 +68,6 @@ def main(scr):
     setup_curses(scr)
     terrain = Terrain()
     screen = Screen(scr, terrain)
-    neighbors = NeighborMap()
 
     im = Importer()
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
@@ -94,16 +93,13 @@ def main(scr):
         Body(name=11, pos=Vector(x=130, y=1.0), mass=1, velocity=Vector(x=-1, y=0.0)),
     ]
 
-    for b in bodies:
-        neighbors.add(b)
-
     t = 0
     dt = 1/REFRESH_RATE
 
     while True:
         screen.restore_buffer()
 
-        step_simulation(dt, neighbors, terrain)
+        step_simulation(dt, bodies, terrain)
 
         for body in bodies:
             screen.draw_point(body.pos)
@@ -343,16 +339,16 @@ class Body:
         return self._id
 
 
-class NeighborMap:
-    def __init__(self):
+class Neighborhood:
+    def __init__(self, bodies):
         self._buf_size = Size(curses.LINES, curses.COLS-1)
+        self._visited = set()
+        self._refresh_map(bodies)
 
+    def _refresh_map(self, bodies):
         self._map = defaultdict(list)
-        self.bodies = []
-
-    def add(self, body):
-        self.bodies.append(body)
-        self._map[self._bufpos_hash(body.pos)].append(body)
+        for body in bodies:
+            self._map[self._bufpos_hash(body.pos)].append(body)
 
     def _bufpos_hash(self, pos):
         buf_pos = pos_to_bufpos(pos)
@@ -364,8 +360,12 @@ class NeighborMap:
         result = set()
         for x, y in it.product(range_x, range_y):
             hash_id = self._bufpos_hash(Vector(x=x, y=y))
+
+            candidates = self._map[hash_id]
+
             result.update(self._map[hash_id])
 
+        result.discard(body)
         return result
 
     def _bounding_box(self, body):
@@ -376,11 +376,6 @@ class NeighborMap:
         x1, x2 = min(buf_pos.x, buf_prev_pos.x), max(buf_pos.x, buf_prev_pos.x)
         y1, y2 = min(buf_pos.y, buf_prev_pos.y), max(buf_pos.y, buf_prev_pos.y)
         return range(x1, x2+1), range(y1, y2+1)
-
-    def refresh(self):
-        self._map.clear()
-        for body in self.bodies:
-            self._map[self._bufpos_hash(body.pos)].append(body)
 
 
 class Terrain:
@@ -647,10 +642,10 @@ def test_converters():
     assert np.all(Vector(x=34, y=46) == arrpos_to_pos(arr_pos)), arrpos_to_pos(arr_pos)
 
 
-def step_simulation(dt, neighbors, terrain):
-    calc_forces(dt, neighbors.bodies)
-    integrate(dt, neighbors)
-    collisions = detect_collisions(neighbors, terrain)
+def step_simulation(dt, bodies, terrain):
+    calc_forces(dt, bodies)
+    integrate(dt, bodies)
+    collisions = detect_collisions(bodies, terrain)
     resolve_collisions(dt, collisions)
 
 
@@ -663,14 +658,12 @@ def calc_forces(dt, bodies):
         #     body.forces *= COEFFICIENT_OF_FRICTION
 
 
-def integrate(dt, neighbors):
-    for body in neighbors.bodies:
+def integrate(dt, bodies):
+    for body in bodies:
         body.prev_pos = Vector(*body.pos)
         body.acc = body.forces / body.mass
         body.vel += body.acc * dt
         body.pos += body.vel * dt
-
-    neighbors.refresh()
 
 
 class Collision:
@@ -681,11 +674,12 @@ class Collision:
         self.normal_vec = normal_vec
 
 
-def detect_collisions(neighbors, terrain):
+def detect_collisions(bodies, terrain):
     collisions = []
-    for body in neighbors.bodies:
+    neighb = Neighborhood(bodies)
+    for body in bodies:
         collisions += obstacle_collisions(body, terrain)
-        collisions += bodies_collisions2(body, neighbors)
+        collisions += bodies_collisions2(body, neighb)
     # for body1, body2 in it.combinations(bodies, 2):
     #     collisions += bodies_collisions(body1, body2)
 
@@ -725,10 +719,10 @@ def bodies_collisions(body1, body2):
     return result
 
 
-def bodies_collisions2(body, neighbors):
+def bodies_collisions2(body, neighb):
     result = []
 
-    for body1, body2 in it.combinations(neighbors.neighbors(body), 2):
+    for body1, body2 in it.combinations(neighb.neighbors(body), 2):
         dist = body2.pos - body1.pos
         normal_vec = -dist.unit()
         real_dist = dist.magnitude() - 2*Body.RADIUS
