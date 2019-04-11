@@ -90,7 +90,7 @@ def main(scr):
         # Body(name=8, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         # Body(name=9, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         Body(name=10, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
-        Body(name=11, pos=Vector(x=111, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
+        Body(name=11, pos=Vector(x=116, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
     ]
 
     t = 0
@@ -356,9 +356,11 @@ class Neighborhood:
     def _create_bufpos_map(self, bodies):
         self._map = defaultdict(list)
         for body in bodies:
-            self._map[self._bufpos_hash(body.pos)].append(body)
+            buf_pos = pos_to_bufpos(body.pos)
+            self._map[self._bufpos_hash(buf_pos)].append(body)
 
     def neighbors(self, body):
+        # eassert(False)
         # Body can't collide with itself, so mark pair as checked
         pair_key = self._body_pair_hash(body, body)
         self._checked_pairs[pair_key] = True
