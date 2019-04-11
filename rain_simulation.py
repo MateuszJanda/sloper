@@ -10,6 +10,7 @@ Coordinates systems:
 
 import sys
 import itertools as it
+from collections import defaultdict
 import math
 import time
 import random
@@ -79,17 +80,17 @@ def main(scr):
     # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
-        Body(pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
-        Body(pos=Vector(x=130, y=1.0), mass=1, velocity=Vector(x=-1, y=0.0)),
+        Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=2, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=3, pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=4, pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=5, pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=6, pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=7, pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=8, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=9, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=10, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
+        Body(name=11, pos=Vector(x=130, y=1.0), mass=1, velocity=Vector(x=-1, y=0.0)),
     ]
 
     t = 0
@@ -163,15 +164,6 @@ class Vector(np.ndarray):
     def y(self, value):
         self[0] = value
 
-    def magnitude(self):
-        """Calculate vector magnitude."""
-        return np.linalg.norm(self)
-
-    def unit(self):
-        """Calculate unit vector."""
-        mag = self.magnitude()
-        return self/mag if mag else self
-
     def __str__(self):
         """string representation of object."""
         # return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
@@ -181,6 +173,15 @@ class Vector(np.ndarray):
         """string representation of object."""
         # return "Vector(x=" + str(self.x) + ", y=" + str(self.y) + ")"
         return "Vector(x=%.4f, y=%.4f)" % (self.x, self.y)
+
+    def magnitude(self):
+        """Calculate vector magnitude."""
+        return np.linalg.norm(self)
+
+    def unit(self):
+        """Calculate unit vector."""
+        mag = self.magnitude()
+        return self/mag if mag else self
 
 
 class Screen:
@@ -327,11 +328,52 @@ class Screen:
 class Body:
     RADIUS = 0.5
 
-    def __init__(self, pos, mass, velocity):
+    def __init__(self, name, pos, mass, velocity):
         self.pos = pos
         self.prev_pos = pos
         self.mass = mass
         self.vel = velocity
+        self._id = name
+
+    def __hash__(self):
+        return self._id
+
+
+class NeighborMap:
+    def __init__(self):
+        self._buf_size = Size(curses.LINES, curses.COLS-1)
+
+        self._map = defaultdict(list)
+        self.bodies = []
+
+    def add(self, body):
+        self.bodies.append(body)
+        self._map[self._bufpos_hash(body.pos)].append(body)
+
+    def _bufpos_hash(self, pos):
+        buf_pos = pos_to_bufpos(pos)
+        return buf_pos.y * self._buf_size.width + buf_pos.x
+
+    def neighbors(self, body):
+        buf_tl, buf_br = self._bounding_box(body)
+
+        s = set()
+        for x in range(buf_tl.x, buf_br.x):
+            for y in range(buf_tl.y, buf_br.y):
+                buf_pos = Vector(x=x, y=y)
+                h = self._bufpos_hash(buf_pos)
+                s.update(self._map[h])
+
+        return s
+
+    def _bounding_box(self, body):
+        direction = body.prev_pos - body.pos
+        buf_pos = pos_to_bufpos(body.prev_pos)
+        buf_prev_pos = pos_to_bufpos(body.pos + direction)
+
+        x1, x2 = min(buf_pos.x, buf_prev_pos.x), max(buf_pos.x, buf_prev_pos.x)
+        y1, y2 = min(buf_pos.y, buf_prev_pos.y), max(buf_pos.y, buf_prev_pos.y)
+        return Vector(x=x1, y=y1), Vector(x=x2+1, y=y2+1)
 
 
 class Terrain:
