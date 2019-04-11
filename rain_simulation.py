@@ -90,7 +90,7 @@ def main(scr):
         # Body(name=8, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         # Body(name=9, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         Body(name=10, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
-        Body(name=11, pos=Vector(x=112, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
+        Body(name=11, pos=Vector(x=116, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
     ]
 
     t = 0
@@ -350,32 +350,46 @@ class Body:
 class Neighborhood:
     def __init__(self, bodies):
         self._buf_size = Size(curses.LINES, curses.COLS-1)
-        self._visited = defaultdict(list)
-        self._refresh_map(bodies)
+        self._checked_pairs = {}
+        self._create_bufpos_map(bodies)
 
-    def _refresh_map(self, bodies):
+    def _create_bufpos_map(self, bodies):
         self._map = defaultdict(list)
         for body in bodies:
             self._map[self._bufpos_hash(body.pos)].append(body)
 
+    def neighbors(self, body):
+        # Body can't collide with itself, so mark pair as checked
+        pair_key = self._pair_body_hash(body.pos, body.pos)
+        self._checked_pairs[pair_key] = True
+
+        result = []
+        range_x, range_y = self._bounding_box(body)
+        for x, y in it.product(range_x, range_y):
+            bufpos_key = self._bufpos_hash(Vector(x=x, y=y))
+
+            # Check all neighbors bodies from nearby buf cell
+            for neigh_body in self._map[bufpos_key]:
+                pair_key = self._pair_body_hash(body.pos, neigh_body.pos)
+
+                # If body pairs was already checked do nothing. We can have
+                # only one such collision
+                if pair_key in self._checked_pairs:
+                    continue
+
+                self._checked_pairs[pair_key] = True
+                result.append(neigh_body)
+
+        return result
+
+    def _pair_body_hash(self, pos1, pos2):
+        hash1 = self._bufpos_hash(pos1)
+        hash2 = self._bufpos_hash(pos2)
+        return (hash1, hash2) if hash1 < hash2 else (hash2, hash1)
+
     def _bufpos_hash(self, pos):
         buf_pos = pos_to_bufpos(pos)
         return buf_pos.y * self._buf_size.width + buf_pos.x
-
-    def neighbors(self, body):
-        eassert(False)
-        range_x, range_y = self._bounding_box(body)
-
-        result = set()
-        for x, y in it.product(range_x, range_y):
-            hash_id = self._bufpos_hash(Vector(x=x, y=y))
-
-            for candidate in self._map[hash_id]:
-                if body != candidate and body not in self._visited[candidate]:
-                    self._visited[candidate].append(body)
-                    result.update(candidate)
-
-        return result
 
     def _bounding_box(self, body):
         direction = body.prev_pos - body.pos
@@ -731,12 +745,12 @@ def bodies_collisions(body1, body2):
 def bodies_collisions2(body, neighb):
     result = []
 
-    for body1, body2 in it.combinations(neighb.neighbors(body), 2):
-        dist = body2.pos - body1.pos
+    for neigh_body in neighb.neighbors(body):
+        dist = neigh_body.pos - body.pos
         normal_vec = -dist.unit()
         real_dist = dist.magnitude() - 2*Body.RADIUS
-        collision = Collision(body1=body1,
-                              body2=body2,
+        collision = Collision(body1=body,
+                              body2=neigh_body,
                               dist=real_dist,
                               normal_vec=normal_vec)
 
