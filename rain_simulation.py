@@ -342,7 +342,7 @@ class Body:
 class Neighborhood:
     def __init__(self, bodies):
         self._buf_size = Size(curses.LINES, curses.COLS-1)
-        self._visited = set()
+        self._visited = defaultdict(list)
         self._refresh_map(bodies)
 
     def _refresh_map(self, bodies):
@@ -362,10 +362,11 @@ class Neighborhood:
             hash_id = self._bufpos_hash(Vector(x=x, y=y))
 
             candidates = self._map[hash_id]
+            for c in candidates:
+                if body != c and body not in self._visited[c]:
+                    self._visited[c].append(body)
+                    result.update(c)
 
-            result.update(self._map[hash_id])
-
-        result.discard(body)
         return result
 
     def _bounding_box(self, body):
