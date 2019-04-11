@@ -68,6 +68,7 @@ def main(scr):
     setup_curses(scr)
     terrain = Terrain()
     screen = Screen(scr, terrain)
+    neighbors = NeighborMap()
 
     im = Importer()
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
@@ -93,13 +94,16 @@ def main(scr):
         Body(name=11, pos=Vector(x=130, y=1.0), mass=1, velocity=Vector(x=-1, y=0.0)),
     ]
 
+    for b in bodies:
+        neighbors.add(b)
+
     t = 0
     dt = 1/REFRESH_RATE
 
-    while t < 3:
+    while True:
         screen.restore_buffer()
 
-        step_simulation(dt, bodies, terrain)
+        step_simulation(dt, neighbors, terrain)
 
         for body in bodies:
             screen.draw_point(body.pos)
@@ -355,16 +359,14 @@ class NeighborMap:
         return buf_pos.y * self._buf_size.width + buf_pos.x
 
     def neighbors(self, body):
-        buf_tl, buf_br = self._bounding_box(body)
+        range_x, range_y = self._bounding_box(body)
 
-        s = set()
-        for x in range(buf_tl.x, buf_br.x):
-            for y in range(buf_tl.y, buf_br.y):
-                buf_pos = Vector(x=x, y=y)
-                h = self._bufpos_hash(buf_pos)
-                s.update(self._map[h])
+        result = set()
+        for x, y in it.product(range_x, range_y):
+            hash_id = self._bufpos_hash(Vector(x=x, y=y))
+            result.update(self._map[hash_id])
 
-        return s
+        return result
 
     def _bounding_box(self, body):
         direction = body.prev_pos - body.pos
@@ -373,7 +375,12 @@ class NeighborMap:
 
         x1, x2 = min(buf_pos.x, buf_prev_pos.x), max(buf_pos.x, buf_prev_pos.x)
         y1, y2 = min(buf_pos.y, buf_prev_pos.y), max(buf_pos.y, buf_prev_pos.y)
-        return Vector(x=x1, y=y1), Vector(x=x2+1, y=y2+1)
+        return range(x1, x2+1), range(y1, y2+1)
+
+    def refresh(self):
+        self._map.clear()
+        for body in self.bodies:
+            self._map[self._bufpos_hash(body.pos)].append(body)
 
 
 class Terrain:
@@ -640,10 +647,10 @@ def test_converters():
     assert np.all(Vector(x=34, y=46) == arrpos_to_pos(arr_pos)), arrpos_to_pos(arr_pos)
 
 
-def step_simulation(dt, bodies, terrain):
-    calc_forces(dt, bodies)
-    integrate(dt, bodies)
-    collisions = detect_collisions(bodies, terrain)
+def step_simulation(dt, neighbors, terrain):
+    calc_forces(dt, neighbors.bodies)
+    integrate(dt, neighbors)
+    collisions = detect_collisions(neighbors, terrain)
     resolve_collisions(dt, collisions)
 
 
@@ -656,12 +663,14 @@ def calc_forces(dt, bodies):
         #     body.forces *= COEFFICIENT_OF_FRICTION
 
 
-def integrate(dt, bodies):
-    for body in bodies:
-        body.prev_pos = Vector(*np.copy(body.pos))
+def integrate(dt, neighbors):
+    for body in neighbors.bodies:
+        body.prev_pos = Vector(*body.pos)
         body.acc = body.forces / body.mass
         body.vel += body.acc * dt
         body.pos += body.vel * dt
+
+    neighbors.refresh()
 
 
 class Collision:
@@ -672,12 +681,13 @@ class Collision:
         self.normal_vec = normal_vec
 
 
-def detect_collisions(bodies, terrain):
+def detect_collisions(neighbors, terrain):
     collisions = []
-    for body in bodies:
+    for body in neighbors.bodies:
         collisions += obstacle_collisions(body, terrain)
-    for body1, body2 in it.combinations(bodies, 2):
-        collisions += bodies_collisions(body1, body2)
+        collisions += bodies_collisions2(body, neighbors)
+    # for body1, body2 in it.combinations(bodies, 2):
+    #     collisions += bodies_collisions(body1, body2)
 
     return collisions
 
@@ -711,6 +721,23 @@ def bodies_collisions(body1, body2):
                           normal_vec=normal_vec)
 
     result.append(collision)
+
+    return result
+
+
+def bodies_collisions2(body, neighbors):
+    result = []
+
+    for body1, body2 in it.combinations(neighbors.neighbors(body), 2):
+        dist = body2.pos - body1.pos
+        normal_vec = -dist.unit()
+        real_dist = dist.magnitude() - 2*Body.RADIUS
+        collision = Collision(body1=body1,
+                              body2=body2,
+                              dist=real_dist,
+                              normal_vec=normal_vec)
+
+        result.append(collision)
 
     return result
 
