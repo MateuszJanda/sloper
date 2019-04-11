@@ -90,7 +90,7 @@ def main(scr):
         # Body(name=8, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         # Body(name=9, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         Body(name=10, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
-        Body(name=11, pos=Vector(x=116, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
+        Body(name=11, pos=Vector(x=111, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
     ]
 
     t = 0
@@ -360,7 +360,7 @@ class Neighborhood:
 
     def neighbors(self, body):
         # Body can't collide with itself, so mark pair as checked
-        pair_key = self._pair_body_hash(body.pos, body.pos)
+        pair_key = self._body_pair_hash(body, body)
         self._checked_pairs[pair_key] = True
 
         result = []
@@ -370,7 +370,7 @@ class Neighborhood:
 
             # Check all neighbors bodies from nearby buf cell
             for neigh_body in self._map[bufpos_key]:
-                pair_key = self._pair_body_hash(body.pos, neigh_body.pos)
+                pair_key = self._body_pair_hash(body, neigh_body)
 
                 # If body pairs was already checked do nothing. We can have
                 # only one such collision
@@ -382,10 +382,10 @@ class Neighborhood:
 
         return result
 
-    def _pair_body_hash(self, pos1, pos2):
-        hash1 = self._bufpos_hash(pos1)
-        hash2 = self._bufpos_hash(pos2)
-        return (hash1, hash2) if hash1 < hash2 else (hash2, hash1)
+    def _body_pair_hash(self, body1, body2):
+        if hash(body1) < hash(body2):
+            return (hash(body1), hash(body2))
+        return (hash(body2), hash(body1))
 
     def _bufpos_hash(self, pos):
         buf_pos = pos_to_bufpos(pos)
