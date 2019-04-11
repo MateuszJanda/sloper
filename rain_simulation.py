@@ -50,7 +50,7 @@ class Size(np.ndarray):
         return "Size(width=" + str(self.width) + ", height=" + str(self.height) + ")"
 
 
-DEBUG_MODE = False
+DEBUG_MODE = True
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = Size(4, 2)
@@ -80,17 +80,17 @@ def main(scr):
     # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
-        Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=2, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=3, pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=4, pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=5, pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=6, pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=7, pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=8, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=9, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=2, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=3, pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=4, pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=5, pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=6, pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=7, pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=8, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=9, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         Body(name=10, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
-        Body(name=11, pos=Vector(x=130, y=1.0), mass=1, velocity=Vector(x=-1, y=0.0)),
+        Body(name=11, pos=Vector(x=112, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
     ]
 
     t = 0
@@ -338,6 +338,14 @@ class Body:
     def __hash__(self):
         return self._id
 
+    def __str__(self):
+        """string representation of object."""
+        return "Body(%d)" % self._id
+
+    def __repr__(self):
+        """string representation of object."""
+        return "Body(%d)" % self._id
+
 
 class Neighborhood:
     def __init__(self, bodies):
@@ -355,17 +363,17 @@ class Neighborhood:
         return buf_pos.y * self._buf_size.width + buf_pos.x
 
     def neighbors(self, body):
+        eassert(False)
         range_x, range_y = self._bounding_box(body)
 
         result = set()
         for x, y in it.product(range_x, range_y):
             hash_id = self._bufpos_hash(Vector(x=x, y=y))
 
-            candidates = self._map[hash_id]
-            for c in candidates:
-                if body != c and body not in self._visited[c]:
-                    self._visited[c].append(body)
-                    result.update(c)
+            for candidate in self._map[hash_id]:
+                if body != candidate and body not in self._visited[candidate]:
+                    self._visited[candidate].append(body)
+                    result.update(candidate)
 
         return result
 
@@ -734,6 +742,7 @@ def bodies_collisions2(body, neighb):
 
         result.append(collision)
 
+    eprint(len(result))
     return result
 
 
