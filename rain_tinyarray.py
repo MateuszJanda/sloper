@@ -253,12 +253,12 @@ class Screen:
 
         buf_pos = pos_to_bufpos(pos)
         cell_box = self._terrain.cut_bufcell_box(buf_pos)
-        if ord(self._bg_buf[buf_pos[0]][buf_pos[1]]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
+        if ord(self._bg_buf[buf_pos[0], buf_pos[1]]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
             uchar = self._cell_box_to_uchar(cell_box)
         else:
-            uchar = ord(self._bg_buf[buf_pos[0]][buf_pos[1]])
+            uchar = ord(self._bg_buf[buf_pos[0], buf_pos[1]])
 
-        self._bg_buf[buf_pos[0]][buf_pos[1]] = chr(uchar | self._pos_to_braille(pos))
+        self._bg_buf[buf_pos[0], buf_pos[1]] = chr(uchar | self._pos_to_braille(pos))
 
     def _cell_box_to_uchar(self, cell_box):
         """
@@ -359,9 +359,7 @@ class Neighborhood:
         return result
 
     def _body_pair_hash(self, body1, body2):
-        if hash(body1) < hash(body2):
-            return (hash(body1), hash(body2))
-        return (hash(body2), hash(body1))
+        return minmax(hash(body1), hash(body2))
 
     def _bufpos_hash(self, pos):
         buf_pos = pos_to_bufpos(pos)
