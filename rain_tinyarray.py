@@ -410,11 +410,13 @@ class Terrain:
         box_markers = np.logical_or.reduce(box != Terrain.EMPTY, axis=-1)
 
         result = []
-        for y, x in np.argwhere(box_markers):
-            normal_vec = box[y, x]
+        height, width = box_markers.shape
+        for y, x in it.product(range(height), range(width)):
+            if box_markers[y, x]:
+                normal_vec = box[y, x]
 
-            global_pos = arrpos_to_pos(arr_tl + (y,x))
-            result.append((global_pos, normal_vec))
+                global_pos = arrpos_to_pos(arr_tl + (y, x))
+                result.append((global_pos, normal_vec))
 
         return result
 
