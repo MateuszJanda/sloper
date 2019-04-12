@@ -270,7 +270,9 @@ class Screen:
 
     def _pos_to_braille(self, pos):
         """Point position as braille character in BUF_CELL."""
-        by, bx = (np.floor(pos) % BUF_CELL_SIZE).astype(int)
+        by, bx = ta.floor(pos) % BUF_CELL_SIZE
+        by = int(by)
+        bx = int(bx)
 
         if bx == 0:
             if by == 0:
@@ -685,7 +687,7 @@ def obstacle_collisions(body, terrain):
     result = []
 
     for obstacle_pos, normal_vec in terrain.obstacles(body.pos, body.prev_pos):
-        pos = np.floor(obstacle_pos) + ta.array([Body.RADIUS, Body.RADIUS])
+        pos = ta.floor(obstacle_pos) + ta.array([Body.RADIUS, Body.RADIUS])
         dist = magnitude((pos - body.pos)) - 2*Body.RADIUS
 
         collision = Collision(body1=body,
