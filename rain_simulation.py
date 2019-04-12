@@ -50,7 +50,7 @@ class Size(np.ndarray):
         return "Size(width=" + str(self.width) + ", height=" + str(self.height) + ")"
 
 
-DEBUG_MODE = True
+DEBUG_MODE = False
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = Size(4, 2)
@@ -80,15 +80,15 @@ def main(scr):
     # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
     bodies = [
-        # Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        # Body(name=2, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        # Body(name=3, pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        # Body(name=4, pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        # Body(name=5, pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        # Body(name=6, pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        # Body(name=7, pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        # Body(name=8, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        # Body(name=9, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=2, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=3, pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=4, pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=5, pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=6, pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=7, pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=8, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=9, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
         Body(name=10, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
         Body(name=11, pos=Vector(x=116, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
     ]
@@ -96,8 +96,8 @@ def main(scr):
     t = 0
     dt = 1/REFRESH_RATE
 
-    while True:
-        screen.restore_buffer()
+    while t < 3:
+        screen.restore_bg_buffer()
 
         step_simulation(dt, bodies, terrain)
 
@@ -190,17 +190,17 @@ class Screen:
         self._terrain = terrain
 
         # Redundant
-        self._buf_size = Size(curses.LINES, curses.COLS-1)
-        self._screen_size = self._buf_size*BUF_CELL_SIZE
+        self._bg_buf_size = Size(curses.LINES, curses.COLS-1)
+        self._screen_size = self._bg_buf_size*BUF_CELL_SIZE
 
-        self._buf = self._create_empty_buf()
-        self._buf_backup = np.copy(self._buf)
+        self._bg_buf = self._create_empty_background()
+        self._bg_buf_backup = np.copy(self._bg_buf)
 
-    def _create_empty_buf(self):
+    def _create_empty_background(self):
         """
         Create empty screen buffer filled with "empty braille" characters.
         """
-        return np.full(shape=self._buf_size, fill_value=EMPTY_BRAILLE)
+        return np.full(shape=self._bg_buf_size, fill_value=EMPTY_BRAILLE)
 
     def add_ascii_array(self, ascii_arr, buf_shift=Vector(x=0, y=0)):
         """
@@ -209,10 +209,10 @@ class Screen:
         """
         height, width = ascii_arr.shape
         for y, x in np.argwhere(ascii_arr != ' '):
-            buf_pos = Vector(x=x, y=self._buf_size.height - height + y) + buf_shift
-            self._buf[buf_pos.y][buf_pos.x] = ascii_arr[y, x]
+            buf_pos = Vector(x=x, y=self._bg_buf_size.height - height + y) + buf_shift
+            self._bg_buf[buf_pos.y][buf_pos.x] = ascii_arr[y, x]
 
-        self._save_in_backup_buf()
+        self._save_bg_backup()
 
     def add_common_array(self, arr, buf_shift=Vector(x=0, y=0)):
         """For DEBUG
@@ -228,7 +228,7 @@ class Screen:
                 pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
 
-        self._save_in_backup_buf()
+        self._save_bg_backup()
 
     def add_terrain_data(self):
         """For DEBUG
@@ -241,7 +241,7 @@ class Screen:
                 pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
 
-        self._save_in_backup_buf()
+        self._save_bg_backup()
 
     def add_border(self):
         """For DEBUG
@@ -255,11 +255,11 @@ class Screen:
             self.draw_point(Vector(x=0, y=y))
             self.draw_point(Vector(x=self._screen_size.width-1, y=y))
 
-        self._save_in_backup_buf()
+        self._save_bg_backup()
 
-    def _save_in_backup_buf(self):
+    def _save_bg_backup(self):
         """Backup screen buffer."""
-        self._buf_backup = np.copy(self._buf)
+        self._bg_buf_backup = np.copy(self._bg_buf)
 
     def draw_rect(self, tl_pos, br_pos):
         """For DEBUG
@@ -281,12 +281,12 @@ class Screen:
 
         buf_pos = pos_to_bufpos(pos)
         cell_box = self._terrain.cut_bufcell_box(buf_pos)
-        if ord(self._buf[buf_pos.y][buf_pos.x]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
+        if ord(self._bg_buf[buf_pos.y][buf_pos.x]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
             uchar = self._cell_box_to_uchar(cell_box)
         else:
-            uchar = ord(self._buf[buf_pos.y][buf_pos.x])
+            uchar = ord(self._bg_buf[buf_pos.y][buf_pos.x])
 
-        self._buf[buf_pos.y][buf_pos.x] = chr(uchar | self._pos_to_braille(pos))
+        self._bg_buf[buf_pos.y][buf_pos.x] = chr(uchar | self._pos_to_braille(pos))
 
     def _cell_box_to_uchar(self, cell_box):
         """
@@ -314,14 +314,15 @@ class Screen:
             else:
                 return ord(EMPTY_BRAILLE) | (0x20 >> (by - 1))
 
-    def restore_buffer(self):
+    def restore_bg_buffer(self):
         """Restore static elements added to screen."""
-        self._buf = np.copy(self._buf_backup)
+        self._bg_buf = np.copy(self._bg_buf_backup)
 
     def refresh(self):
         """Draw buffer content to screen."""
-        for num, line in enumerate(self._buf):
-            self._scr.addstr(num, 0, ''.join(line))
+        dtype = np.dtype('U' + str(self._bg_buf_size.width))
+        for num, line in enumerate(self._bg_buf):
+            self._scr.addstr(num, 0, line.view(dtype)[0])
         self._scr.refresh()
 
 
@@ -349,7 +350,7 @@ class Body:
 
 class Neighborhood:
     def __init__(self, bodies):
-        self._buf_size = Size(curses.LINES, curses.COLS-1)
+        self._bg_buf_size = Size(curses.LINES, curses.COLS-1)
         self._checked_pairs = {}
         self._create_bufpos_map(bodies)
 
@@ -390,7 +391,7 @@ class Neighborhood:
 
     def _bufpos_hash(self, pos):
         buf_pos = pos_to_bufpos(pos)
-        return buf_pos.y * self._buf_size.width + buf_pos.x
+        return buf_pos.y * self._bg_buf_size.width + buf_pos.x
 
     def _bounding_box(self, body):
         direction = (body.pos - body.prev_pos).unit() * 2 * Body.RADIUS
