@@ -618,7 +618,7 @@ def bufpos_to_arrpos(buf_pos):
     Return top-left corner to buffer cell in array coordinates (Y from top to
     bottom).
     """
-    return ta.array([buf_pos[0]*BUF_CELL_SIZE[0], buf_pos[1]*BUF_CELL_SIZE[1]])
+    return buf_pos*BUF_CELL_SIZE
 
 
 def arrpos_to_pos(arr_pos):
@@ -659,10 +659,6 @@ def step_simulation(dt, bodies, terrain):
 def calc_forces(dt, bodies):
     for body in bodies:
         body.forces = ta.array([-GRAVITY_ACC, 0.0]) * body.mass
-
-        # TODO: replace by better solution
-        # if math.floor(body.prev_pos[0]) == 0 and math.floor(body.pos[0]) == 0:
-        #     body.forces *= COEFFICIENT_OF_FRICTION
 
 
 def integrate(dt, bodies):
@@ -766,14 +762,12 @@ def resolve_collisions(dt, collisions):
                     (1/c.body1.mass)
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
         else:
-            # eassert(False)
             relative_vel = c.body2.vel - c.body1.vel
             remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
 
             if remove < 0:
                 continue
 
-            # eprint('IMPACT')
             impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                     (1/c.body1.mass  + 1/c.body2.mass)
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
