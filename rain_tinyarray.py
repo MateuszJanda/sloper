@@ -51,7 +51,7 @@ def main(scr):
     dt = 1/REFRESH_RATE
 
     while t < 3:
-        screen.restore_bg_buffer()
+        screen.restore()
         step_simulation(dt, bodies, terrain)
         for body in bodies:
             screen.draw_point(body.pos)
@@ -66,6 +66,9 @@ def main(scr):
 def setup_stderr():
     """
     Redirect stderr to other terminal. Run tty command, to get terminal id.
+
+    $ tty
+    /dev/pts/3
     """
     if DEBUG_MODE:
         sys.stderr = open('/dev/pts/3', 'w')
@@ -162,10 +165,10 @@ class Screen:
 
         self._screen_size = self._bg_buf.shape*BUF_CELL_SIZE
 
-
     def _create_empty_background(self, shape):
         """
-        Create empty screen buffer filled with "empty braille" characters.
+        Create empty background (representing screen) - filled with "empty
+        braille" characters.
         """
         return np.full(shape=shape, fill_value=EMPTY_BRAILLE)
 
@@ -179,7 +182,7 @@ class Screen:
             buf_pos = ta.array([self._bg_buf.shape[0] - height + y, x]) + buf_shift
             self._bg_buf[buf_pos[0], buf_pos[1]] = ascii_arr[y, x]
 
-        self._save_bg_backup()
+        self._save_background_backup()
 
     def add_common_array(self, arr, buf_shift=ta.array([0, 0])):
         """For DEBUG
@@ -195,7 +198,7 @@ class Screen:
                 pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
 
-        self._save_bg_backup()
+        self._save_background_backup()
 
     def add_terrain_data(self):
         """For DEBUG
@@ -208,7 +211,7 @@ class Screen:
                 pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
 
-        self._save_bg_backup()
+        self._save_background_backup()
 
     def add_border(self):
         """For DEBUG
@@ -222,9 +225,9 @@ class Screen:
             self.draw_point(ta.array([y, 0]))
             self.draw_point(ta.array([y, self._screen_size[1]-1]))
 
-        self._save_bg_backup()
+        self._save_background_backup()
 
-    def _save_bg_backup(self):
+    def _save_background_backup(self):
         """Backup screen buffer."""
         self._bg_buf_backup = np.copy(self._bg_buf)
 
@@ -283,7 +286,7 @@ class Screen:
             else:
                 return ord(EMPTY_BRAILLE) | (0x20 >> (by - 1))
 
-    def restore_bg_buffer(self):
+    def restore(self):
         """Restore static elements added to screen."""
         self._bg_buf = np.copy(self._bg_buf_backup)
 
@@ -325,13 +328,14 @@ class Neighborhood:
         self._create_bufpos_map(bodies)
 
     def _create_bufpos_map(self, bodies):
-        """ """
+        """Map store for each buf cell list of bodies that is contains."""
         self._map = defaultdict(list)
         for body in bodies:
             buf_pos = pos_to_bufpos(body.pos)
             self._map[self._bufpos_hash(buf_pos)].append(body)
 
     def neighbors(self, body):
+        """Return list of body neighbors."""
         # Body can't collide with itself, so mark pair as checked
         pair_key = self._body_pair_hash(body, body)
         self._checked_pairs[pair_key] = True
@@ -356,13 +360,22 @@ class Neighborhood:
         return result
 
     def _body_pair_hash(self, body1, body2):
+        """Return bodies hashes in sorted order."""
         return minmax(hash(body1), hash(body2))
 
     def _bufpos_hash(self, pos):
+        """
+        Return bufpos hash. bufpos (array/vector) doesn't have hash value,
+        so this method generate it.
+        """
         buf_pos = pos_to_bufpos(pos)
         return buf_pos[0] * self._bg_buf_shape[1] + buf_pos[1]
 
     def _bounding_box(self, body):
+        """
+        Return bounding rectangle (buf cells coordinated), where nearby bodies
+        should be searched.
+        """
         direction = unit((body.pos - body.prev_pos)) * 2 * Body.RADIUS
         buf_pos = pos_to_bufpos(body.prev_pos)
         buf_prev_pos = pos_to_bufpos(body.pos + direction)
@@ -384,7 +397,7 @@ class Terrain:
         self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
 
     def add_array(self, arr, buf_shift=ta.array([0, 0])):
-        """By default all arrays are drawn in bottom left corner."""
+        """By default all arrays are drawn in bottom left corner of the screen."""
         arr_size = ta.array(arr.shape[:2])
         arr_shift = bufpos_to_arrpos(buf_shift)
 
@@ -397,6 +410,7 @@ class Terrain:
         self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
 
     def cut_bufcell_box(self, buf_pos):
+        """Cut normal vectors sub array with dimension of one bufcell - shape=(4, 2)."""
         arr_pos = bufpos_to_arrpos(buf_pos)
 
         cell_box = self._normal_marks[arr_pos[0]:arr_pos[0]+BUF_CELL_SIZE[0],
@@ -404,6 +418,10 @@ class Terrain:
         return cell_box
 
     def obstacles(self, pos, prev_pos):
+        """
+        Return all obstacles (represented by normal vectors) in rectangle, where
+        pos and prev_pos determine rectangle diagonal.
+        """
         arr_tl, arr_br = self._bounding_box(pos, prev_pos)
         box = self._cut_normal_vec_box(arr_tl, arr_br)
         box_markers = np.logical_or.reduce(box!=Terrain.EMPTY, axis=-1)
@@ -421,7 +439,8 @@ class Terrain:
 
     def _bounding_box(self, pos, prev_pos):
         """
-        Return top-left, bottom-right position of bounding box.
+        Return top-left, bottom-right position of bounding box. Function add
+        extra columns and rows in each dimension.
         """
         arr_pos = pos_to_arrpos(pos)
         arr_prev_pos = pos_to_arrpos(prev_pos)
@@ -432,6 +451,10 @@ class Terrain:
         return ta.array([y1-1, x1-1]), ta.array([y2+2, x2+2])
 
     def _cut_normal_vec_box(self, arr_tl, arr_br):
+        """
+        Cut sub array from normal vectors, where arr_tl is top-left position,
+        and arr_br bottom-right position of bounding rectangle.
+        """
         # Fit array corner coordinates to not go out-of-bounds
         tl = ta.array([max(arr_tl[0], 0), max(arr_tl[1], 0)])
         br = ta.array([min(arr_br[0], self._normal_vecs.shape[0]),
@@ -461,7 +484,6 @@ class Terrain:
             wall = np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=ta.array([1, 0]))
             box = np.concatenate((box, wall), axis=0)
 
-
         # Fix corners position, normal vector should guide to center of screen
         # value = ±√(1² + 1²) = ±0.7071
         if arr_tl[1] < 0 and arr_tl[0] < 0:
@@ -478,6 +500,7 @@ class Terrain:
 
 class Importer:
     def load(self, ascii_file, normal_vec_file):
+        """Load arrays from files."""
         ascii_arr = self._import_ascii_arr(ascii_file)
         ascii_arr = self._remove_ascii_marker(ascii_arr)
         ascii_arr = self._remove_ascii_margin(ascii_arr)
@@ -670,6 +693,7 @@ def test_converters():
 #
 
 def step_simulation(dt, bodies, terrain):
+    """One step in simulation."""
     calc_forces(dt, bodies)
     integrate(dt, bodies)
     collisions = detect_collisions(bodies, terrain)
@@ -677,11 +701,13 @@ def step_simulation(dt, bodies, terrain):
 
 
 def calc_forces(dt, bodies):
+    """Calculate forces (gravity) for all bodies."""
     for body in bodies:
         body.forces = ta.array([-GRAVITY_ACC, 0.0]) * body.mass
 
 
 def integrate(dt, bodies):
+    """Integration motion equations."""
     for body in bodies:
         body.prev_pos = ta.array(body.pos)
         body.acc = body.forces / body.mass
@@ -698,6 +724,7 @@ class Collision:
 
 
 def detect_collisions(bodies, terrain):
+    """Detect collisions for all bodies with other bodies and terrain obstacles."""
     collisions = []
     neighb = Neighborhood(bodies)
     for body in bodies:
@@ -710,6 +737,7 @@ def detect_collisions(bodies, terrain):
 
 
 def obstacle_collisions(body, terrain):
+    """Calculate collision with terrain obstacles."""
     result = []
 
     for obstacle_pos, normal_vec in terrain.obstacles(body.pos, body.prev_pos):
@@ -727,6 +755,7 @@ def obstacle_collisions(body, terrain):
 
 
 def bodies_collisions(body1, body2):
+    """Calculate collision of two bodies."""
     result = []
 
     dist = body2.pos - body1.pos
@@ -743,6 +772,7 @@ def bodies_collisions(body1, body2):
 
 
 def bodies_collisions2(body, neighb):
+    """Calculate body collision with his neighbors."""
     result = []
 
     for neigh_body in neighb.neighbors(body):
