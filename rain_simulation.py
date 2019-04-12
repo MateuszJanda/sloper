@@ -84,7 +84,7 @@ def main(scr):
     t = 0
     dt = 1/REFRESH_RATE
 
-    while t < 3:
+    while True:
         screen.restore_bg_buffer()
         step_simulation(dt, bodies, terrain)
         for body in bodies:
@@ -98,23 +98,6 @@ def main(scr):
 
 
 def create_bodies(cout):
-    # bodies = [
-    #     Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-    #     Body(name=1, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-    #     Body(name=1, pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-    #     Body(name=1, pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-    #     Body(name=1, pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-    #     Body(name=1, pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-    #     Body(name=1, pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-    #     Body(name=1, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-    #     Body(name=1, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-    #     Body(name=1, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
-    #     Body(name=1, pos=Vector(x=116, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
-    # ]
-
-    # for idx, body in enumerate(bodies):
-    #     body._id = idx
-
     random.seed(3300)
     size = Size(curses.LINES*BUF_CELL_SIZE.height,
                 (curses.COLS-1)*BUF_CELL_SIZE.width)
@@ -132,6 +115,24 @@ def create_bodies(cout):
         visited[(x,y)] = True
         bodies.append(Body(name=c, pos=Vector(x=x, y=y), mass=1, velocity=Vector(x=0, y=-40.0)))
         c += 1
+
+    bodies = [
+        # Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=1, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=1, pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=1, pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=1, pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=1, pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=1, pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=1, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        # Body(name=1, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+        Body(name=1, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
+        Body(name=1, pos=Vector(x=116, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
+    ]
+
+    for idx, body in enumerate(bodies):
+        body._id = idx
+
 
     return bodies
 
