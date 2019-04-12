@@ -449,14 +449,19 @@ class Terrain:
         # we need also create shit for terrain top-left corner position. It
         # will be needed to calculate distance.
         if arr_tl[1] < 0:
-            box = np.hstack((np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=ta.array([0, 1])), box))
+            wall = np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=ta.array([0, 1]))
+            box = np.concatenate((wall, box), axis=1)
         elif arr_br[1] > self._terrain_size[1]:
-            box = np.hstack((box, np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=ta.array([0, -1]))))
+            wall = np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=ta.array([0, -1]))
+            box = np.concatenate((box, wall), axis=1)
 
         if arr_tl[0] < 0:
-            box = np.vstack((np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=ta.array([-1, 0])), box))
+            wall = np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=ta.array([-1, 0]))
+            box = np.concatenate((wall, box), axis=0)
         elif arr_br[0] > self._terrain_size[0]:
-            box = np.vstack((box, np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=ta.array([1, 0]))))
+            wall = np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=ta.array([1, 0]))
+            box = np.concatenate((box, wall), axis=0)
+
 
         # Fix corners position, normal vector should guide to center of screen
         # value = ±√(1² + 1²) = ±0.7071
