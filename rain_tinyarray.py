@@ -156,18 +156,18 @@ class Screen:
         self._scr = scr
         self._terrain = terrain
 
-        # Redundant
-        self._bg_buf_size = ta.array([curses.LINES, curses.COLS-1])
-        self._screen_size = self._bg_buf_size*BUF_CELL_SIZE
-
-        self._bg_buf = self._create_empty_background()
+        bg_buf_shape = (curses.LINES, curses.COLS-1)
+        self._bg_buf = self._create_empty_background(bg_buf_shape)
         self._bg_buf_backup = np.copy(self._bg_buf)
 
-    def _create_empty_background(self):
+        self._screen_size = self._bg_buf.shape*BUF_CELL_SIZE
+
+
+    def _create_empty_background(self, shape):
         """
         Create empty screen buffer filled with "empty braille" characters.
         """
-        return np.full(shape=self._bg_buf_size, fill_value=EMPTY_BRAILLE)
+        return np.full(shape=shape, fill_value=EMPTY_BRAILLE)
 
     def add_ascii_array(self, ascii_arr, buf_shift=ta.array([0, 0])):
         """
@@ -176,7 +176,7 @@ class Screen:
         """
         height, width = ascii_arr.shape
         for y, x in np.argwhere(ascii_arr != ' '):
-            buf_pos = ta.array([self._bg_buf_size[0] - height + y, x]) + buf_shift
+            buf_pos = ta.array([self._bg_buf.shape[0] - height + y, x]) + buf_shift
             self._bg_buf[buf_pos[0], buf_pos[1]] = ascii_arr[y, x]
 
         self._save_bg_backup()
@@ -201,9 +201,9 @@ class Screen:
         """For DEBUG
         Redraw terrain array.
         """
-        height, width, _ = self._terrain._terrain.shape
+        height, width, _ = self._terrain._normal_vecs.shape
         for x, y in it.product(range(width), range(height)):
-            if self._terrain._red[y, x]:
+            if self._terrain._normal_marks[y, x]:
                 arr_pos = ta.array([y, x])
                 pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
@@ -262,7 +262,7 @@ class Screen:
         height, width = cell_box.shape
         uchar = ord(EMPTY_BRAILLE)
         for y, x in np.argwhere(cell_box):
-            uchar |= self._pos_to_braille(ta.array([BUF_CELL_SIZE[0]-1-y, x]))
+            uchar |= self._pos_to_braille(ta.array([BUF_CELL_SIZE[0] - 1 - y, x]))
 
         return uchar
 
@@ -289,7 +289,7 @@ class Screen:
 
     def refresh(self):
         """Draw buffer content to screen."""
-        dtype = np.dtype('U' + str(self._bg_buf_size[1]))
+        dtype = np.dtype('U' + str(self._bg_buf.shape[1]))
         for num, line in enumerate(self._bg_buf):
             self._scr.addstr(num, 0, line.view(dtype)[0])
         self._scr.refresh()
@@ -306,6 +306,7 @@ class Body:
         self._idx = idx
 
     def __hash__(self):
+        """Return Body unique hash (integer)."""
         return self._idx
 
     def __str__(self):
@@ -319,11 +320,12 @@ class Body:
 
 class Neighborhood:
     def __init__(self, bodies):
-        self._bg_buf_size = ta.array([curses.LINES, curses.COLS-1])
+        self._bg_buf_shape = ta.array([curses.LINES, curses.COLS-1])
         self._checked_pairs = {}
         self._create_bufpos_map(bodies)
 
     def _create_bufpos_map(self, bodies):
+        """ """
         self._map = defaultdict(list)
         for body in bodies:
             buf_pos = pos_to_bufpos(body.pos)
@@ -358,7 +360,7 @@ class Neighborhood:
 
     def _bufpos_hash(self, pos):
         buf_pos = pos_to_bufpos(pos)
-        return buf_pos[0] * self._bg_buf_size[1] + buf_pos[1]
+        return buf_pos[0] * self._bg_buf_shape[1] + buf_pos[1]
 
     def _bounding_box(self, body):
         direction = unit((body.pos - body.prev_pos)) * 2 * Body.RADIUS
@@ -374,12 +376,12 @@ class Terrain:
     EMPTY = np.array([0, 0])
 
     def __init__(self):
-        # Redundant
-        self._terrain_size = ta.array([curses.LINES*BUF_CELL_SIZE[0],
+        normal_vecs_shape = ta.array([curses.LINES*BUF_CELL_SIZE[0],
                                       (curses.COLS-1)*BUF_CELL_SIZE[1]])
-        self._terrain = np.zeros(shape=(self._terrain_size[0],
-                                        self._terrain_size[1], NORM_VEC_DIM))
-        self._red = np.logical_or.reduce(self._terrain!=Terrain.EMPTY, axis=-1)
+        self._normal_vecs = np.zeros(shape=(normal_vecs_shape[0],
+                                            normal_vecs_shape[1],
+                                            NORM_VEC_DIM))
+        self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
 
     def add_array(self, arr, buf_shift=ta.array([0, 0])):
         """By default all arrays are drawn in bottom left corner."""
@@ -388,17 +390,17 @@ class Terrain:
 
         x1 = arr_shift[1]
         x2 = x1 + arr_size[1]
-        y1 = self._terrain_size[0] - arr_size[0] - arr_shift[0]
-        y2 = self._terrain_size[0] - arr_shift[0]
-        self._terrain[y1:y2, x1:x2] = arr
+        y1 = self._normal_vecs.shape[0] - arr_size[0] - arr_shift[0]
+        y2 = self._normal_vecs.shape[0] - arr_shift[0]
+        self._normal_vecs[y1:y2, x1:x2] = arr
 
-        self._red = np.logical_or.reduce(self._terrain!=Terrain.EMPTY, axis=-1)
+        self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
 
     def cut_bufcell_box(self, buf_pos):
         arr_pos = bufpos_to_arrpos(buf_pos)
 
-        cell_box = self._red[arr_pos[0]:arr_pos[0]+BUF_CELL_SIZE[0],
-                             arr_pos[1]:arr_pos[1]+BUF_CELL_SIZE[1]]
+        cell_box = self._normal_marks[arr_pos[0]:arr_pos[0]+BUF_CELL_SIZE[0],
+                                      arr_pos[1]:arr_pos[1]+BUF_CELL_SIZE[1]]
         return cell_box
 
     def obstacles(self, pos, prev_pos):
@@ -432,10 +434,10 @@ class Terrain:
     def _cut_normal_vec_box(self, arr_tl, arr_br):
         # Fit array corner coordinates to not go out-of-bounds
         tl = ta.array([max(arr_tl[0], 0), max(arr_tl[1], 0)])
-        br = ta.array([min(arr_br[0], self._terrain_size[0]),
-                       min(arr_br[1], self._terrain_size[1])])
+        br = ta.array([min(arr_br[0], self._normal_vecs.shape[0]),
+                       min(arr_br[1], self._normal_vecs.shape[1])])
         # Cut normal vectors from terrain array
-        box = self._terrain[tl[0]:br[0], tl[1]:br[1]]
+        box = self._normal_vecs[tl[0]:br[0], tl[1]:br[1]]
 
         # If bounding box is out of terrain bounds, we need to add border padding
         expected_shape = (arr_br[0] - arr_tl[0], arr_br[1] - arr_tl[1], NORM_VEC_DIM)
@@ -448,14 +450,14 @@ class Terrain:
         if arr_tl[1] < 0:
             wall = np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=ta.array([0, 1]))
             box = np.concatenate((wall, box), axis=1)
-        elif arr_br[1] > self._terrain_size[1]:
+        elif arr_br[1] > self._normal_vecs.shape[1]:
             wall = np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=ta.array([0, -1]))
             box = np.concatenate((box, wall), axis=1)
 
         if arr_tl[0] < 0:
             wall = np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=ta.array([-1, 0]))
             box = np.concatenate((wall, box), axis=0)
-        elif arr_br[0] > self._terrain_size[0]:
+        elif arr_br[0] > self._normal_vecs.shape[0]:
             wall = np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=ta.array([1, 0]))
             box = np.concatenate((box, wall), axis=0)
 
@@ -464,11 +466,11 @@ class Terrain:
         # value = ±√(1² + 1²) = ±0.7071
         if arr_tl[1] < 0 and arr_tl[0] < 0:
             box[0, 0] = ta.array([-0.7071, 0.7071])
-        elif arr_tl[1] < 0 and arr_br[0] > self._terrain_size[0]:
+        elif arr_tl[1] < 0 and arr_br[0] > self._normal_vecs.shape[0]:
             box[-1, 0] = ta.array([0.7071, 0.7071])
-        elif arr_br[1] > self._terrain_size[1] and arr_tl[0] < 0:
+        elif arr_br[1] > self._normal_vecs.shape[1] and arr_tl[0] < 0:
             box[0, -1] = ta.array([-0.7071, -0.7071])
-        elif arr_br[1] > self._terrain_size[1] and arr_br[0] > self._terrain_size[0]:
+        elif arr_br[1] > self._normal_vecs.shape[1] and arr_br[0] > self._normal_vecs.shape[0]:
             box[0, -1] = ta.array([0.7071, -0.7071])
 
         return box
