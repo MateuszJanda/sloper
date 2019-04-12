@@ -27,7 +27,7 @@ import tinyarray as ta
 
 
 # Applications constants
-DEBUG_MODE = False
+DEBUG_MODE = True
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = ta.array([4, 2])
@@ -50,7 +50,7 @@ def main(scr):
     t = 0
     dt = 1/REFRESH_RATE
 
-    while t < 3:
+    while True:
         screen.restore()
         step_simulation(dt, bodies, terrain)
         for body in bodies:
@@ -108,6 +108,7 @@ def create_scene(scr):
 
     terrain.add_array(norm_arr)
     screen.add_ascii_array(ascii_arr)
+    # screen.add_terrain_data()
 
     return screen, terrain
 
@@ -135,17 +136,18 @@ def create_bodies(count):
         idx += 1
 
     # bodies = [
-    #     Body(idx=1, pos=ta.array([80.0, 34]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([80.0, 50]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([80.0, 112]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([70.0, 110.5]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([80.0, 110]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([80.0, 23]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([80.0, 22]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([80.0, 21]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([80.0, 20]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([1.0, 110]), mass=1, vel=ta.array([0.0, 1])),
-    #     Body(idx=1, pos=ta.array([1.0, 116]), mass=1, vel=ta.array([0.0, 0])),
+    #     # Body(idx=1, pos=ta.array([80.0, 32]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([80.0, 34]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([80.0, 50]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([80.0, 112]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([70.0, 110.5]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([80.0, 110]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([80.0, 23]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([80.0, 22]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([80.0, 21]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([80.0, 20]), mass=1, vel=ta.array([-40.0, 0])),
+    #     # Body(idx=1, pos=ta.array([1.0, 110]), mass=1, vel=ta.array([0.0, 1])),
+    #     # Body(idx=1, pos=ta.array([1.0, 116]), mass=1, vel=ta.array([0.0, 0])),
     # ]
 
     # for idx, body in enumerate(bodies):
@@ -178,7 +180,7 @@ class Screen:
         bottom left corner.
         """
         height, width = ascii_arr.shape
-        for y, x in np.argwhere(ascii_arr != ' '):
+        for y, x in np.argwhere(ascii_arr!=' '):
             buf_pos = ta.array([self._bg_buf.shape[0] - height + y, x]) + buf_shift
             self._bg_buf[buf_pos[0], buf_pos[1]] = ascii_arr[y, x]
 
@@ -376,7 +378,7 @@ class Neighborhood:
         Return bounding rectangle (buf cells coordinated), where nearby bodies
         should be searched.
         """
-        direction = unit((body.pos - body.prev_pos)) * 2 * Body.RADIUS
+        direction = unit((body.pos - body.prev_pos)) * 3 * Body.RADIUS
         buf_pos = pos_to_bufpos(body.prev_pos)
         buf_prev_pos = pos_to_bufpos(body.pos + direction)
 
@@ -729,9 +731,7 @@ def detect_collisions(bodies, terrain):
     neighb = Neighborhood(bodies)
     for body in bodies:
         collisions += obstacle_collisions(body, terrain)
-        collisions += bodies_collisions2(body, neighb)
-    # for body1, body2 in it.combinations(bodies, 2):
-        # collisions += bodies_collisions(body1, body2)
+        collisions += bodies_collisions(body, neighb)
 
     return collisions
 
@@ -754,24 +754,7 @@ def obstacle_collisions(body, terrain):
     return result
 
 
-def bodies_collisions(body1, body2):
-    """Calculate collision of two bodies."""
-    result = []
-
-    dist = body2.pos - body1.pos
-    normal_vec = -unit(dist)
-    real_dist = magnitude(dist) - 2*Body.RADIUS
-    collision = Collision(body1=body1,
-                          body2=body2,
-                          dist=real_dist,
-                          normal_vec=normal_vec)
-    # eprint(real_dist, body1._idx, body2._idx)
-    result.append(collision)
-
-    return result
-
-
-def bodies_collisions2(body, neighb):
+def bodies_collisions(body, neighb):
     """Calculate body collision with his neighbors."""
     result = []
 
@@ -800,7 +783,7 @@ def resolve_collisions(dt, collisions):
     https://wildbunny.co.uk/blog/2011/03/25/speculative-contacts-an-continuous-collision-engine-approach-part-1/
     """
     for _, c in it.product(range(NUM_ITERATION), collisions):
-        # Collision with screen borders
+        # Body collide with screen borders
         if not c.body2:
             relative_vel = -c.body1.vel
             remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
@@ -811,6 +794,7 @@ def resolve_collisions(dt, collisions):
             impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                     (1/c.body1.mass)
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
+        # Two body collision
         else:
             relative_vel = c.body2.vel - c.body1.vel
             remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
