@@ -182,7 +182,7 @@ class Screen:
         height, width = ascii_arr.shape
         for y, x in np.argwhere(ascii_arr != ' '):
             buf_pos = ta.array([self._bg_buf_size[0] - height + y, x]) + buf_shift
-            self._bg_buf[buf_pos[0]][buf_pos[1]] = ascii_arr[y, x]
+            self._bg_buf[buf_pos[0], buf_pos[1]] = ascii_arr[y, x]
 
         self._save_bg_backup()
 
@@ -195,7 +195,7 @@ class Screen:
         arr_shift = buf_shift * BUF_CELL_SIZE
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
-            if np.any(arr[y, x] != 0):
+            if np.any(arr[y, x]):
                 arr_pos = ta.array([self._screen_size[0] - height  + y, x]) + arr_shift
                 pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
@@ -208,7 +208,7 @@ class Screen:
         """
         height, width, _ = self._terrain._terrain.shape
         for x, y in it.product(range(width), range(height)):
-            if np.any(self._terrain._terrain[y, x] != 0):
+            if self._terrain._red[y, x]:
                 arr_pos = ta.array([y, x])
                 pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
