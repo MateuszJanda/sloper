@@ -1,10 +1,15 @@
 #! /usr/bin/env python3
 
+
 """
-Coordinates systems:
-    pos         - position in Cartesian coordinate system
-    buf_pos     - position on screen (of one character). Y from top to bottom
-    arr_pos     - similar to pos, but Y from top to bottom
+Coordinates systems (prefixes):
+    pos         - position in Cartesian coordinate system. Y from bottom to top,
+                  point (0, 0) is in bottom left corner of the screen, All
+                  physical calculation are performed in this system.
+    buf_pos     - position on screen (of one character). Y from top to bottom,
+                  point (0, 0) is in top-left corner of the screen.
+    arr_pos     - position in numpy or tinyarray array. Y from top to bottom,
+                  point (0, 0) is in top-felt corner of the screen.
 """
 
 
@@ -21,7 +26,7 @@ import numpy as np
 import tinyarray as ta
 
 
-
+# Applications constants
 DEBUG_MODE = False
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
@@ -29,7 +34,7 @@ BUF_CELL_SIZE = ta.array([4, 2])
 NORM_VEC_DIM = 2
 NUM_ITERATION = 3
 
-# Physical values
+# Physical constants
 GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
 COEFFICIENT_OF_FRICTION = 0.9
@@ -67,6 +72,38 @@ def main(scr):
         t += dt
 
     curses.endwin()
+
+
+def setup_stderr():
+    """
+    Redirect stderr to other terminal. Run tty command, to get terminal id.
+    """
+    if DEBUG_MODE:
+        sys.stderr = open('/dev/pts/3', 'w')
+
+
+def eprint(*args, **kwargs):
+    """Print on stderr"""
+    if DEBUG_MODE:
+        print(*args, file=sys.stderr)
+
+
+def eassert(condition):
+    """Assert. Disable curses and run pdb."""
+    if not condition:
+        curses.endwin()
+        sys.stderr = sys.stdout
+        pdb.set_trace()
+
+
+def setup_curses(scr):
+    """Setup curses screen."""
+    curses.start_color()
+    curses.use_default_colors()
+    curses.halfdelay(5)
+    curses.noecho()
+    curses.curs_set(False)
+    scr.clear()
 
 
 def create_bodies(cout):
@@ -109,51 +146,6 @@ def create_bodies(cout):
         c += 1
 
     return bodies
-
-
-def setup_stderr():
-    """
-    Redirect stderr to other terminal. Run tty command, to get terminal id.
-    """
-    if DEBUG_MODE:
-        sys.stderr = open('/dev/pts/3', 'w')
-
-
-def eprint(*args, **kwargs):
-    """Print on stderr"""
-    if DEBUG_MODE:
-        print(*args, file=sys.stderr)
-
-
-def eassert(condition):
-    """Assert. Disable curses and run pdb."""
-    if not condition:
-        curses.endwin()
-        sys.stderr = sys.stdout
-        pdb.set_trace()
-
-
-def setup_curses(scr):
-    """Setup curses screen."""
-    curses.start_color()
-    curses.use_default_colors()
-    curses.halfdelay(5)
-    curses.noecho()
-    curses.curs_set(False)
-    scr.clear()
-
-
-def magnitude(vec):
-    return math.sqrt(vec[0]**2 + vec[1]**2)
-
-
-def unit(vec):
-    mag = magnitude(vec)
-    return vec/mag if mag else vec
-
-
-def minmax(a, b):
-    return (a, b) if a < b else (b, a)
 
 
 class Screen:
@@ -605,7 +597,30 @@ class Importer:
         eprint('Validation OK')
 
 
+#
+# Helper functions.
+#
+
+def magnitude(vec):
+    """Calculate vector magnitude."""
+    return math.sqrt(vec[0]**2 + vec[1]**2)
+
+
+def unit(vec):
+    """Calculate unit vector."""
+    mag = magnitude(vec)
+    return vec/mag if mag else vec
+
+
+def minmax(a, b):
+    """Sort two values: first is min, second is max."""
+    return (a, b) if a < b else (b, a)
+
+
 def pos_to_bufpos(pos):
+    """
+    Buffer/screen cell position for given pos.
+    """
     x = math.floor(pos[1]/BUF_CELL_SIZE[1])
     y = curses.LINES - 1 - math.floor(pos[0]/BUF_CELL_SIZE[0])
     return ta.array([y, x])
@@ -613,7 +628,7 @@ def pos_to_bufpos(pos):
 
 def bufpos_to_arrpos(buf_pos):
     """
-    Return top-left corner to buffer cell in array coordinates (Y from top to
+    Return top-left corner of buffer cell in array coordinates (Y from top to
     bottom).
     """
     return buf_pos*BUF_CELL_SIZE
