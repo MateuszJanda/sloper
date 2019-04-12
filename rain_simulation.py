@@ -79,7 +79,7 @@ def main(scr):
     # screen.add_common_array(norm_arr, buf_shift=Vector(x=40, y=0))
     # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
-    bodies = create_bodies()
+    bodies = create_bodies(cout=50)
 
     t = 0
     dt = 1/REFRESH_RATE
@@ -97,7 +97,7 @@ def main(scr):
     curses.endwin()
 
 
-def create_bodies():
+def create_bodies(cout):
     # bodies = [
     #     Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
     #     Body(name=1, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
@@ -123,7 +123,7 @@ def create_bodies():
     visited = {}
 
     c = 0
-    while c < 100:
+    while c < cout:
         x, y = random.randint(1, size.width), size.height - (random.randint(2, 20) * 1.0)
 
         if (x, y) in visited:
