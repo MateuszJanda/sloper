@@ -383,6 +383,7 @@ class Terrain:
                                       (curses.COLS-1)*BUF_CELL_SIZE[1]])
         self._terrain = np.zeros(shape=(self._terrain_size[0],
                                         self._terrain_size[1], NORM_VEC_DIM))
+        self._red = np.logical_or.reduce(self._terrain!=Terrain.EMPTY, axis=-1)
 
     def add_array(self, arr, buf_shift=ta.array([0, 0])):
         """By default all arrays are drawn in bottom left corner."""
@@ -395,19 +396,19 @@ class Terrain:
         y2 = self._terrain_size[0] - arr_shift[0]
         self._terrain[y1:y2, x1:x2] = arr
 
+        self._red = np.logical_or.reduce(self._terrain!=Terrain.EMPTY, axis=-1)
+
     def cut_bufcell_box(self, buf_pos):
         arr_pos = bufpos_to_arrpos(buf_pos)
 
-        cell_box = self._terrain[arr_pos[0]:arr_pos[0]+BUF_CELL_SIZE[0],
-                                 arr_pos[1]:arr_pos[1]+BUF_CELL_SIZE[1]]
-
-        cell_box = np.logical_or.reduce(cell_box != Terrain.EMPTY, axis=-1)
+        cell_box = self._red[arr_pos[0]:arr_pos[0]+BUF_CELL_SIZE[0],
+                             arr_pos[1]:arr_pos[1]+BUF_CELL_SIZE[1]]
         return cell_box
 
     def obstacles(self, pos, prev_pos):
         arr_tl, arr_br = self._bounding_box(pos, prev_pos)
         box = self._cut_normal_vec_box(arr_tl, arr_br)
-        box_markers = np.logical_or.reduce(box != Terrain.EMPTY, axis=-1)
+        box_markers = np.logical_or.reduce(box!=Terrain.EMPTY, axis=-1)
 
         result = []
         height, width = box_markers.shape
