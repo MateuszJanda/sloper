@@ -2,7 +2,7 @@
 
 
 """
-Coordinates systems (prefixes):
+Coordinates systems:
     pos         - position in Cartesian coordinate system. Y from bottom to top,
                   point (0, 0) is in bottom left corner of the screen, All
                   physical calculation are performed in this system.
@@ -43,20 +43,9 @@ COEFFICIENT_OF_FRICTION = 0.9
 def main(scr):
     test_converters()
     setup_curses(scr)
-    terrain = Terrain()
-    screen = Screen(scr, terrain)
 
-    im = Importer()
-    ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
-
-    terrain.add_array(norm_arr)
-    screen.add_ascii_array(ascii_arr)
-    # screen.add_terrain_data()
-    # terrain.add_array(norm_arr, buf_shift=ta.array([0, 40]))
-    # screen.add_common_array(norm_arr, buf_shift=ta.array([0, 40]))
-    # screen.add_ascii_array(ascii_arr, buf_shift=ta.array([0, 40]))
-
-    bodies = create_bodies(cout=50)
+    screen, terrain = create_scene(scr)
+    bodies = create_bodies(count=50)
 
     t = 0
     dt = 1/REFRESH_RATE
@@ -83,7 +72,7 @@ def setup_stderr():
 
 
 def eprint(*args, **kwargs):
-    """Print on stderr"""
+    """Print on stderr."""
     if DEBUG_MODE:
         print(*args, file=sys.stderr)
 
@@ -106,44 +95,58 @@ def setup_curses(scr):
     scr.clear()
 
 
-def create_bodies(cout):
-    # bodies = [
-    #     Body(name=1, pos=ta.array([80.0, 34]), mass=1, velocity=ta.array([-40.0, 0])),
-    #     Body(name=1, pos=ta.array([80.0, 50]), mass=1, velocity=ta.array([-40.0, 0])),
-    #     Body(name=1, pos=ta.array([80.0, 112]), mass=1, velocity=ta.array([-40.0, 0])),
-    #     Body(name=1, pos=ta.array([70.0, 110.5]), mass=1, velocity=ta.array([-40.0, 0])),
-    #     Body(name=1, pos=ta.array([80.0, 110]), mass=1, velocity=ta.array([-40.0, 0])),
-    #     Body(name=1, pos=ta.array([80.0, 23]), mass=1, velocity=ta.array([-40.0, 0])),
-    #     Body(name=1, pos=ta.array([80.0, 22]), mass=1, velocity=ta.array([-40.0, 0])),
-    #     Body(name=1, pos=ta.array([80.0, 21]), mass=1, velocity=ta.array([-40.0, 0])),
-    #     Body(name=1, pos=ta.array([80.0, 20]), mass=1, velocity=ta.array([-40.0, 0])),
-    #     Body(name=1, pos=ta.array([1.0, 110]), mass=1, velocity=ta.array([0.0, 1])),
-    #     Body(name=1, pos=ta.array([1.0, 116]), mass=1, velocity=ta.array([0.0, 0])),
-    # ]
+def create_scene(scr):
+    """Create scene with obstacles. Return screen and terrain objects."""
+    terrain = Terrain()
+    screen = Screen(scr, terrain)
 
-    # for idx, body in enumerate(bodies):
-    #     body._id = idx
+    im = Importer()
+    ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
+    terrain.add_array(norm_arr)
+    screen.add_ascii_array(ascii_arr)
+
+    return screen, terrain
+
+
+def create_bodies(count):
+    """Create bodies."""
     random.seed(3300)
-
-    eprint()
-
-    size = ta.array([curses.LINES*BUF_CELL_SIZE[0],
-                    (curses.COLS-1)*BUF_CELL_SIZE[1]])
+    height, width = curses.LINES*BUF_CELL_SIZE[0], (curses.COLS-1)*BUF_CELL_SIZE[1]
 
     bodies = []
     visited = {}
 
-    c = 0
-    while c < cout:
-        x, y = random.randint(1, size[1]), size[0] - (random.randint(2, 20) * 1.0)
+    idx = 0
+    while idx < count:
+        y, x = height - (random.randint(2, 20) * 1.0), random.randint(1, width)
 
-        if (x, y) in visited:
+        if (y, x) in visited:
             continue
 
-        visited[(x,y)] = True
-        bodies.append(Body(name=c, pos=ta.array([y, x]), mass=1, velocity=ta.array([-40.0, 0])))
-        c += 1
+        visited[(y, x)] = True
+        bodies.append(Body(idx=idx,
+                           pos=ta.array([y, x]),
+                           mass=1,
+                           vel=ta.array([-40.0, 0])))
+        idx += 1
+
+    # bodies = [
+    #     Body(idx=1, pos=ta.array([80.0, 34]), mass=1, vel=ta.array([-40.0, 0])),
+    #     Body(idx=1, pos=ta.array([80.0, 50]), mass=1, vel=ta.array([-40.0, 0])),
+    #     Body(idx=1, pos=ta.array([80.0, 112]), mass=1, vel=ta.array([-40.0, 0])),
+    #     Body(idx=1, pos=ta.array([70.0, 110.5]), mass=1, vel=ta.array([-40.0, 0])),
+    #     Body(idx=1, pos=ta.array([80.0, 110]), mass=1, vel=ta.array([-40.0, 0])),
+    #     Body(idx=1, pos=ta.array([80.0, 23]), mass=1, vel=ta.array([-40.0, 0])),
+    #     Body(idx=1, pos=ta.array([80.0, 22]), mass=1, vel=ta.array([-40.0, 0])),
+    #     Body(idx=1, pos=ta.array([80.0, 21]), mass=1, vel=ta.array([-40.0, 0])),
+    #     Body(idx=1, pos=ta.array([80.0, 20]), mass=1, vel=ta.array([-40.0, 0])),
+    #     Body(idx=1, pos=ta.array([1.0, 110]), mass=1, vel=ta.array([0.0, 1])),
+    #     Body(idx=1, pos=ta.array([1.0, 116]), mass=1, vel=ta.array([0.0, 0])),
+    # ]
+
+    # for idx, body in enumerate(bodies):
+    #     body._idx = idx
 
     return bodies
 
@@ -295,23 +298,23 @@ class Screen:
 class Body:
     RADIUS = 0.5
 
-    def __init__(self, name, pos, mass, velocity):
+    def __init__(self, idx, pos, mass, vel):
         self.pos = pos
         self.prev_pos = pos
         self.mass = mass
-        self.vel = velocity
-        self._id = name
+        self.vel = vel
+        self._idx = idx
 
     def __hash__(self):
-        return self._id
+        return self._idx
 
     def __str__(self):
         """string representation of object."""
-        return "Body(%d)" % self._id
+        return "Body(%d)" % self._idx
 
     def __repr__(self):
         """string representation of object."""
-        return "Body(%d)" % self._id
+        return "Body(%d)" % self._idx
 
 
 class Neighborhood:
@@ -596,7 +599,6 @@ class Importer:
 
         eprint('Validation OK')
 
-
 #
 # Helper functions.
 #
@@ -661,6 +663,9 @@ def test_converters():
     arr_pos = pos_to_arrpos(ta.array([46.25706000000003, 34.0]))
     assert np.all(ta.array([46, 34]) == arrpos_to_pos(arr_pos)), arrpos_to_pos(arr_pos)
 
+#
+# Physic engine.
+#
 
 def step_simulation(dt, bodies, terrain):
     calc_forces(dt, bodies)
@@ -729,7 +734,7 @@ def bodies_collisions(body1, body2):
                           body2=body2,
                           dist=real_dist,
                           normal_vec=normal_vec)
-    # eprint(real_dist, body1._id, body2._id)
+    # eprint(real_dist, body1._idx, body2._idx)
     result.append(collision)
 
     return result
@@ -743,7 +748,7 @@ def bodies_collisions2(body, neighb):
         normal_vec = unit(dist)
         real_dist = magnitude(dist) - 2*Body.RADIUS
         # eprint(body.pos, neigh_body.pos)
-        # eprint(real_dist, neigh_body._id, body._id)
+        # eprint(real_dist, neigh_body._idx, body._idx)
         collision = Collision(body1=body,
                               body2=neigh_body,
                               dist=real_dist,
