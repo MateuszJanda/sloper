@@ -143,10 +143,9 @@ def setup_curses(scr):
     scr.clear()
 
 
-
 def magnitude(vec):
-    # return np.linalg.norm(vec)
     return math.sqrt(vec[0]**2 + vec[1]**2)
+
 
 def unit(vec):
     mag = magnitude(vec)
@@ -412,10 +411,9 @@ class Terrain:
 
         result = []
         for y, x in np.argwhere(box_markers):
-            box_obs_pos = ta.array([y, x])
-            normal_vec = box[box_obs_pos[0], box_obs_pos[1]]
+            normal_vec = box[y, x]
 
-            global_pos = arrpos_to_pos(arr_tl + box_obs_pos)
+            global_pos = arrpos_to_pos(arr_tl + (y,x))
             result.append((global_pos, normal_vec))
 
         return result
