@@ -56,7 +56,7 @@ def main(scr):
     t = 0
     dt = 1/REFRESH_RATE
 
-    while True:
+    while t < 3:
         screen.restore_bg_buffer()
         step_simulation(dt, bodies, terrain)
         for body in bodies:
@@ -145,7 +145,8 @@ def setup_curses(scr):
 
 
 def magnitude(vec):
-    return np.linalg.norm(vec)
+    # return np.linalg.norm(vec)
+    return math.sqrt(vec[0]**2 + vec[1]**2)
 
 def unit(vec):
     mag = magnitude(vec)

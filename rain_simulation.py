@@ -84,7 +84,7 @@ def main(scr):
     t = 0
     dt = 1/REFRESH_RATE
 
-    while True:
+    while t < 3:
         screen.restore_bg_buffer()
         step_simulation(dt, bodies, terrain)
         for body in bodies:
