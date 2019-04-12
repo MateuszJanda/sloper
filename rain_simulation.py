@@ -79,28 +79,14 @@ def main(scr):
     # screen.add_common_array(norm_arr, buf_shift=Vector(x=40, y=0))
     # screen.add_ascii_array(ascii_arr, buf_shift=Vector(x=40, y=0))
 
-    bodies = [
-        Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=2, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=3, pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=4, pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=5, pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=6, pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=7, pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=8, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=9, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
-        Body(name=10, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
-        Body(name=11, pos=Vector(x=116, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
-    ]
+    bodies = create_bodies()
 
     t = 0
     dt = 1/REFRESH_RATE
 
-    while t < 3:
+    while True:
         screen.restore_bg_buffer()
-
         step_simulation(dt, bodies, terrain)
-
         for body in bodies:
             screen.draw_point(body.pos)
         screen.refresh()
@@ -109,6 +95,45 @@ def main(scr):
         t += dt
 
     curses.endwin()
+
+
+def create_bodies():
+    # bodies = [
+    #     Body(name=1, pos=Vector(x=34, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+    #     Body(name=1, pos=Vector(x=50, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+    #     Body(name=1, pos=Vector(x=112, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+    #     Body(name=1, pos=Vector(x=110.5, y=70.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+    #     Body(name=1, pos=Vector(x=110, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+    #     Body(name=1, pos=Vector(x=23, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+    #     Body(name=1, pos=Vector(x=22, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+    #     Body(name=1, pos=Vector(x=21, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+    #     Body(name=1, pos=Vector(x=20, y=80.0), mass=1, velocity=Vector(x=0, y=-40.0)),
+    #     Body(name=1, pos=Vector(x=110, y=1.0), mass=1, velocity=Vector(x=1, y=0.0)),
+    #     Body(name=1, pos=Vector(x=116, y=1.0), mass=1, velocity=Vector(x=0, y=0.0)),
+    # ]
+
+    # for idx, body in enumerate(bodies):
+    #     body._id = idx
+
+    random.seed(3300)
+    size = Size(curses.LINES*BUF_CELL_SIZE.height,
+                (curses.COLS-1)*BUF_CELL_SIZE.width)
+
+    bodies = []
+    visited = {}
+
+    c = 0
+    while c < 100:
+        x, y = random.randint(1, size.width), size.height - (random.randint(2, 20) * 1.0)
+
+        if (x, y) in visited:
+            continue
+
+        visited[(x,y)] = True
+        bodies.append(Body(name=c, pos=Vector(x=x, y=y), mass=1, velocity=Vector(x=0, y=-40.0)))
+        c += 1
+
+    return bodies
 
 
 def setup_stderr():
