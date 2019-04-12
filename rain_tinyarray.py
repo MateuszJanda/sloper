@@ -152,6 +152,10 @@ def unit(vec):
     return vec/mag if mag else vec
 
 
+def minmax(a, b):
+    return (a, b) if a < b else (b, a)
+
+
 class Screen:
     def __init__(self, scr, terrain):
         self._scr = scr
@@ -365,12 +369,11 @@ class Neighborhood:
 
     def _bounding_box(self, body):
         direction = unit((body.pos - body.prev_pos)) * 2 * Body.RADIUS
-        # eprint('PPP', body.prev_pos, body.pos, body.pos + direction)
         buf_pos = pos_to_bufpos(body.prev_pos)
         buf_prev_pos = pos_to_bufpos(body.pos + direction)
 
-        x1, x2 = min(buf_pos[1], buf_prev_pos[1]), max(buf_pos[1], buf_prev_pos[1])
-        y1, y2 = min(buf_pos[0], buf_prev_pos[0]), max(buf_pos[0], buf_prev_pos[0])
+        x1, x2 = minmax(buf_pos[1], buf_prev_pos[1])
+        y1, y2 = minmax(buf_pos[0], buf_prev_pos[0])
         return range(x1, x2+1), range(y1, y2+1)
 
 
@@ -428,8 +431,9 @@ class Terrain:
         arr_pos = pos_to_arrpos(pos)
         arr_prev_pos = pos_to_arrpos(prev_pos)
 
-        x1, x2 = min(arr_pos[1], arr_prev_pos[1]), max(arr_pos[1], arr_prev_pos[1])
-        y1, y2 = min(arr_pos[0], arr_prev_pos[0]), max(arr_pos[0], arr_prev_pos[0])
+        x1, x2 = minmax(arr_pos[1], arr_prev_pos[1])
+        y1, y2 = minmax(arr_pos[0], arr_prev_pos[0])
+
         return ta.array([y1-1, x1-1]), ta.array([y2+2, x2+2])
 
     def _cut_normal_vec_box(self, arr_tl, arr_br):
