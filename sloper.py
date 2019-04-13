@@ -14,10 +14,16 @@ Grid = co.namedtuple('Grid', ['start', 'end', 'cell_size'])
 
 
 CALIBRATION_AREA_SIZE = 40
-BLACK = 0
-WHITE = 255
+FACTOR = 20
 BUF_CELL_SIZE = Size(height=4, width=2)
 VECTOR_DIM = 2
+
+BLACK_1D = 0
+WHITE_1D = 255
+BLUE = (255, 0, 0)
+RED = (0, 0, 255)
+GREEN = (0, 255, 0)
+YELLOW = (0, 255, 255)
 
 
 def main():
@@ -25,7 +31,7 @@ def main():
     term_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
 
     # Processing should be on the image with a black background and white foreground
-    _, gray_img= cv2.threshold(src=term_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
+    _, gray_img = cv2.threshold(src=term_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
 
     grid = grid_data(gray_img)
     erase_calibration_area(gray_img)
@@ -57,7 +63,7 @@ def main():
 
 def grid_data(img):
     """
-    Calculate grid data .
+    Calculate grid data.
     Return:
         top-left point where first cell (grid) start
         bottom-right point where last cell (grid) end
@@ -84,23 +90,23 @@ def grid_data(img):
 
 def underscore_pos(img):
     """
-    Calculate underscore "_" position [top-left point, bottom-right point].
+    Return underscore ('_') position (top-left point, bottom-right point).
     """
     under_tl_pt = None
     for x, y in it.product(range(CALIBRATION_AREA_SIZE), range(CALIBRATION_AREA_SIZE)):
-        if img[y, x] != BLACK:
+        if img[y, x] != BLACK_1D:
             under_tl_pt = Point(x, y)
             break
 
     tmp = None
     for x in range(under_tl_pt.x, CALIBRATION_AREA_SIZE):
-        if img[under_tl_pt.y, x] == BLACK:
+        if img[under_tl_pt.y, x] == BLACK_1D:
             break
         tmp = Point(x, under_tl_pt.y)
 
     under_br_pt = None
     for y in range(tmp.y, CALIBRATION_AREA_SIZE):
-        if img[y, tmp.x] == BLACK:
+        if img[y, tmp.x] == BLACK_1D:
             break
         under_br_pt = Point(tmp.x, y)
 
@@ -110,13 +116,13 @@ def underscore_pos(img):
 
 
 def roof_pos(img, under_tl_pt, under_br_pt):
-    """Calculate roof sign "^" position - only the pick."""
+    """Return roof sign '^' position (the pick point)."""
     roof_pt = Point(0, CALIBRATION_AREA_SIZE)
     width = under_br_pt.x - under_tl_pt.x + 1
 
     for x in range(under_br_pt.x + 1, under_br_pt.x + width):
         for y in range(CALIBRATION_AREA_SIZE):
-            if img[y, x] != BLACK and y < roof_pt.y:
+            if img[y, x] != BLACK_1D and y < roof_pt.y:
                 roof_pt = Point(x, y)
 
     print('[+] Roof pos:', roof_pt)
@@ -125,14 +131,14 @@ def roof_pos(img, under_tl_pt, under_br_pt):
 
 def separator_height(img, under_tl_pt, under_br_pt):
     """
-    Calculate separator area between underscore "_" and bottom roof sign "^".
+    Return separator height between underscore '_' and bottom roof sign '^'.
     """
     roof_pt = Point(0, CALIBRATION_AREA_SIZE)
     width = under_br_pt.x - under_tl_pt.x + 1
 
     for x in range(under_tl_pt.x, under_tl_pt.x + width):
         for y in range(under_br_pt.y + 1, CALIBRATION_AREA_SIZE):
-            if img[y, x] != BLACK and y < roof_pt.y:
+            if img[y, x] != BLACK_1D and y < roof_pt.y:
                 roof_pt = Point(x, y)
 
     height = roof_pt.y - under_br_pt.y
@@ -142,20 +148,23 @@ def separator_height(img, under_tl_pt, under_br_pt):
 
 
 def erase_calibration_area(img):
-    """ Erase calibration are from image """
-    cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK, cv2.FILLED)
+    """Erase calibration are from image (fill are with black)."""
+    cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK_1D, cv2.FILLED)
 
 
 def draw_filled_cell(img, pt, grid):
-    """ Just for debug purpose, fill cell with color """
+    """For DEBUG
+    Fill buf cell with color.
+    """
     for x in range(pt.x, pt.x + grid.cell_size.width):
         for y in range(pt.y, pt.y + grid.cell_size.height):
             img[y, x] ^= 158
 
 
 def draw_grid(img, grid):
-    """ Just for debug purpose draw grid that separate cells """
-    BLUE = (255, 0, 0)
+    """For DEBUG
+    Draw grid that separate cells.
+    """
     for x in range(grid.start.x, grid.end.x + 1, grid.cell_size.width):
         cv2.line(img, (x, grid.start.y), (x, grid.end.y), BLUE, 1)
 
@@ -164,17 +173,24 @@ def draw_grid(img, grid):
 
 
 def draw_braille_dots(img, arr, grid):
+    """For DEBUG
+    Draw dot for each "not zero" element of array.
+    """
     foreach_arr_elements(img, arr, grid, draw_dot)
 
 
 def draw_braille_normal_vec(img, arr, grid):
+    """
+    Draw perpendicular vector to the surface, where surface is every "non zero"
+    of array (array with normal vectors). Normal vectors are multiply by some
+    factor, to be better visible.
+    """
     foreach_arr_elements(img, arr, grid, draw_norm_vec)
 
 
 def foreach_arr_elements(img, arr, grid, draw_func):
     """
-    Just for debug purpose - if array element of corresponding braille dot is
-    not zero, draw it.
+    Call draw_func() for each "non zero" array element.
     """
     x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * BUF_CELL_SIZE.width
     y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * BUF_CELL_SIZE.height
@@ -182,11 +198,13 @@ def foreach_arr_elements(img, arr, grid, draw_func):
     for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
             if np.any(arr[by, bx]):
-                draw_func(img, field_pt=Point(x, y), value=arr[by, bx], grid=grid)
+                draw_func(img, field_pt=Point(x, y), normal_vec=arr[by, bx], grid=grid)
 
 
-def draw_dot(img, field_pt, value, grid):
-    RED = (0, 0, 255)
+def draw_dot(img, field_pt, normal_vec, grid):
+    """
+    Draw dot (braille dot) at given point.
+    """
     dot_field_size = Size(grid.cell_size.height/BUF_CELL_SIZE.height,
                           grid.cell_size.width/BUF_CELL_SIZE.width)
     center = Point(int(field_pt.x + dot_field_size.width//2),
@@ -194,22 +212,26 @@ def draw_dot(img, field_pt, value, grid):
     cv2.circle(img, center, radius=2, color=RED, thickness=-1)
 
 
-def draw_norm_vec(img, field_pt, value, grid):
-    GREEN = (0, 255, 0)
-    FACTOR = 20
+def draw_norm_vec(img, field_pt, normal_vec, grid):
+    """
+    Draw vector (normal_vec) at given point. Basically normal_vec will be
+    multiplied by FACTOR to be better visible.
+    """
     dot_field_size = Size(grid.cell_size.height/BUF_CELL_SIZE.height,
                           grid.cell_size.width/BUF_CELL_SIZE.width)
 
     start = Point(int(field_pt.x + dot_field_size.width//2),
                   int(field_pt.y + dot_field_size.height//2))
-    # Y with minus, because OpenCV use different coordinate system
-    vec_end = Point(value[1], -value[0])
+    # Y with minus, because OpenCV use different coordinates order
+    vec_end = Point(normal_vec[1], -normal_vec[0])
     end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
     cv2.line(img, start, end, GREEN, 1)
 
 
 def draw_contour(img, contour):
-    YELLOW = (0, 255, 255)
+    """
+    Connect all counters point with lines.
+    """
     for c in contour:
         img[c.y, c.x] = YELLOW
 
@@ -217,7 +239,7 @@ def draw_contour(img, contour):
 def braille_array(img, grid):
     """
     Extract braille data - dots that cover chars (any pixel in dot field is
-    none zero) in all cell.
+    "non zero") in all cells.
     """
     height = ((grid.end.y - grid.start.y) // grid.cell_size.height) * BUF_CELL_SIZE.height
     width = ((grid.end.x - grid.start.x) // grid.cell_size.width) * BUF_CELL_SIZE.width
@@ -236,7 +258,7 @@ def braille_array(img, grid):
 
 
 def braille_in_cell(cell, grid):
-    """ Extract braille data - dots that cover chars in cell """
+    """Extract braille data - dots that cover chars from one cell."""
     dot_field_size = Size(grid.cell_size.height//BUF_CELL_SIZE.height,
                           grid.cell_size.width//BUF_CELL_SIZE.width)
     braille_cell = np.zeros([BUF_CELL_SIZE.height, BUF_CELL_SIZE.width], dtype=cell.dtype)
@@ -248,9 +270,9 @@ def braille_in_cell(cell, grid):
             dot_field = cell[y1:y2, x1:x2]
 
             if dot_field.any():
-                braille_cell[by, bx] = WHITE
+                braille_cell[by, bx] = WHITE_1D
             else:
-                braille_cell[by, bx] = BLACK
+                braille_cell[by, bx] = BLACK_1D
 
     return braille_cell
 
@@ -274,7 +296,7 @@ def connect_nearby_contours(img):
         cnt = find_nearest(last, contours)
 
         if cnt is None:
-            raise(Excpetion('Error! Countours length: ' + len(contours)))
+            raise(Exception('Error! Contours length: %d' % len(contours)))
 
         chain.append(cnt)
         for i in range(len(contours)):
@@ -286,7 +308,7 @@ def connect_nearby_contours(img):
     cont_img = np.zeros_like(gray_img)
 
     approx = cv2.approxPolyDP(np.vstack(chain), epsilon=2, closed=True)
-    cv2.drawContours(cont_img, [approx], -1, WHITE, 1)
+    cv2.drawContours(cont_img, [approx], -1, WHITE_1D, 1)
 
     return cont_img
 
@@ -377,7 +399,8 @@ def dot_field(pt, grid):
     width = grid.cell_size.width / BUF_CELL_SIZE.width
     height = grid.cell_size.height / BUF_CELL_SIZE.height
 
-    idx = Point(int((pt.x - grid.start.x)/width), int((pt.y - grid.start.y)/height))
+    idx = Point(int((pt.x - grid.start.x)/width),
+                int((pt.y - grid.start.y)/height))
     x = grid.start.x + idx.x * width
     y = grid.start.y + idx.y * height
 
@@ -386,8 +409,10 @@ def dot_field(pt, grid):
     if int(y + height) <= pt.y:
         idx = Point(idx.x, idx.y + 1)
 
-    tl_pt = Point(int(grid.start.x + idx.x * width), int(grid.start.y + idx.y * height))
-    br_pt = Point(int(grid.start.x + (idx.x + 1) * width), int(grid.start.y + (idx.y + 1) * height))
+    tl_pt = Point(int(grid.start.x + idx.x * width),
+                  int(grid.start.y + idx.y * height))
+    br_pt = Point(int(grid.start.x + (idx.x + 1) * width),
+                  int(grid.start.y + (idx.y + 1) * height))
 
     return idx, tl_pt, br_pt
 
