@@ -9,14 +9,14 @@ import cv2
 
 
 Point = co.namedtuple('Point', ['x', 'y'])
-Size = co.namedtuple('Size', ['width', 'height'])
+Size = co.namedtuple('Size', ['height', 'width'])
 Grid = co.namedtuple('Grid', ['start', 'end', 'cell_size'])
 
 
 CALIBRATION_AREA_SIZE = 40
 BLACK = 0
 WHITE = 255
-BUF_CELL_SIZE = Size(width=2, height=4)
+BUF_CELL_SIZE = Size(height=4, width=2)
 VECTOR_DIM = 2
 
 
@@ -69,7 +69,7 @@ def grid_data(img):
 
     width = under_br_pt.x - under_tl_pt.x + 1
     height = under_br_pt.y - roof_pt.y + sep_height
-    cell_size = Size(width, height)
+    cell_size = Size(height, width)
 
     start_pt = Point(under_tl_pt.x, under_br_pt.y - height + 1)
     end_pt = Point(start_pt.x + ((img.shape[1] - start_pt.x) // cell_size.width) * cell_size.width,
@@ -180,8 +180,8 @@ def foreach_arr_elements(img, arr, grid, draw_func):
 
 def draw_dot(img, field_pt, value, grid):
     RED = (0, 0, 255)
-    dot_field_size = Size(grid.cell_size.width/float(BUF_CELL_SIZE.width),
-                          grid.cell_size.height/float(BUF_CELL_SIZE.height))
+    dot_field_size = Size(grid.cell_size.height/float(BUF_CELL_SIZE.height),
+                          grid.cell_size.width/float(BUF_CELL_SIZE.width))
     center = Point(int(field_pt.x + dot_field_size.width//2), int(field_pt.y + dot_field_size.height//2))
     cv2.circle(img, center, radius=2, color=RED, thickness=-1)
 
@@ -189,8 +189,8 @@ def draw_dot(img, field_pt, value, grid):
 def draw_norm_vec(img, field_pt, value, grid):
     GREEN = (0, 255, 0)
     FACTOR = 20
-    dot_field_size = Size(grid.cell_size.width/float(BUF_CELL_SIZE.width),
-                          grid.cell_size.height/float(BUF_CELL_SIZE.height))
+    dot_field_size = Size(grid.cell_size.height/float(BUF_CELL_SIZE.height),
+                          grid.cell_size.width/float(BUF_CELL_SIZE.width))
 
     start = Point(int(field_pt.x + dot_field_size.width//2), int(field_pt.y + dot_field_size.height//2))
     # Y with minus, because OpenCV use different coordinate system
@@ -225,7 +225,8 @@ def braille_array(img, grid):
 
 def braille_in_cell(cell, grid):
     """ Extract braille data - dots that cover chars in cell """
-    dot_field_size = Size(grid.cell_size.width//BUF_CELL_SIZE.width, grid.cell_size.height//BUF_CELL_SIZE.height)
+    dot_field_size = Size(grid.cell_size.height//BUF_CELL_SIZE.height,
+                          grid.cell_size.width//BUF_CELL_SIZE.width)
     braille_cell = np.zeros([BUF_CELL_SIZE.height, BUF_CELL_SIZE.width], dtype=cell.dtype)
 
     for bx, x in enumerate(np.linspace(0, grid.cell_size.width, BUF_CELL_SIZE.width, endpoint=False)):
