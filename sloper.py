@@ -73,17 +73,19 @@ def grid_data(img):
 
     start_pt = Point(under_tl_pt.x, under_br_pt.y - height + 1)
     end_pt = Point(start_pt.x + ((img.shape[1] - start_pt.x) // cell_size.width) * cell_size.width,
-        start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height)
+                   start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height)
 
     grid = Grid(start_pt, end_pt, cell_size)
-    print('Cell top-left: ' + str(grid.start))
-    print('Cell bottom-right: ' +  str(grid.end))
-    print('Cell size: ' + str(grid.cell_size))
+    print('[+] Cell top-left:', grid.start)
+    print('[+] Cell bottom-right:', grid.end)
+    print('[+] Cell size:', grid.cell_size)
     return grid
 
 
 def underscore_pos(img):
-    """ Calculate underscore "_" position [top-left point, bottom-right point] """
+    """
+    Calculate underscore "_" position [top-left point, bottom-right point].
+    """
     under_tl_pt = None
     for x, y in it.product(range(CALIBRATION_AREA_SIZE), range(CALIBRATION_AREA_SIZE)):
         if img[y, x] != BLACK:
@@ -102,13 +104,13 @@ def underscore_pos(img):
             break
         under_br_pt = Point(tmp.x, y)
 
-    print('Underscore top-left: ' + str(under_tl_pt))
-    print('Underscore bottom-right: ' + str(under_br_pt))
+    print('[+] Underscore top-left:', under_tl_pt)
+    print('[+] Underscore bottom-right:', under_br_pt)
     return under_tl_pt, under_br_pt
 
 
 def roof_pos(img, under_tl_pt, under_br_pt):
-    """ Calculate roof sign "^" position - only the pick """
+    """Calculate roof sign "^" position - only the pick."""
     roof_pt = Point(0, CALIBRATION_AREA_SIZE)
     width = under_br_pt.x - under_tl_pt.x + 1
 
@@ -117,12 +119,14 @@ def roof_pos(img, under_tl_pt, under_br_pt):
             if img[y, x] != BLACK and y < roof_pt.y:
                 roof_pt = Point(x, y)
 
-    print('Roof pos: ' + str(roof_pt))
+    print('[+] Roof pos:', roof_pt)
     return roof_pt
 
 
 def separator_height(img, under_tl_pt, under_br_pt):
-    """ Calculate separator area between underscore "_" and bottom roof sign "^" """
+    """
+    Calculate separator area between underscore "_" and bottom roof sign "^".
+    """
     roof_pt = Point(0, CALIBRATION_AREA_SIZE)
     width = under_br_pt.x - under_tl_pt.x + 1
 
@@ -133,7 +137,7 @@ def separator_height(img, under_tl_pt, under_br_pt):
 
     height = roof_pt.y - under_br_pt.y
 
-    print('Separator height: ' + str(height))
+    print('[+] Separator height:', height)
     return height
 
 
@@ -168,7 +172,10 @@ def draw_braille_normal_vec(img, arr, grid):
 
 
 def foreach_arr_elements(img, arr, grid, draw_func):
-    """ Just for debug purpose - if array element of corresponding braille dot is not zero, draw it """
+    """
+    Just for debug purpose - if array element of corresponding braille dot is
+    not zero, draw it.
+    """
     x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * BUF_CELL_SIZE.width
     y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * BUF_CELL_SIZE.height
 
@@ -182,7 +189,8 @@ def draw_dot(img, field_pt, value, grid):
     RED = (0, 0, 255)
     dot_field_size = Size(grid.cell_size.height/BUF_CELL_SIZE.height,
                           grid.cell_size.width/BUF_CELL_SIZE.width)
-    center = Point(int(field_pt.x + dot_field_size.width//2), int(field_pt.y + dot_field_size.height//2))
+    center = Point(int(field_pt.x + dot_field_size.width//2),
+                   int(field_pt.y + dot_field_size.height//2))
     cv2.circle(img, center, radius=2, color=RED, thickness=-1)
 
 
@@ -207,7 +215,10 @@ def draw_contour(img, contour):
 
 
 def braille_array(img, grid):
-    """ Extract braille data - dots that cover chars (any pixel in dot field is none zero) in all cell """
+    """
+    Extract braille data - dots that cover chars (any pixel in dot field is
+    none zero) in all cell.
+    """
     height = ((grid.end.y - grid.start.y) // grid.cell_size.height) * BUF_CELL_SIZE.height
     width = ((grid.end.x - grid.start.x) // grid.cell_size.width) * BUF_CELL_SIZE.width
     braille_arr = np.zeros(shape=[height, width], dtype=img.dtype)
@@ -246,8 +257,9 @@ def braille_in_cell(cell, grid):
 
 def connect_nearby_contours(img):
     """
-    Connect nearby contours (ASCII characters)
-    See also:
+    Connect nearby contours (ASCII characters).
+
+    References:
     https://dsp.stackexchange.com/questions/2564/opencv-c-connect-nearby-contours-based-on-distance-between-them
     http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
     https://docs.opencv.org/3.4.1/dd/d49/tutorial_py_contour_features.html
@@ -290,7 +302,7 @@ def smooth_contours(img):
 
 
 def find_nearest(head_cnt, contours, min_dist=15):
-    """ Find nearest contour to current head contour """
+    """Find nearest contour to current head contour."""
     best_cnt = None
     for cnt in contours:
         for head_pos, cnt_pos in it.product(head_cnt, cnt):
@@ -381,12 +393,12 @@ def dot_field(pt, grid):
 
 
 def export_braille_data(file_name, braille_arr):
-    """ Export braille data to file """
+    """Export braille data to file."""
     np.savetxt(file_name+'.braille', braille_arr, fmt='%02x')
 
 
 def export_normal_vec_arr(file_name, arr):
-    """ Export braille data to file """
+    """Export braille data to file."""
     height, width, vec_dim = arr.shape
     np.savetxt(file_name+'.norm', arr.reshape([height, width*vec_dim]), fmt='%.04f')
 
