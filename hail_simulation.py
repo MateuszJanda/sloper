@@ -16,7 +16,6 @@ Coordinates systems:
 import sys
 import itertools as it
 from collections import defaultdict
-from scipy.spatial import KDTree
 import math
 import time
 import random
@@ -28,7 +27,7 @@ import tinyarray as ta
 
 
 # Applications constants
-DEBUG_MODE = False
+DEBUG_MODE = True
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = ta.array([4, 2])
@@ -51,7 +50,7 @@ def main(scr):
     t = 0
     dt = 1/REFRESH_RATE
 
-    while t < 3:
+    while True:
         screen.restore()
         step_simulation(dt, bodies, terrain)
         for body in bodies:
@@ -147,8 +146,8 @@ def create_bodies(count):
     #     # Body(idx=1, pos=ta.array([80.0, 22]), mass=1, vel=ta.array([-40.0, 0])),
     #     # Body(idx=1, pos=ta.array([80.0, 21]), mass=1, vel=ta.array([-40.0, 0])),
     #     # Body(idx=1, pos=ta.array([80.0, 20]), mass=1, vel=ta.array([-40.0, 0])),
-    #     Body(idx=1, pos=ta.array([1.0, 111]), mass=1, vel=ta.array([0.0, 1])),
-    #     Body(idx=1, pos=ta.array([1.0, 113]), mass=1, vel=ta.array([0.0, 0])),
+    #     # Body(idx=1, pos=ta.array([1.0, 110]), mass=1, vel=ta.array([0.0, 1])),
+    #     # Body(idx=1, pos=ta.array([1.0, 116]), mass=1, vel=ta.array([0.0, 0])),
     # ]
 
     # for idx, body in enumerate(bodies):
@@ -324,35 +323,68 @@ class Body:
         return "Body(%d)" % self._idx
 
 
-class NearestNeighborLookup:
+class Neighborhood:
     def __init__(self, bodies):
-        self._bodies = bodies
-        self._pos_tree = KDTree([body.pos for body in bodies], leafsize=100)
-        self._pairs_tree = KDTree([pair for pair in it.combinations(range(len(bodies)), 2)], leafsize=100)
-        self._visited = [False for _ in range(self._pairs_tree.data.shape[0])]
+        self._bg_buf_shape = ta.array([curses.LINES, curses.COLS-1])
+        self._checked_pairs = {}
+        self._create_bufpos_map(bodies)
 
-    def neighbors(self, body_index, body):
+    def _create_bufpos_map(self, bodies):
+        """Map store for each buf cell list of bodies that is contains."""
+        self._map = defaultdict(list)
+        for body in bodies:
+            buf_pos = pos_to_bufpos(body.pos)
+            self._map[self._bufpos_hash(buf_pos)].append(body)
+
+    def neighbors(self, body):
         """Return list of body neighbors."""
+        # Body can't collide with itself, so mark pair as checked
+        pair_key = self._body_pair_hash(body, body)
+        self._checked_pairs[pair_key] = True
+
         result = []
+        range_x, range_y = self._bounding_box(body)
+        for x, y in it.product(range_x, range_y):
+            bufpos_key = self._bufpos_hash(ta.array([y, x]))
 
-        # Check all neighbors bodies (query neighbor index)
-        for neigh_index in self._pos_tree.query_ball_point(body.pos, r=3*Body.RADIUS):
-            # Body can't collide with itself
-            if neigh_index == body_index:
-                continue
+            # Check all neighbors bodies from nearby buf cell
+            for neigh_body in self._map[bufpos_key]:
+                pair_key = self._body_pair_hash(body, neigh_body)
 
-            # If body pairs was already checked do nothing. We can have
-            # only one such collision. Query on paris_tree should return
-            # only one element.
-            pair = minmax(neigh_index, body_index)
-            pair_index = self._pairs_tree.query_ball_point(pair, 0.5)[0]
-            if self._visited[pair_index]:
-                continue
+                # If body pairs was already checked do nothing. We can have
+                # only one such collision
+                if pair_key in self._checked_pairs:
+                    continue
 
-            self._visited[pair_index] = True
-            result.append(self._bodies[neigh_index])
+                self._checked_pairs[pair_key] = True
+                result.append(neigh_body)
 
         return result
+
+    def _body_pair_hash(self, body1, body2):
+        """Return bodies hashes in sorted order."""
+        return minmax(hash(body1), hash(body2))
+
+    def _bufpos_hash(self, pos):
+        """
+        Return bufpos hash. bufpos (array/vector) doesn't have hash value,
+        so this method generate it.
+        """
+        buf_pos = pos_to_bufpos(pos)
+        return buf_pos[0] * self._bg_buf_shape[1] + buf_pos[1]
+
+    def _bounding_box(self, body):
+        """
+        Return bounding rectangle (buf cells coordinated), where nearby bodies
+        should be searched.
+        """
+        direction = unit((body.pos - body.prev_pos)) * 3 * Body.RADIUS
+        buf_pos = pos_to_bufpos(body.prev_pos)
+        buf_prev_pos = pos_to_bufpos(body.pos + direction)
+
+        x1, x2 = minmax(buf_pos[1], buf_prev_pos[1])
+        y1, y2 = minmax(buf_pos[0], buf_prev_pos[0])
+        return range(x1, x2+1), range(y1, y2+1)
 
 
 class Terrain:
@@ -392,7 +424,7 @@ class Terrain:
         Return all obstacles (represented by normal vectors) in rectangle, where
         pos and prev_pos determine rectangle diagonal.
         """
-        arr_tl, arr_br = self._array_bounding_box(pos, prev_pos)
+        arr_tl, arr_br = self._bounding_box(pos, prev_pos)
         box = self._cut_normal_vec_box(arr_tl, arr_br)
         box_markers = np.logical_or.reduce(box!=Terrain.EMPTY, axis=-1)
 
@@ -407,7 +439,7 @@ class Terrain:
 
         return result
 
-    def _array_bounding_box(self, pos, prev_pos):
+    def _bounding_box(self, pos, prev_pos):
         """
         Return top-left, bottom-right position of bounding box. Function add
         extra columns and rows in each dimension.
@@ -696,10 +728,10 @@ class Collision:
 def detect_collisions(bodies, terrain):
     """Detect collisions for all bodies with other bodies and terrain obstacles."""
     collisions = []
-    nnlookup = NearestNeighborLookup(bodies)
-    for body_index, body in enumerate(bodies):
+    neighb = Neighborhood(bodies)
+    for body in bodies:
         collisions += obstacle_collisions(body, terrain)
-        collisions += bodies_collisions(body_index, body, nnlookup)
+        collisions += bodies_collisions(body, neighb)
 
     return collisions
 
@@ -722,14 +754,16 @@ def obstacle_collisions(body, terrain):
     return result
 
 
-def bodies_collisions(body_index, body, nnlookup):
+def bodies_collisions(body, neighb):
     """Calculate body collision with his neighbors."""
     result = []
 
-    for neigh_body in nnlookup.neighbors(body_index, body):
+    for neigh_body in neighb.neighbors(body):
         dist = body.pos - neigh_body.pos
         normal_vec = unit(dist)
         real_dist = magnitude(dist) - 2*Body.RADIUS
+        # eprint(body.pos, neigh_body.pos)
+        # eprint(real_dist, neigh_body._idx, body._idx)
         collision = Collision(body1=body,
                               body2=neigh_body,
                               dist=real_dist,
@@ -737,6 +771,7 @@ def bodies_collisions(body_index, body, nnlookup):
 
         result.append(collision)
 
+    # eprint(len(result))
     return result
 
 
