@@ -27,7 +27,7 @@ import tinyarray as ta
 
 
 # Applications constants
-DEBUG_MODE = True
+DEBUG_MODE = False
 REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = ta.array([4, 2])
@@ -323,7 +323,7 @@ class Body:
         return "Body(%d)" % self._idx
 
 
-class Neighborhood:
+class NearestNeighborLookup:
     def __init__(self, bodies):
         self._bg_buf_shape = ta.array([curses.LINES, curses.COLS-1])
         self._checked_pairs = {}
@@ -343,8 +343,8 @@ class Neighborhood:
         self._checked_pairs[pair_key] = True
 
         result = []
-        range_x, range_y = self._bounding_box(body)
-        for x, y in it.product(range_x, range_y):
+        buf_range_x, buf_range_y = self._buf_bounding_box(body)
+        for x, y in it.product(buf_range_x, buf_range_y):
             bufpos_key = self._bufpos_hash(ta.array([y, x]))
 
             # Check all neighbors bodies from nearby buf cell
@@ -365,15 +365,14 @@ class Neighborhood:
         """Return bodies hashes in sorted order."""
         return minmax(hash(body1), hash(body2))
 
-    def _bufpos_hash(self, pos):
+    def _bufpos_hash(self, buf_pos):
         """
-        Return bufpos hash. bufpos (array/vector) doesn't have hash value,
+        Return bufpos hash. buf_pos (array/vector) doesn't have hash value,
         so this method generate it.
         """
-        buf_pos = pos_to_bufpos(pos)
         return buf_pos[0] * self._bg_buf_shape[1] + buf_pos[1]
 
-    def _bounding_box(self, body):
+    def _buf_bounding_box(self, body):
         """
         Return bounding rectangle (buf cells coordinated), where nearby bodies
         should be searched.
@@ -424,7 +423,7 @@ class Terrain:
         Return all obstacles (represented by normal vectors) in rectangle, where
         pos and prev_pos determine rectangle diagonal.
         """
-        arr_tl, arr_br = self._bounding_box(pos, prev_pos)
+        arr_tl, arr_br = self._array_bounding_box(pos, prev_pos)
         box = self._cut_normal_vec_box(arr_tl, arr_br)
         box_markers = np.logical_or.reduce(box!=Terrain.EMPTY, axis=-1)
 
@@ -439,7 +438,7 @@ class Terrain:
 
         return result
 
-    def _bounding_box(self, pos, prev_pos):
+    def _array_bounding_box(self, pos, prev_pos):
         """
         Return top-left, bottom-right position of bounding box. Function add
         extra columns and rows in each dimension.
@@ -728,10 +727,10 @@ class Collision:
 def detect_collisions(bodies, terrain):
     """Detect collisions for all bodies with other bodies and terrain obstacles."""
     collisions = []
-    neighb = Neighborhood(bodies)
+    nnlookup = NearestNeighborLookup(bodies)
     for body in bodies:
         collisions += obstacle_collisions(body, terrain)
-        collisions += bodies_collisions(body, neighb)
+        collisions += bodies_collisions(body, nnlookup)
 
     return collisions
 
@@ -754,16 +753,14 @@ def obstacle_collisions(body, terrain):
     return result
 
 
-def bodies_collisions(body, neighb):
+def bodies_collisions(body, nnlookup):
     """Calculate body collision with his neighbors."""
     result = []
 
-    for neigh_body in neighb.neighbors(body):
+    for neigh_body in nnlookup.neighbors(body):
         dist = body.pos - neigh_body.pos
         normal_vec = unit(dist)
         real_dist = magnitude(dist) - 2*Body.RADIUS
-        # eprint(body.pos, neigh_body.pos)
-        # eprint(real_dist, neigh_body._idx, body._idx)
         collision = Collision(body1=body,
                               body2=neigh_body,
                               dist=real_dist,
@@ -771,7 +768,6 @@ def bodies_collisions(body, neighb):
 
         result.append(collision)
 
-    # eprint(len(result))
     return result
 
 
