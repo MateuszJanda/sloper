@@ -625,9 +625,9 @@ class Importer:
 
         eprint('Validation OK')
 
-#
+##
 # Helper functions.
-#
+##
 
 def magnitude(vec):
     """Calculate vector magnitude."""
@@ -689,9 +689,9 @@ def test_converters():
     arr_pos = pos_to_arrpos(ta.array([46.25706000000003, 34.0]))
     assert np.all(ta.array([46, 34]) == arrpos_to_pos(arr_pos)), arrpos_to_pos(arr_pos)
 
-#
+##
 # Physic engine.
-#
+##
 
 def step_simulation(dt, bodies, terrain):
     """One step in simulation."""
@@ -790,7 +790,7 @@ def resolve_collisions(dt, collisions):
             impulse = (-(1+COEFFICIENT_OF_RESTITUTION) * remove) / \
                     (1/c.body1.mass)
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
-        # Two body collision
+        # Collision between two bodies
         else:
             relative_vel = c.body2.vel - c.body1.vel
             remove = np.dot(relative_vel, c.normal_vec) - c.dist/dt
