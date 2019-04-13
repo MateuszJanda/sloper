@@ -273,9 +273,8 @@ class Screen:
 
     def _pos_to_braille(self, pos):
         """Point position as braille character in BUF_CELL."""
-        by, bx = ta.floor(pos) % BUF_CELL_SIZE
-        by = int(by)
-        bx = int(bx)
+        by = math.floor(pos[0] % BUF_CELL_SIZE[0])
+        bx = math.floor(pos[1] % BUF_CELL_SIZE[1])
 
         if bx == 0:
             if by == 0:
