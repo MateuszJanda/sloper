@@ -169,19 +169,19 @@ def draw_braille_normal_vec(img, arr, grid):
 
 def foreach_arr_elements(img, arr, grid, draw_func):
     """ Just for debug purpose - if array element of corresponding braille dot is not zero, draw it """
-    x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * float(BUF_CELL_SIZE.width)
-    y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * float(BUF_CELL_SIZE.height)
+    x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * BUF_CELL_SIZE.width
+    y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * BUF_CELL_SIZE.height
 
     for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
-            if (arr[by, bx] != 0).any():
+            if np.any(arr[by, bx]):
                 draw_func(img, field_pt=Point(x, y), value=arr[by, bx], grid=grid)
 
 
 def draw_dot(img, field_pt, value, grid):
     RED = (0, 0, 255)
-    dot_field_size = Size(grid.cell_size.height/float(BUF_CELL_SIZE.height),
-                          grid.cell_size.width/float(BUF_CELL_SIZE.width))
+    dot_field_size = Size(grid.cell_size.height/BUF_CELL_SIZE.height,
+                          grid.cell_size.width/BUF_CELL_SIZE.width)
     center = Point(int(field_pt.x + dot_field_size.width//2), int(field_pt.y + dot_field_size.height//2))
     cv2.circle(img, center, radius=2, color=RED, thickness=-1)
 
@@ -189,10 +189,11 @@ def draw_dot(img, field_pt, value, grid):
 def draw_norm_vec(img, field_pt, value, grid):
     GREEN = (0, 255, 0)
     FACTOR = 20
-    dot_field_size = Size(grid.cell_size.height/float(BUF_CELL_SIZE.height),
-                          grid.cell_size.width/float(BUF_CELL_SIZE.width))
+    dot_field_size = Size(grid.cell_size.height/BUF_CELL_SIZE.height,
+                          grid.cell_size.width/BUF_CELL_SIZE.width)
 
-    start = Point(int(field_pt.x + dot_field_size.width//2), int(field_pt.y + dot_field_size.height//2))
+    start = Point(int(field_pt.x + dot_field_size.width//2),
+                  int(field_pt.y + dot_field_size.height//2))
     # Y with minus, because OpenCV use different coordinate system
     vec_end = Point(value[1], -value[0])
     end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
@@ -361,8 +362,8 @@ def calc_normal_unit_vec(pt1, pt2):
 
 
 def dot_field(pt, grid):
-    width = grid.cell_size.width/float(BUF_CELL_SIZE.width)
-    height = grid.cell_size.height/float(BUF_CELL_SIZE.height)
+    width = grid.cell_size.width / BUF_CELL_SIZE.width
+    height = grid.cell_size.height / BUF_CELL_SIZE.height
 
     idx = Point(int((pt.x - grid.start.x)/width), int((pt.y - grid.start.y)/height))
     x = grid.start.x + idx.x * width
