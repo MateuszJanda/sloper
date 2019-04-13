@@ -20,17 +20,18 @@ VECTOR_DIM = 2
 
 BLACK_1D = 0
 WHITE_1D = 255
-BLUE = (255, 0, 0)
-RED = (0, 0, 255)
-GREEN = (0, 255, 0)
-YELLOW = (0, 255, 255)
+BLUE_3D = (255, 0, 0)
+RED_3D = (0, 0, 255)
+GREEN_3D = (0, 255, 0)
+YELLOW_3D = (0, 255, 255)
 
 
 def main():
     file_name = 'ascii_fig.png'
     term_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
 
-    # Processing should be on the image with a black background and white foreground
+    # Processing should be on the image with a black background and white
+    # foreground
     _, gray_img = cv2.threshold(src=term_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
 
     grid = grid_data(gray_img)
@@ -53,9 +54,9 @@ def main():
     # draw_grid(debug_img, grid)
     draw_contour(debug_img, contour)
 
-    cv2.imshow('debug_img', debug_img)
-    cv2.imshow('term_img', term_img)
-    cv2.imshow('cont_img', cont_img)
+    cv2.imshow('Normal vectors', debug_img)
+    cv2.imshow('Terminal (ASCII) image', term_img)
+    cv2.imshow('Contours', cont_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -166,10 +167,10 @@ def draw_grid(img, grid):
     Draw grid that separate cells.
     """
     for x in range(grid.start.x, grid.end.x + 1, grid.cell_size.width):
-        cv2.line(img, (x, grid.start.y), (x, grid.end.y), BLUE, 1)
+        cv2.line(img, (x, grid.start.y), (x, grid.end.y), BLUE_3D, 1)
 
     for y in range(grid.start.y, grid.end.y + 1, grid.cell_size.height):
-        cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE, 1)
+        cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE_3D, 1)
 
 
 def draw_braille_dots(img, arr, grid):
@@ -209,7 +210,7 @@ def draw_dot(img, field_pt, normal_vec, grid):
                           grid.cell_size.width/BUF_CELL.width)
     center = Point(int(field_pt.x + dot_field_size.width//2),
                    int(field_pt.y + dot_field_size.height//2))
-    cv2.circle(img, center, radius=2, color=RED, thickness=-1)
+    cv2.circle(img, center, radius=2, color=RED_3D, thickness=-1)
 
 
 def draw_norm_vec(img, field_pt, normal_vec, grid):
@@ -225,7 +226,7 @@ def draw_norm_vec(img, field_pt, normal_vec, grid):
     # Y with minus, because OpenCV use different coordinates order
     vec_end = Point(normal_vec[1], -normal_vec[0])
     end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
-    cv2.line(img, start, end, GREEN, 1)
+    cv2.line(img, start, end, GREEN_3D, 1)
 
 
 def draw_contour(img, contour):
@@ -233,7 +234,7 @@ def draw_contour(img, contour):
     Connect all counters point with lines.
     """
     for c in contour:
-        img[c.y, c.x] = YELLOW
+        img[c.y, c.x] = YELLOW_3D
 
 
 def braille_array(img, grid):
