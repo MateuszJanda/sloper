@@ -7,14 +7,13 @@ import time
 import ascii_engine as ae
 
 
-
 REFRESH_RATE = 30  # FPS
 ANIMATION_TIME = 3  # [sec]
 
 
 def main(scr):
     ae.setup_curses(scr)
-    # ae.setup_telemetry(enable=True, terminal='/dev/pts/3')
+    ae.setup_telemetry(enable=False, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
     bodies = create_bodies(count=200)
@@ -72,7 +71,12 @@ def create_bodies(count):
 
     idx = 0
     while idx < count:
+<<<<<<< HEAD
         y, x = height - random.randint(2, 20), random.randint(1, width)
+=======
+        y = height - random.randint(2, 20)
+        x = random.randint(1, width)
+>>>>>>> Refactor
 
         if (y, x) in visited:
             continue
