@@ -25,6 +25,7 @@ def main(scr):
     while t < ANIMATION_TIME:
         ae.step_simulation(dt, bodies, terrain)
         animation.append([body.pos for body in bodies])
+        screen.progress(t, ANIMATION_TIME)
         t += dt
 
     # Play animation in loop

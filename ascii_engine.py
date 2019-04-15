@@ -220,6 +220,15 @@ class Screen:
             self._scr.addstr(num, 0, line.view(dtype)[0])
         self._scr.refresh()
 
+    def progress(self, current_time, total_time):
+        """Show simulation calculation progress"""
+        prog = 'Progress {proc:03.2f}%: {ctime:0.2f}/{ttime:0.2f} [sec] '.format(
+            proc=current_time/total_time * 100,
+            ctime=current_time,
+            ttime=total_time)
+        self._scr.addstr(0, 0, prog)
+        self._scr.refresh()
+
 
 class Body:
     RADIUS = 0.5
