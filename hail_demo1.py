@@ -91,5 +91,5 @@ def create_bodies(count):
 
 if __name__ == '__main__':
     locale.setlocale(locale.LC_ALL, '')
-    ae.setup_stderr()
+    ae.Telemetry.setup(enable=False, terminal='/dev/pts/3')
     curses.wrapper(main)

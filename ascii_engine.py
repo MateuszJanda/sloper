@@ -17,18 +17,13 @@ import sys
 import itertools as it
 from collections import defaultdict
 import math
-import time
-import random
 import curses
-import locale
 import pdb
 import numpy as np
 import tinyarray as ta
 
 
 # Applications constants
-DEBUG_MODE = False
-REFRESH_RATE = 100
 EMPTY_BRAILLE = u'\u2800'
 BUF_CELL_SIZE = ta.array([4, 2])
 NORM_VEC_DIM = 2
@@ -40,52 +35,36 @@ COEFFICIENT_OF_RESTITUTION = 0.5
 COEFFICIENT_OF_FRICTION = 0.9
 
 
-def main(scr):
-    test_converters()
-    setup_curses(scr)
+class Telemetry():
+    MODE = False
 
-    screen, terrain = create_scene(scr)
-    bodies = create_bodies(count=50)
+    @staticmethod
+    def setup(enable=False, terminal='/dev/pts/1'):
+        """
+        Redirect stderr to other terminal. Run tty command, to get terminal id.
 
-    t = 0
-    dt = 1/REFRESH_RATE
-
-    while True:
-        screen.restore()
-        step_simulation(dt, bodies, terrain)
-        for body in bodies:
-            screen.draw_point(body.pos)
-        screen.refresh()
-
-        # time.sleep(dt)
-        t += dt
-
-    curses.endwin()
+        $ tty
+        /dev/pts/1
+        """
+        Telemetry.MODE = enable
+        if Telemetry.MODE:
+            sys.stderr = open(terminal, 'w')
 
 
-def setup_stderr():
-    """
-    Redirect stderr to other terminal. Run tty command, to get terminal id.
-
-    $ tty
-    /dev/pts/3
-    """
-    if DEBUG_MODE:
-        sys.stderr = open('/dev/pts/3', 'w')
+    @staticmethod
+    def print(*args, **kwargs):
+        """Print on stderr."""
+        if Telemetry.MODE:
+            print(*args, file=sys.stderr)
 
 
-def eprint(*args, **kwargs):
-    """Print on stderr."""
-    if DEBUG_MODE:
-        print(*args, file=sys.stderr)
-
-
-def eassert(condition):
-    """Assert. Disable curses and run pdb."""
-    if not condition:
-        curses.endwin()
-        sys.stderr = sys.stdout
-        pdb.set_trace()
+    @staticmethod
+    def assert_that(condition):
+        """Assert condition, disable curses and run pdb."""
+        if not condition:
+            curses.endwin()
+            sys.stderr = sys.stdout
+            pdb.set_trace()
 
 
 def setup_curses(scr):
@@ -96,64 +75,6 @@ def setup_curses(scr):
     curses.noecho()
     curses.curs_set(False)
     scr.clear()
-
-
-def create_scene(scr):
-    """Create scene with obstacles. Return screen and terrain objects."""
-    terrain = Terrain()
-    screen = Screen(scr, terrain)
-
-    im = Importer()
-    ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
-
-    terrain.add_array(norm_arr)
-    screen.add_ascii_array(ascii_arr)
-    # screen.add_terrain_data()
-
-    return screen, terrain
-
-
-def create_bodies(count):
-    """Create bodies."""
-    random.seed(3300)
-    height, width = curses.LINES*BUF_CELL_SIZE[0], (curses.COLS-1)*BUF_CELL_SIZE[1]
-
-    bodies = []
-    visited = {}
-
-    idx = 0
-    while idx < count:
-        y, x = height - (random.randint(2, 20) * 1.0), random.randint(1, width)
-
-        if (y, x) in visited:
-            continue
-
-        visited[(y, x)] = True
-        bodies.append(Body(idx=idx,
-                           pos=ta.array([y, x]),
-                           mass=1,
-                           vel=ta.array([-40.0, 0])))
-        idx += 1
-
-    # bodies = [
-    #     # Body(idx=1, pos=ta.array([80.0, 32]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 34]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 50]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 112]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([70.0, 110.5]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 110]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 23]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 22]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 21]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 20]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([1.0, 110]), mass=1, vel=ta.array([0.0, 1])),
-    #     # Body(idx=1, pos=ta.array([1.0, 116]), mass=1, vel=ta.array([0.0, 0])),
-    # ]
-
-    # for idx, body in enumerate(bodies):
-    #     body._idx = idx
-
-    return bodies
 
 
 class Screen:
@@ -612,7 +533,7 @@ class Importer:
         Print ASCII markers for cells in array with normal vectors.
         """
         ascii_markers = self._reduce_norm(norm_arr)
-        eprint(ascii_markers.astype(int))
+        Telemetry.print(ascii_markers.astype(int))
 
     def _validate_arrays(self, ascii_arr, norm_arr):
         """Validate if both arrays describe same thing."""
@@ -622,7 +543,7 @@ class Importer:
         if np.any(ascii_arr_size != norm_arr_size):
             raise Exception('Imported arrays (ascii/norm) - mismatch size', ascii_arr_size, norm_arr_size)
 
-        eprint('Validation OK')
+        Telemetry.print('Validation OK')
 
 ##
 # Helper functions.
@@ -802,8 +723,3 @@ def resolve_collisions(dt, collisions):
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
             c.body2.vel += (c.normal_vec / c.body2.mass) * impulse
 
-
-if __name__ == '__main__':
-    locale.setlocale(locale.LC_ALL, '')
-    setup_stderr()
-    curses.wrapper(main)
