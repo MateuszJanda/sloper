@@ -7,13 +7,14 @@ import time
 import ascii_engine as ae
 
 
-REFRESH_RATE = 30   # FPS
+
+REFRESH_RATE = 30  # FPS
 ANIMATION_TIME = 3  # [sec]
 
 
 def main(scr):
     ae.setup_curses(scr)
-    ae.Telemetry(enable=False, terminal='/dev/pts/3')
+    # ae.setup_telemetry(enable=True, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
     bodies = create_bodies(count=200)
@@ -41,6 +42,7 @@ def main(scr):
             screen.refresh()
 
             delay = max(0, dt - (time.time() - tic))
+            ae.telemetry_log(delay)
             time.sleep(delay)
             t += dt
 

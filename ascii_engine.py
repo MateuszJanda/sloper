@@ -24,6 +24,7 @@ import tinyarray as ta
 
 
 # Applications constants
+TELEMETRY_MODE = False
 EMPTY_BRAILLE = u'\u2800'
 SCR_CELL_SHAPE = ta.array([4, 2])
 NORM_VEC_DIM = 2
@@ -34,39 +35,6 @@ GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
 
 
-class Telemetry():
-    MODE = False
-
-    @staticmethod
-    # def setup(enable=False, terminal='/dev/pts/1'):
-    def __init__(enable=False, terminal='/dev/pts/1'):
-        """
-        Redirect stderr to other terminal. Run tty command, to get terminal id.
-
-        $ tty
-        /dev/pts/1
-        """
-        Telemetry.MODE = enable
-        if Telemetry.MODE:
-            sys.stderr = open(terminal, 'w')
-
-
-    @staticmethod
-    def print(*args, **kwargs):
-        """Print on stderr."""
-        if Telemetry.MODE:
-            print(*args, file=sys.stderr)
-
-
-    @staticmethod
-    def assert_that(condition):
-        """Assert condition, disable curses and run pdb."""
-        if not condition:
-            curses.endwin()
-            sys.stderr = sys.stdout
-            pdb.set_trace()
-
-
 def setup_curses(scr):
     """Setup curses screen."""
     curses.start_color()
@@ -75,6 +43,33 @@ def setup_curses(scr):
     curses.noecho()
     curses.curs_set(False)
     scr.clear()
+
+
+def setup_telemetry(enable=False, terminal='/dev/pts/1'):
+    """
+    Redirect stderr to other terminal. Run tty command, to get terminal id.
+
+    $ tty
+    /dev/pts/1
+    """
+    global TELEMETRY_MODE
+    TELEMETRY_MODE = enable
+    if TELEMETRY_MODE:
+        sys.stderr = open(terminal, 'w')
+
+
+def telemetry_log(*args, **kwargs):
+    """Print on stderr."""
+    if TELEMETRY_MODE:
+        print(*args, file=sys.stderr)
+
+
+def assert_that(condition):
+    """Assert condition, disable curses and run pdb."""
+    if not condition:
+        curses.endwin()
+        sys.stderr = sys.stdout
+        pdb.set_trace()
 
 
 class Screen:
@@ -545,7 +540,7 @@ class Importer:
         Print ASCII markers for cells in array with normal vectors.
         """
         ascii_markers = self._reduce_norm(norm_arr)
-        Telemetry.print(ascii_markers.astype(int))
+        telemetry_log(ascii_markers.astype(int))
 
     def _validate_arrays(self, ascii_arr, norm_arr):
         """Validate if both arrays describe same thing."""
@@ -555,7 +550,7 @@ class Importer:
             raise Exception('Imported arrays (ascii/norm) - mismatch size',
                 ascii_arr.shape, norm_arr_shape)
 
-        Telemetry.print('Validation OK')
+        telemetry_log('Validation OK')
 
 ##
 # Helper functions.
