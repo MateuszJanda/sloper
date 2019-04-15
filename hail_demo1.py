@@ -1,6 +1,6 @@
 #! /usr/bin/env python3
 
-import hail_simulation
+import ascii_engine as ae
 import random
 import curses
 import locale
@@ -10,7 +10,7 @@ REFRESH_RATE = 100
 
 
 def main(scr):
-    hail_simulation.setup_curses(scr)
+    ae.setup_curses(scr)
 
     screen, terrain = create_scene(scr)
     bodies = create_bodies(count=50)
@@ -20,7 +20,7 @@ def main(scr):
 
     while True:
         screen.restore()
-        hail_simulation.step_simulation(dt, bodies, terrain)
+        ae.step_simulation(dt, bodies, terrain)
         for body in bodies:
             screen.draw_point(body.pos)
         screen.refresh()
@@ -33,10 +33,10 @@ def main(scr):
 
 def create_scene(scr):
     """Create scene with obstacles. Return screen and terrain objects."""
-    terrain = hail_simulation.Terrain()
-    screen = hail_simulation.Screen(scr, terrain)
+    terrain = ae.Terrain()
+    screen = ae.Screen(scr, terrain)
 
-    im = hail_simulation.Importer()
+    im = ae.Importer()
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
 
     terrain.add_array(norm_arr)
@@ -49,7 +49,7 @@ def create_scene(scr):
 def create_bodies(count):
     """Create bodies."""
     random.seed(3300)
-    height, width = curses.LINES*hail_simulation.BUF_CELL_SIZE[0], (curses.COLS-1)*hail_simulation.BUF_CELL_SIZE[1]
+    height, width = curses.LINES*ae.BUF_CELL_SIZE[0], (curses.COLS-1)*ae.BUF_CELL_SIZE[1]
 
     bodies = []
     visited = {}
@@ -62,7 +62,7 @@ def create_bodies(count):
             continue
 
         visited[(y, x)] = True
-        bodies.append(hail_simulation.Body(idx=idx,
+        bodies.append(ae.Body(idx=idx,
                            pos=ta.array([y, x]),
                            mass=1,
                            vel=ta.array([-40.0, 0])))
@@ -91,5 +91,5 @@ def create_bodies(count):
 
 if __name__ == '__main__':
     locale.setlocale(locale.LC_ALL, '')
-    hail_simulation.setup_stderr()
+    ae.setup_stderr()
     curses.wrapper(main)
