@@ -49,7 +49,8 @@ def create_scene(scr):
 def create_bodies(count):
     """Create bodies."""
     random.seed(3300)
-    height, width = curses.LINES*ae.BUF_CELL_SIZE[0], (curses.COLS-1)*ae.BUF_CELL_SIZE[1]
+    height = curses.LINES*ae.BUF_CELL_SHAPE[0]
+    width = (curses.COLS-1)*ae.BUF_CELL_SHAPE[1]
 
     bodies = []
     visited = {}

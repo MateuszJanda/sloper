@@ -25,7 +25,7 @@ import tinyarray as ta
 
 # Applications constants
 EMPTY_BRAILLE = u'\u2800'
-BUF_CELL_SIZE = ta.array([4, 2])
+BUF_CELL_SHAPE = ta.array([4, 2])
 NORM_VEC_DIM = 2
 NUM_ITERATION = 3
 
@@ -86,7 +86,7 @@ class Screen:
         self._bg_buf = self._create_empty_background(bg_buf_shape)
         self._bg_buf_backup = np.copy(self._bg_buf)
 
-        self._screen_size = self._bg_buf.shape*BUF_CELL_SIZE
+        self._screen_size = self._bg_buf.shape*BUF_CELL_SHAPE
 
     def _create_empty_background(self, shape):
         """
@@ -113,7 +113,7 @@ class Screen:
         represent as braille character. By default all arrays are drawn in
         bottom left corner.
         """
-        arr_shift = buf_shift * BUF_CELL_SIZE
+        arr_shift = buf_shift * BUF_CELL_SHAPE
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x]):
@@ -183,19 +183,19 @@ class Screen:
 
     def _cell_box_to_uchar(self, cell_box):
         """
-        Convert BUF_CELL_SIZE cell_box to his braille character representation.
+        Convert BUF_CELL_SHAPE cell_box to his braille character representation.
         """
         height, width = cell_box.shape
         uchar = ord(EMPTY_BRAILLE)
         for y, x in np.argwhere(cell_box):
-            uchar |= self._pos_to_braille(ta.array([BUF_CELL_SIZE[0] - 1 - y, x]))
+            uchar |= self._pos_to_braille(ta.array([BUF_CELL_SHAPE[0] - 1 - y, x]))
 
         return uchar
 
     def _pos_to_braille(self, pos):
         """Point position as braille character in BUF_CELL."""
-        by = math.floor(pos[0] % BUF_CELL_SIZE[0])
-        bx = math.floor(pos[1] % BUF_CELL_SIZE[1])
+        by = math.floor(pos[0] % BUF_CELL_SHAPE[0])
+        bx = math.floor(pos[1] % BUF_CELL_SHAPE[1])
 
         if bx == 0:
             if by == 0:
@@ -310,8 +310,8 @@ class Terrain:
     EMPTY = np.array([0, 0])
 
     def __init__(self):
-        normal_vecs_shape = ta.array([curses.LINES*BUF_CELL_SIZE[0],
-                                      (curses.COLS-1)*BUF_CELL_SIZE[1]])
+        normal_vecs_shape = ta.array([curses.LINES*BUF_CELL_SHAPE[0],
+                                      (curses.COLS-1)*BUF_CELL_SHAPE[1]])
         self._normal_vecs = np.zeros(shape=(normal_vecs_shape[0],
                                             normal_vecs_shape[1],
                                             NORM_VEC_DIM))
@@ -334,8 +334,8 @@ class Terrain:
         """Cut normal vectors sub array with dimension of one bufcell - shape=(4, 2)."""
         arr_pos = bufpos_to_arrpos(buf_pos)
 
-        cell_box = self._normal_marks[arr_pos[0]:arr_pos[0]+BUF_CELL_SIZE[0],
-                                      arr_pos[1]:arr_pos[1]+BUF_CELL_SIZE[1]]
+        cell_box = self._normal_marks[arr_pos[0]:arr_pos[0]+BUF_CELL_SHAPE[0],
+                                      arr_pos[1]:arr_pos[1]+BUF_CELL_SHAPE[1]]
         return cell_box
 
     def obstacles(self, pos, prev_pos):
@@ -495,15 +495,15 @@ class Importer:
         Remove margin from array with normal vectors (line and columns with
         np.array([0, 0]) at the edges.
         """
-        if norm_arr.shape[1] % BUF_CELL_SIZE[1] or norm_arr.shape[0] % BUF_CELL_SIZE[0]:
+        if norm_arr.shape[1] % BUF_CELL_SHAPE[1] or norm_arr.shape[0] % BUF_CELL_SHAPE[0]:
             raise Exception("Arrays with normal vector can't be transformed to buffer")
 
         ascii_markers = self._reduce_norm(norm_arr)
-        del_rows = [list(range(idx*BUF_CELL_SIZE[0], idx*BUF_CELL_SIZE[0]+BUF_CELL_SIZE[0]))
+        del_rows = [list(range(idx*BUF_CELL_SHAPE[0], idx*BUF_CELL_SHAPE[0]+BUF_CELL_SHAPE[0]))
                     for idx, margin in enumerate(np.all(ascii_markers==False, axis=1)) if margin]
         norm_arr = np.delete(norm_arr, del_rows, axis=0)
 
-        del_columns = [list(range(idx*BUF_CELL_SIZE[1], idx*BUF_CELL_SIZE[1]+BUF_CELL_SIZE[1]))
+        del_columns = [list(range(idx*BUF_CELL_SHAPE[1], idx*BUF_CELL_SHAPE[1]+BUF_CELL_SHAPE[1]))
                        for idx, margin in enumerate(np.all(ascii_markers==False, axis=0)) if margin]
         norm_arr = np.delete(norm_arr, del_columns, axis=1)
 
@@ -519,11 +519,11 @@ class Importer:
         marker_arr = np.logical_or.reduce(norm_arr!=EMPTY_VEC, axis=-1)
 
         result = []
-        for y in range(0, marker_arr.shape[0], BUF_CELL_SIZE[0]):
-            for x in range(0, marker_arr.shape[1], BUF_CELL_SIZE[1]):
-                result.append(np.any(marker_arr[y:y+BUF_CELL_SIZE[0], x:x+BUF_CELL_SIZE[1]]))
+        for y in range(0, marker_arr.shape[0], BUF_CELL_SHAPE[0]):
+            for x in range(0, marker_arr.shape[1], BUF_CELL_SHAPE[1]):
+                result.append(np.any(marker_arr[y:y+BUF_CELL_SHAPE[0], x:x+BUF_CELL_SHAPE[1]]))
 
-        size = marker_arr.shape // BUF_CELL_SIZE
+        size = marker_arr.shape // BUF_CELL_SHAPE
         result = np.reshape(result, size)
 
         return result
@@ -538,7 +538,7 @@ class Importer:
     def _validate_arrays(self, ascii_arr, norm_arr):
         """Validate if both arrays describe same thing."""
         ascii_arr_size = ta.array(ascii_arr.shape)
-        norm_arr_size = norm_arr.shape[:2] // BUF_CELL_SIZE
+        norm_arr_size = norm_arr.shape[:2] // BUF_CELL_SHAPE
 
         if np.any(ascii_arr_size != norm_arr_size):
             raise Exception('Imported arrays (ascii/norm) - mismatch size', ascii_arr_size, norm_arr_size)
@@ -569,8 +569,8 @@ def pos_to_bufpos(pos):
     """
     Buffer/screen cell position for given pos.
     """
-    x = math.floor(pos[1]/BUF_CELL_SIZE[1])
-    y = curses.LINES - 1 - math.floor(pos[0]/BUF_CELL_SIZE[0])
+    x = math.floor(pos[1]/BUF_CELL_SHAPE[1])
+    y = curses.LINES - 1 - math.floor(pos[0]/BUF_CELL_SHAPE[0])
     return ta.array([y, x])
 
 
@@ -579,12 +579,12 @@ def bufpos_to_arrpos(buf_pos):
     Return top-left corner of buffer cell in array coordinates (Y from top to
     bottom).
     """
-    return buf_pos*BUF_CELL_SIZE
+    return buf_pos*BUF_CELL_SHAPE
 
 
 def arrpos_to_pos(arr_pos):
     """Array position to Cartesian coordinate system"""
-    return ta.array([curses.LINES * BUF_CELL_SIZE[0] - 1 - arr_pos[0], arr_pos[1]])
+    return ta.array([curses.LINES * BUF_CELL_SHAPE[0] - 1 - arr_pos[0], arr_pos[1]])
 
 
 def pos_to_arrpos(pos):
@@ -592,7 +592,7 @@ def pos_to_arrpos(pos):
     Point position (in Cartesian coordinate system) to array position (Y from
     top to bottom).
     """
-    y = curses.LINES * BUF_CELL_SIZE[0] - 1 - math.floor(pos[0])
+    y = curses.LINES * BUF_CELL_SHAPE[0] - 1 - math.floor(pos[0])
     return ta.array([y, math.floor(pos[1])])
 
 
