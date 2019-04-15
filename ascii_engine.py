@@ -39,7 +39,8 @@ class Telemetry():
     MODE = False
 
     @staticmethod
-    def setup(enable=False, terminal='/dev/pts/1'):
+    # def setup(enable=False, terminal='/dev/pts/1'):
+    def __init__(enable=False, terminal='/dev/pts/1'):
         """
         Redirect stderr to other terminal. Run tty command, to get terminal id.
 

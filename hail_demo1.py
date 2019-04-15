@@ -1,34 +1,48 @@
 #! /usr/bin/env python3
 
-import ascii_engine as ae
-import random
-import curses
 import locale
+import curses
+import random
+import time
+import ascii_engine as ae
 import tinyarray as ta
 
-REFRESH_RATE = 100
+REFRESH_RATE = 30   # FPS
+ANIMATION_TIME = 3  # [sec]
 
 
 def main(scr):
     ae.setup_curses(scr)
+    ae.Telemetry(enable=True, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
-    bodies = create_bodies(count=50)
+    bodies = create_bodies(count=200)
 
-    t = 0
     dt = 1/REFRESH_RATE
 
-    while True:
-        screen.restore()
+    t = 0
+    animation = []
+    while t < ANIMATION_TIME:
         ae.step_simulation(dt, bodies, terrain)
-        for body in bodies:
-            screen.draw_point(body.pos)
-        screen.refresh()
-
-        # time.sleep(dt)
+        animation.append([body.pos for body in bodies])
         t += dt
 
-    curses.endwin()
+    # Play animation in loop
+    while True:
+        t = 0
+
+        for step in animation:
+            tic = time.time()
+
+            screen.restore()
+            for body_pos in step:
+                screen.draw_point(body_pos)
+            screen.refresh()
+
+            delay = max(0, dt - (time.time() - tic))
+            # ae.Telemetry.print(delay)
+            time.sleep(delay)
+            t += dt
 
 
 def create_scene(scr):
@@ -49,8 +63,8 @@ def create_scene(scr):
 def create_bodies(count):
     """Create bodies."""
     random.seed(3300)
-    height = curses.LINES*ae.BUF_CELL_SHAPE[0]
-    width = (curses.COLS-1)*ae.BUF_CELL_SHAPE[1]
+    height = curses.LINES * ae.BUF_CELL_SHAPE[0]
+    width = (curses.COLS-1) * ae.BUF_CELL_SHAPE[1]
 
     bodies = []
     visited = {}
@@ -64,9 +78,9 @@ def create_bodies(count):
 
         visited[(y, x)] = True
         bodies.append(ae.Body(idx=idx,
-                           pos=ta.array([y, x]),
-                           mass=1,
-                           vel=ta.array([-40.0, 0])))
+                              pos=ta.array([y, x]),
+                              mass=1,
+                              vel=ta.array([-40.0, 0])))
         idx += 1
 
     # bodies = [
@@ -92,5 +106,4 @@ def create_bodies(count):
 
 if __name__ == '__main__':
     locale.setlocale(locale.LC_ALL, '')
-    ae.Telemetry.setup(enable=False, terminal='/dev/pts/3')
     curses.wrapper(main)
