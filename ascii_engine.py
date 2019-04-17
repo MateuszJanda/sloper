@@ -325,12 +325,12 @@ class Terrain:
         """
         By default all arrays are drawn in bottom left corner of the screen.
         """
-        arr_size = ta.array(arr.shape[:2])
+        arr_shape = ta.array(arr.shape[:2])
         arr_shift = scr_to_arr(scr_shift)
 
         x1 = arr_shift[1]
-        x2 = x1 + arr_size[1]
-        y1 = self._normal_vecs.shape[0] - arr_size[0] - arr_shift[0]
+        x2 = x1 + arr_shape[1]
+        y1 = self._normal_vecs.shape[0] - arr_shape[0] - arr_shift[0]
         y2 = self._normal_vecs.shape[0] - arr_shift[0]
         self._normal_vecs[y1:y2, x1:x2] = arr
 
@@ -524,7 +524,7 @@ class Importer:
     def _reduce_norm(self, norm_arr):
         """
         Reduce array with normal vectors (for each braille characters), to
-        "ASCII figure" size array, and mark if in "ASCII cell"/"BUF CELL" there
+        "ASCII figure" array size, and mark if in "ASCII/screen cell" there
         was any character.
         """
         EMPTY_VEC = np.array([0, 0])
@@ -535,8 +535,8 @@ class Importer:
             for x in range(0, marker_arr.shape[1], SCR_CELL_SHAPE[1]):
                 result.append(np.any(marker_arr[y:y+SCR_CELL_SHAPE[0], x:x+SCR_CELL_SHAPE[1]]))
 
-        size = marker_arr.shape // SCR_CELL_SHAPE
-        result = np.reshape(result, size)
+        shape = marker_arr.shape // SCR_CELL_SHAPE
+        result = np.reshape(result, shape)
 
         return result
 
@@ -549,11 +549,11 @@ class Importer:
 
     def _validate_arrays(self, ascii_arr, norm_arr):
         """Validate if both arrays describe same thing."""
-        ascii_arr_size = ta.array(ascii_arr.shape)
-        norm_arr_size = norm_arr.shape[:2] // SCR_CELL_SHAPE
+        norm_arr_shape = norm_arr.shape[:2] // SCR_CELL_SHAPE
 
-        if np.any(ascii_arr_size != norm_arr_size):
-            raise Exception('Imported arrays (ascii/norm) - mismatch size', ascii_arr_size, norm_arr_size)
+        if np.any(ascii_arr.shape != norm_arr_shape):
+            raise Exception('Imported arrays (ascii/norm) - mismatch size',
+                ascii_arr.shape, norm_arr_shape)
 
         Telemetry.print('Validation OK')
 
