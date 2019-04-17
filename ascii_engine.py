@@ -32,7 +32,6 @@ NUM_ITERATION = 3
 # Physical constants
 GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
-COEFFICIENT_OF_FRICTION = 0.9
 
 
 class Telemetry():
@@ -84,17 +83,12 @@ class Screen:
         self._terrain = terrain
 
         bg_shape = (curses.LINES, curses.COLS-1)
-        self._bg_buf = self._create_empty_background(bg_shape)
+
+        # background with "empty braille" characters.
+        self._bg_buf = np.full(shape=bg_shape, fill_value=EMPTY_BRAILLE)
         self._bg_buf_backup = np.copy(self._bg_buf)
 
         self._dot_scr_shape = self._bg_buf.shape*SCR_CELL_SHAPE
-
-    def _create_empty_background(self, shape):
-        """
-        Create empty background (representing screen) - filled with "empty
-        braille" characters.
-        """
-        return np.full(shape=shape, fill_value=EMPTY_BRAILLE)
 
     def add_ascii_array(self, ascii_arr, scr_shift=(0, 0)):
         """
