@@ -71,12 +71,8 @@ def create_bodies(count):
 
     idx = 0
     while idx < count:
-<<<<<<< HEAD
-        y, x = height - random.randint(2, 20), random.randint(1, width)
-=======
         y = height - random.randint(2, 20)
         x = random.randint(1, width)
->>>>>>> Refactor
 
         if (y, x) in visited:
             continue
