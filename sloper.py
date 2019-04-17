@@ -14,7 +14,7 @@ Grid = co.namedtuple('Grid', ['start', 'end', 'cell'])
 
 
 CALIBRATION_AREA_SIZE = 40
-FACTOR = 20
+VEC_FACTOR = 20
 SCR_CELL_SIZE = Size(height=4, width=2)
 VECTOR_DIM = 2
 
@@ -183,7 +183,7 @@ def draw_braille_normal_vec(img, arr, grid):
     """
     Draw perpendicular vector to the surface, where surface is every "non zero"
     of array (array with normal vectors). Normal vectors are multiply by some
-    factor, to be better visible.
+    VEC_FACTOR, to be better visible.
     """
     foreach_arr_elements(img, arr, grid, draw_norm_vec)
 
@@ -215,7 +215,7 @@ def draw_dot(img, field_pt, normal_vec, grid):
 def draw_norm_vec(img, field_pt, normal_vec, grid):
     """
     Draw vector (normal_vec) at given point. Basically normal_vec will be
-    multiplied by FACTOR to be better visible.
+    multiplied by VEC_FACTOR to be better visible.
     """
     dot_field_size = Size(grid.cell.height/SCR_CELL_SIZE.height,
                           grid.cell.width/SCR_CELL_SIZE.width)
@@ -224,7 +224,8 @@ def draw_norm_vec(img, field_pt, normal_vec, grid):
                   int(field_pt.y + dot_field_size.height//2))
     # Y with minus, because OpenCV use different coordinates order
     vec_end = Point(normal_vec[1], -normal_vec[0])
-    end = Point(start.x + int(vec_end.x*FACTOR), start.y + int(vec_end.y*FACTOR))
+    end = Point(start.x + int(vec_end.x*VEC_FACTOR),
+                start.y + int(vec_end.y*VEC_FACTOR))
     cv2.line(img, start, end, GREEN_3D, 1)
 
 
