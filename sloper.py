@@ -10,12 +10,12 @@ import cv2
 
 Point = co.namedtuple('Point', ['x', 'y'])
 Size = co.namedtuple('Size', ['height', 'width'])
-Grid = co.namedtuple('Grid', ['start', 'end', 'cell_size'])
+Grid = co.namedtuple('Grid', ['start', 'end', 'cell'])
 
 
 CALIBRATION_AREA_SIZE = 40
 FACTOR = 20
-BUF_CELL = Size(height=4, width=2)
+SCR_CELL_SIZE = Size(height=4, width=2)
 VECTOR_DIM = 2
 
 BLACK_1D = 0
@@ -85,7 +85,7 @@ def grid_data(img):
     grid = Grid(start_pt, end_pt, cell_size)
     print('[+] Cell top-left:', grid.start)
     print('[+] Cell bottom-right:', grid.end)
-    print('[+] Cell size:', grid.cell_size)
+    print('[+] Cell size:', grid.cell)
     return grid
 
 
@@ -157,8 +157,8 @@ def draw_filled_cell(img, pt, grid):
     """For DEBUG
     Fill buf cell with color.
     """
-    for x in range(pt.x, pt.x + grid.cell_size.width):
-        for y in range(pt.y, pt.y + grid.cell_size.height):
+    for x in range(pt.x, pt.x + grid.cell.width):
+        for y in range(pt.y, pt.y + grid.cell.height):
             img[y, x] ^= 158
 
 
@@ -166,10 +166,10 @@ def draw_grid(img, grid):
     """For DEBUG
     Draw grid that separate cells.
     """
-    for x in range(grid.start.x, grid.end.x + 1, grid.cell_size.width):
+    for x in range(grid.start.x, grid.end.x + 1, grid.cell.width):
         cv2.line(img, (x, grid.start.y), (x, grid.end.y), BLUE_3D, 1)
 
-    for y in range(grid.start.y, grid.end.y + 1, grid.cell_size.height):
+    for y in range(grid.start.y, grid.end.y + 1, grid.cell.height):
         cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE_3D, 1)
 
 
@@ -193,8 +193,8 @@ def foreach_arr_elements(img, arr, grid, draw_func):
     """
     Call draw_func() for each "non zero" array element.
     """
-    x_samples = ((grid.end.x - grid.start.x)/grid.cell_size.width) * BUF_CELL.width
-    y_samples = ((grid.end.y - grid.start.y)/grid.cell_size.height) * BUF_CELL.height
+    x_samples = ((grid.end.x - grid.start.x)/grid.cell.width) * SCR_CELL_SIZE.width
+    y_samples = ((grid.end.y - grid.start.y)/grid.cell.height) * SCR_CELL_SIZE.height
 
     for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
@@ -206,8 +206,8 @@ def draw_dot(img, field_pt, normal_vec, grid):
     """
     Draw dot (braille dot) at given point.
     """
-    dot_field_size = Size(grid.cell_size.height/BUF_CELL.height,
-                          grid.cell_size.width/BUF_CELL.width)
+    dot_field_size = Size(grid.cell.height/SCR_CELL_SIZE.height,
+                          grid.cell.width/SCR_CELL_SIZE.width)
     center = Point(int(field_pt.x + dot_field_size.width//2),
                    int(field_pt.y + dot_field_size.height//2))
     cv2.circle(img, center, radius=2, color=RED_3D, thickness=-1)
@@ -218,8 +218,8 @@ def draw_norm_vec(img, field_pt, normal_vec, grid):
     Draw vector (normal_vec) at given point. Basically normal_vec will be
     multiplied by FACTOR to be better visible.
     """
-    dot_field_size = Size(grid.cell_size.height/BUF_CELL.height,
-                          grid.cell_size.width/BUF_CELL.width)
+    dot_field_size = Size(grid.cell.height/SCR_CELL_SIZE.height,
+                          grid.cell.width/SCR_CELL_SIZE.width)
 
     start = Point(int(field_pt.x + dot_field_size.width//2),
                   int(field_pt.y + dot_field_size.height//2))
@@ -242,17 +242,19 @@ def braille_array(img, grid):
     Extract braille data - dots that cover chars (any pixel in dot field is
     "non zero") in all cells.
     """
-    height = ((grid.end.y - grid.start.y) // grid.cell_size.height) * BUF_CELL.height
-    width = ((grid.end.x - grid.start.x) // grid.cell_size.width) * BUF_CELL.width
+    height = ((grid.end.y - grid.start.y) // grid.cell.height) * SCR_CELL_SIZE.height
+    width = ((grid.end.x - grid.start.x) // grid.cell.width) * SCR_CELL_SIZE.width
     braille_arr = np.zeros(shape=[height, width], dtype=img.dtype)
 
-    for cx, x in enumerate(range(grid.start.x, grid.end.x, grid.cell_size.width)):
-        for cy, y in enumerate(range(grid.start.y, grid.end.y, grid.cell_size.height)):
-            cell = img[y:y+grid.cell_size.height, x:x+grid.cell_size.width]
+    for cx, x in enumerate(range(grid.start.x, grid.end.x, grid.cell.width)):
+        for cy, y in enumerate(range(grid.start.y, grid.end.y, grid.cell.height)):
+            cell = img[y:y+grid.cell.height, x:x+grid.cell.width]
 
             braille_cell = braille_in_cell(cell, grid)
-            x1, x2 = cx*BUF_CELL.width, cx*BUF_CELL.width+BUF_CELL.width
-            y1, y2 = cy*BUF_CELL.height, cy*BUF_CELL.height+BUF_CELL.height
+            x1 = cx * SCR_CELL_SIZE.width
+            x2 = cx * SCR_CELL_SIZE.width + SCR_CELL_SIZE.width
+            y1 = cy * SCR_CELL_SIZE.height
+            y2 = cy * SCR_CELL_SIZE.height + SCR_CELL_SIZE.height
             braille_arr[y1:y2, x1:x2] = braille_cell
 
     return braille_arr
@@ -260,12 +262,12 @@ def braille_array(img, grid):
 
 def braille_in_cell(cell, grid):
     """Extract braille data - dots that cover chars from one cell."""
-    dot_field_size = Size(grid.cell_size.height//BUF_CELL.height,
-                          grid.cell_size.width//BUF_CELL.width)
-    braille_cell = np.zeros([BUF_CELL.height, BUF_CELL.width], dtype=cell.dtype)
+    dot_field_size = Size(grid.cell.height // SCR_CELL_SIZE.height,
+                          grid.cell.width // SCR_CELL_SIZE.width)
+    braille_cell = np.zeros(shape=SCR_CELL_SIZE, dtype=cell.dtype)
 
-    for bx, x in enumerate(np.linspace(0, grid.cell_size.width, BUF_CELL.width, endpoint=False)):
-        for by, y in enumerate(np.linspace(0, grid.cell_size.height, BUF_CELL.height, endpoint=False)):
+    for bx, x in enumerate(np.linspace(0, grid.cell.width, SCR_CELL_SIZE.width, endpoint=False)):
+        for by, y in enumerate(np.linspace(0, grid.cell.height, SCR_CELL_SIZE.height, endpoint=False)):
             y1, y2 = int(y), int(y)+dot_field_size.height
             x1, x2 = int(x), int(x)+dot_field_size.width
             dot_field = cell[y1:y2, x1:x2]
@@ -345,8 +347,8 @@ def contour_points(img):
 
 
 def approximate_surface_slopes(contour, grid):
-    height = ((grid.end.y - grid.start.y)//grid.cell_size.height) * BUF_CELL.height
-    width = ((grid.end.x - grid.start.x)//grid.cell_size.width) * BUF_CELL.width
+    height = ((grid.end.y - grid.start.y)//grid.cell.height) * SCR_CELL_SIZE.height
+    width = ((grid.end.x - grid.start.x)//grid.cell.width) * SCR_CELL_SIZE.width
     normal_vec_arr = np.zeros(shape=[height, width, VECTOR_DIM], dtype=np.float32)
 
     first_pt, last_pt = None, None
@@ -397,8 +399,8 @@ def calc_normal_unit_vec(pt1, pt2):
 
 
 def dot_field(pt, grid):
-    width = grid.cell_size.width / BUF_CELL.width
-    height = grid.cell_size.height / BUF_CELL.height
+    width = grid.cell.width / SCR_CELL_SIZE.width
+    height = grid.cell.height / SCR_CELL_SIZE.height
 
     idx = Point(int((pt.x - grid.start.x)/width),
                 int((pt.y - grid.start.y)/height))
