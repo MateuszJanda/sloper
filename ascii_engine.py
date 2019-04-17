@@ -6,7 +6,7 @@ Coordinates systems:
     pos         - position in Cartesian coordinate system. Y from bottom to top,
                   point (0, 0) is in bottom left corner of the screen, All
                   physical calculation are performed in this system.
-    buf_pos     - position on screen (of one character). Y from top to bottom,
+    scr_pos     - position on screen (of one character). Y from top to bottom,
                   point (0, 0) is in top-left corner of the screen.
     arr_pos     - position in numpy or tinyarray array. Y from top to bottom,
                   point (0, 0) is in top-felt corner of the screen.
@@ -25,7 +25,7 @@ import tinyarray as ta
 
 # Applications constants
 EMPTY_BRAILLE = u'\u2800'
-BUF_CELL_SHAPE = ta.array([4, 2])
+SCR_CELL_SHAPE = ta.array([4, 2])
 NORM_VEC_DIM = 2
 NUM_ITERATION = 3
 
@@ -80,14 +80,14 @@ def setup_curses(scr):
 
 class Screen:
     def __init__(self, scr, terrain):
-        self._scr = scr
+        self._curses_scr = scr
         self._terrain = terrain
 
-        bg_buf_shape = (curses.LINES, curses.COLS-1)
-        self._bg_buf = self._create_empty_background(bg_buf_shape)
+        bg_shape = (curses.LINES, curses.COLS-1)
+        self._bg_buf = self._create_empty_background(bg_shape)
         self._bg_buf_backup = np.copy(self._bg_buf)
 
-        self._screen_size = self._bg_buf.shape*BUF_CELL_SHAPE
+        self._dot_scr_shape = self._bg_buf.shape*SCR_CELL_SHAPE
 
     def _create_empty_background(self, shape):
         """
@@ -96,29 +96,29 @@ class Screen:
         """
         return np.full(shape=shape, fill_value=EMPTY_BRAILLE)
 
-    def add_ascii_array(self, ascii_arr, buf_shift=ta.array([0, 0])):
+    def add_ascii_array(self, ascii_arr, scr_shift=(0, 0)):
         """
         Add static element to screen buffer. By default array will be drawn in
         bottom left corner.
         """
         height, width = ascii_arr.shape
         for y, x in np.argwhere(ascii_arr!=' '):
-            buf_pos = ta.array([self._bg_buf.shape[0] - height + y, x]) + buf_shift
-            self._bg_buf[buf_pos[0], buf_pos[1]] = ascii_arr[y, x]
+            scr_pos = ta.array([self._bg_buf.shape[0] - height + y, x]) + scr_shift
+            self._bg_buf[scr_pos[0], scr_pos[1]] = ascii_arr[y, x]
 
         self._save_background_backup()
 
-    def add_common_array(self, arr, buf_shift=ta.array([0, 0])):
+    def add_common_array(self, arr, scr_shift=(0, 0)):
         """For DEBUG
         Add static element to screen buffer. Every element in array will be
         represent as braille character. By default all arrays are drawn in
         bottom left corner.
         """
-        arr_shift = buf_shift * BUF_CELL_SHAPE
+        arr_shift = scr_shift * SCR_CELL_SHAPE
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x]):
-                arr_pos = ta.array([self._screen_size[0] - height  + y, x]) + arr_shift
+                arr_pos = ta.array([self._dot_scr_shape[0] - height  + y, x]) + arr_shift
                 pos = arrpos_to_pos(arr_pos)
                 self.draw_point(pos)
 
@@ -141,13 +141,13 @@ class Screen:
         """For DEBUG
         Draw screen border in braille characters.
         """
-        for x in range(self._screen_size[1]):
+        for x in range(self._dot_scr_shape[1]):
             self.draw_point(ta.array([0, x]))
-            self.draw_point(ta.array([self._screen_size[0]-1, x]))
+            self.draw_point(ta.array([self._dot_scr_shape[0]-1, x]))
 
-        for y in range(self._screen_size[0]):
+        for y in range(self._dot_scr_shape[0]):
             self.draw_point(ta.array([y, 0]))
-            self.draw_point(ta.array([y, self._screen_size[1]-1]))
+            self.draw_point(ta.array([y, self._dot_scr_shape[1]-1]))
 
         self._save_background_backup()
 
@@ -170,33 +170,33 @@ class Screen:
         braille representation and merge this single point.
         """
         # Don't draw point when they are out of the screen
-        if not (0 <= pos[1] < self._screen_size[1] and 0 <= pos[0] < self._screen_size[0]):
+        if not (0 <= pos[1] < self._dot_scr_shape[1] and 0 <= pos[0] < self._dot_scr_shape[0]):
             return
 
-        buf_pos = pos_to_bufpos(pos)
-        cell_box = self._terrain.cut_bufcell_box(buf_pos)
-        if ord(self._bg_buf[buf_pos[0], buf_pos[1]]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
+        scr_pos = pos_to_scrpos(pos)
+        cell_box = self._terrain.cut_scrcell_box(scr_pos)
+        if ord(self._bg_buf[scr_pos[0], scr_pos[1]]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
             uchar = self._cell_box_to_uchar(cell_box)
         else:
-            uchar = ord(self._bg_buf[buf_pos[0], buf_pos[1]])
+            uchar = ord(self._bg_buf[scr_pos[0], scr_pos[1]])
 
-        self._bg_buf[buf_pos[0], buf_pos[1]] = chr(uchar | self._pos_to_braille(pos))
+        self._bg_buf[scr_pos[0], scr_pos[1]] = chr(uchar | self._pos_to_braille(pos))
 
     def _cell_box_to_uchar(self, cell_box):
         """
-        Convert BUF_CELL_SHAPE cell_box to his braille character representation.
+        Convert SCR_CELL_SHAPE cell_box to his braille character representation.
         """
         height, width = cell_box.shape
         uchar = ord(EMPTY_BRAILLE)
         for y, x in np.argwhere(cell_box):
-            uchar |= self._pos_to_braille(ta.array([BUF_CELL_SHAPE[0] - 1 - y, x]))
+            uchar |= self._pos_to_braille(ta.array([SCR_CELL_SHAPE[0] - 1 - y, x]))
 
         return uchar
 
     def _pos_to_braille(self, pos):
         """Point position as braille character in BUF_CELL."""
-        by = math.floor(pos[0] % BUF_CELL_SHAPE[0])
-        bx = math.floor(pos[1] % BUF_CELL_SHAPE[1])
+        by = math.floor(pos[0] % SCR_CELL_SHAPE[0])
+        bx = math.floor(pos[1] % SCR_CELL_SHAPE[1])
 
         if bx == 0:
             if by == 0:
@@ -217,8 +217,8 @@ class Screen:
         """Draw buffer content to screen."""
         dtype = np.dtype('U' + str(self._bg_buf.shape[1]))
         for num, line in enumerate(self._bg_buf):
-            self._scr.addstr(num, 0, line.view(dtype)[0])
-        self._scr.refresh()
+            self._curses_scr.addstr(num, 0, line.view(dtype)[0])
+        self._curses_scr.refresh()
 
     def progress(self, current_time, total_time):
         """Show simulation calculation progress"""
@@ -226,8 +226,8 @@ class Screen:
             proc=current_time/total_time * 100,
             ctime=current_time,
             ttime=total_time)
-        self._scr.addstr(0, 0, prog)
-        self._scr.refresh()
+        self._curses_scr.addstr(0, 0, prog)
+        self._curses_scr.refresh()
 
 
 class Body:
@@ -255,16 +255,16 @@ class Body:
 
 class NearestNeighborLookup:
     def __init__(self, bodies):
-        self._bg_buf_shape = ta.array([curses.LINES, curses.COLS-1])
+        self._bg_shape = ta.array([curses.LINES, curses.COLS-1])
         self._checked_pairs = {}
-        self._create_bufpos_map(bodies)
+        self._create_scrpos_map(bodies)
 
-    def _create_bufpos_map(self, bodies):
-        """Map store for each buf cell list of bodies that is contains."""
+    def _create_scrpos_map(self, bodies):
+        """Map store for each screen cell list of bodies that is contains."""
         self._map = defaultdict(list)
         for body in bodies:
-            buf_pos = pos_to_bufpos(body.pos)
-            self._map[self._bufpos_hash(buf_pos)].append(body)
+            scr_pos = pos_to_scrpos(body.pos)
+            self._map[self._scrpos_hash(scr_pos)].append(body)
 
     def neighbors(self, body):
         """Return list of body neighbors."""
@@ -273,12 +273,12 @@ class NearestNeighborLookup:
         self._checked_pairs[pair_key] = True
 
         result = []
-        buf_range_x, buf_range_y = self._buf_bounding_box(body)
-        for x, y in it.product(buf_range_x, buf_range_y):
-            bufpos_key = self._bufpos_hash(ta.array([y, x]))
+        scr_range_x, scr_range_y = self._scr_bounding_box(body)
+        for x, y in it.product(scr_range_x, scr_range_y):
+            scrpos_key = self._scrpos_hash(ta.array([y, x]))
 
-            # Check all neighbors bodies from nearby buf cell
-            for neigh_body in self._map[bufpos_key]:
+            # Check all neighbors bodies from nearby screen cell
+            for neigh_body in self._map[scrpos_key]:
                 pair_key = self._body_pair_hash(body, neigh_body)
 
                 # If body pairs was already checked do nothing. We can have
@@ -295,24 +295,24 @@ class NearestNeighborLookup:
         """Return bodies hashes in sorted order."""
         return minmax(hash(body1), hash(body2))
 
-    def _bufpos_hash(self, buf_pos):
+    def _scrpos_hash(self, scr_pos):
         """
-        Return bufpos hash. buf_pos (array/vector) doesn't have hash value,
+        Return screen pos hash. scr_pos (array/vector) doesn't have hash value,
         so this method generate it.
         """
-        return buf_pos[0] * self._bg_buf_shape[1] + buf_pos[1]
+        return scr_pos[0] * self._bg_shape[1] + scr_pos[1]
 
-    def _buf_bounding_box(self, body):
+    def _scr_bounding_box(self, body):
         """
-        Return bounding rectangle (buf cells coordinated), where nearby bodies
-        should be searched.
+        Return bounding rectangle (screen cells coordinated), where nearby
+        bodies should be searched.
         """
         direction = unit((body.pos - body.prev_pos)) * 3 * Body.RADIUS
-        buf_pos = pos_to_bufpos(body.prev_pos)
-        buf_prev_pos = pos_to_bufpos(body.pos + direction)
+        scr_pos = pos_to_scrpos(body.prev_pos)
+        scr_prev_pos = pos_to_scrpos(body.pos + direction)
 
-        x1, x2 = minmax(buf_pos[1], buf_prev_pos[1])
-        y1, y2 = minmax(buf_pos[0], buf_prev_pos[0])
+        x1, x2 = minmax(scr_pos[1], scr_prev_pos[1])
+        y1, y2 = minmax(scr_pos[0], scr_prev_pos[0])
         return range(x1, x2+1), range(y1, y2+1)
 
 
@@ -320,17 +320,17 @@ class Terrain:
     EMPTY = np.array([0, 0])
 
     def __init__(self):
-        normal_vecs_shape = ta.array([curses.LINES*BUF_CELL_SHAPE[0],
-                                      (curses.COLS-1)*BUF_CELL_SHAPE[1]])
+        normal_vecs_shape = ta.array([curses.LINES*SCR_CELL_SHAPE[0],
+                                      (curses.COLS-1)*SCR_CELL_SHAPE[1]])
         self._normal_vecs = np.zeros(shape=(normal_vecs_shape[0],
                                             normal_vecs_shape[1],
                                             NORM_VEC_DIM))
         self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
 
-    def add_array(self, arr, buf_shift=ta.array([0, 0])):
+    def add_array(self, arr, scr_shift=ta.array([0, 0])):
         """By default all arrays are drawn in bottom left corner of the screen."""
         arr_size = ta.array(arr.shape[:2])
-        arr_shift = bufpos_to_arrpos(buf_shift)
+        arr_shift = scrpos_to_arrpos(scr_shift)
 
         x1 = arr_shift[1]
         x2 = x1 + arr_size[1]
@@ -340,12 +340,14 @@ class Terrain:
 
         self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
 
-    def cut_bufcell_box(self, buf_pos):
-        """Cut normal vectors sub array with dimension of one bufcell - shape=(4, 2)."""
-        arr_pos = bufpos_to_arrpos(buf_pos)
+    def cut_scrcell_box(self, scr_pos):
+        """Cut normal vectors sub array with dimension of one screen cell -
+        shape=(4, 2).
+        """
+        arr_pos = scrpos_to_arrpos(scr_pos)
 
-        cell_box = self._normal_marks[arr_pos[0]:arr_pos[0]+BUF_CELL_SHAPE[0],
-                                      arr_pos[1]:arr_pos[1]+BUF_CELL_SHAPE[1]]
+        cell_box = self._normal_marks[arr_pos[0]:arr_pos[0]+SCR_CELL_SHAPE[0],
+                                      arr_pos[1]:arr_pos[1]+SCR_CELL_SHAPE[1]]
         return cell_box
 
     def obstacles(self, pos, prev_pos):
@@ -505,15 +507,16 @@ class Importer:
         Remove margin from array with normal vectors (line and columns with
         np.array([0, 0]) at the edges.
         """
-        if norm_arr.shape[1] % BUF_CELL_SHAPE[1] or norm_arr.shape[0] % BUF_CELL_SHAPE[0]:
-            raise Exception("Arrays with normal vector can't be transformed to buffer")
+        if norm_arr.shape[1] % SCR_CELL_SHAPE[1] or norm_arr.shape[0] % SCR_CELL_SHAPE[0]:
+            raise Exception("Arrays with normal vector can't be transformed \
+                to screen size buffer")
 
         ascii_markers = self._reduce_norm(norm_arr)
-        del_rows = [list(range(idx*BUF_CELL_SHAPE[0], idx*BUF_CELL_SHAPE[0]+BUF_CELL_SHAPE[0]))
+        del_rows = [list(range(idx*SCR_CELL_SHAPE[0], idx*SCR_CELL_SHAPE[0]+SCR_CELL_SHAPE[0]))
                     for idx, margin in enumerate(np.all(ascii_markers==False, axis=1)) if margin]
         norm_arr = np.delete(norm_arr, del_rows, axis=0)
 
-        del_columns = [list(range(idx*BUF_CELL_SHAPE[1], idx*BUF_CELL_SHAPE[1]+BUF_CELL_SHAPE[1]))
+        del_columns = [list(range(idx*SCR_CELL_SHAPE[1], idx*SCR_CELL_SHAPE[1]+SCR_CELL_SHAPE[1]))
                        for idx, margin in enumerate(np.all(ascii_markers==False, axis=0)) if margin]
         norm_arr = np.delete(norm_arr, del_columns, axis=1)
 
@@ -529,11 +532,11 @@ class Importer:
         marker_arr = np.logical_or.reduce(norm_arr!=EMPTY_VEC, axis=-1)
 
         result = []
-        for y in range(0, marker_arr.shape[0], BUF_CELL_SHAPE[0]):
-            for x in range(0, marker_arr.shape[1], BUF_CELL_SHAPE[1]):
-                result.append(np.any(marker_arr[y:y+BUF_CELL_SHAPE[0], x:x+BUF_CELL_SHAPE[1]]))
+        for y in range(0, marker_arr.shape[0], SCR_CELL_SHAPE[0]):
+            for x in range(0, marker_arr.shape[1], SCR_CELL_SHAPE[1]):
+                result.append(np.any(marker_arr[y:y+SCR_CELL_SHAPE[0], x:x+SCR_CELL_SHAPE[1]]))
 
-        size = marker_arr.shape // BUF_CELL_SHAPE
+        size = marker_arr.shape // SCR_CELL_SHAPE
         result = np.reshape(result, size)
 
         return result
@@ -548,7 +551,7 @@ class Importer:
     def _validate_arrays(self, ascii_arr, norm_arr):
         """Validate if both arrays describe same thing."""
         ascii_arr_size = ta.array(ascii_arr.shape)
-        norm_arr_size = norm_arr.shape[:2] // BUF_CELL_SHAPE
+        norm_arr_size = norm_arr.shape[:2] // SCR_CELL_SHAPE
 
         if np.any(ascii_arr_size != norm_arr_size):
             raise Exception('Imported arrays (ascii/norm) - mismatch size', ascii_arr_size, norm_arr_size)
@@ -575,26 +578,26 @@ def minmax(a, b):
     return (a, b) if a < b else (b, a)
 
 
-def pos_to_bufpos(pos):
+def pos_to_scrpos(pos):
     """
     Buffer/screen cell position for given pos.
     """
-    x = math.floor(pos[1]/BUF_CELL_SHAPE[1])
-    y = curses.LINES - 1 - math.floor(pos[0]/BUF_CELL_SHAPE[0])
+    x = math.floor(pos[1]/SCR_CELL_SHAPE[1])
+    y = curses.LINES - 1 - math.floor(pos[0]/SCR_CELL_SHAPE[0])
     return ta.array([y, x])
 
 
-def bufpos_to_arrpos(buf_pos):
+def scrpos_to_arrpos(scr_pos):
     """
-    Return top-left corner of buffer cell in array coordinates (Y from top to
+    Return top-left corner of screen cell in array coordinates (Y from top to
     bottom).
     """
-    return buf_pos*BUF_CELL_SHAPE
+    return scr_pos*SCR_CELL_SHAPE
 
 
 def arrpos_to_pos(arr_pos):
-    """Array position to Cartesian coordinate system"""
-    return ta.array([curses.LINES * BUF_CELL_SHAPE[0] - 1 - arr_pos[0], arr_pos[1]])
+    """Array position to Cartesian coordinate system."""
+    return ta.array([curses.LINES * SCR_CELL_SHAPE[0] - 1 - arr_pos[0], arr_pos[1]])
 
 
 def pos_to_arrpos(pos):
@@ -602,7 +605,7 @@ def pos_to_arrpos(pos):
     Point position (in Cartesian coordinate system) to array position (Y from
     top to bottom).
     """
-    y = curses.LINES * BUF_CELL_SHAPE[0] - 1 - math.floor(pos[0])
+    y = curses.LINES * SCR_CELL_SHAPE[0] - 1 - math.floor(pos[0])
     return ta.array([y, math.floor(pos[1])])
 
 
@@ -611,8 +614,6 @@ def test_converters():
     For DEBUG.
     Check if converters work properly.
     """
-    assert(np.all(ta.array([38, 50]) == ta.array([38, 50])))
-
     arr_pos = pos_to_arrpos(ta.array([38, 50]))
     assert(np.all(ta.array([38, 50]) == arrpos_to_pos(arr_pos)))
 

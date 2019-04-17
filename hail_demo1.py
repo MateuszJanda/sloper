@@ -13,7 +13,7 @@ ANIMATION_TIME = 3  # [sec]
 
 def main(scr):
     ae.setup_curses(scr)
-    ae.Telemetry(enable=True, terminal='/dev/pts/3')
+    ae.Telemetry(enable=False, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
     bodies = create_bodies(count=200)
@@ -41,7 +41,6 @@ def main(scr):
             screen.refresh()
 
             delay = max(0, dt - (time.time() - tic))
-            # ae.Telemetry.print(delay)
             time.sleep(delay)
             t += dt
 
@@ -63,8 +62,8 @@ def create_scene(scr):
 def create_bodies(count):
     """Create bodies."""
     random.seed(3300)
-    height = curses.LINES * ae.BUF_CELL_SHAPE[0]
-    width = (curses.COLS-1) * ae.BUF_CELL_SHAPE[1]
+    height = curses.LINES * ae.SCR_CELL_SHAPE[0]
+    width = (curses.COLS-1) * ae.SCR_CELL_SHAPE[1]
 
     bodies = []
     visited = {}
