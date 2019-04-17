@@ -1,10 +1,10 @@
 #! /usr/bin/env python3
 
+import argparse
 import collections as co
 import itertools as it
 import numpy as np
 import math
-import copy
 import cv2
 
 
@@ -27,6 +27,8 @@ YELLOW_3D = (0, 255, 255)
 
 
 def main():
+    args = interpret_args()
+
     file_name = 'ascii_fig.png'
     term_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
 
@@ -59,6 +61,38 @@ def main():
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+
+
+class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
+    pass
+
+
+def interpret_args():
+    parser = argparse.ArgumentParser(
+        description='',
+        usage='',
+        epilog='',
+        formatter_class=CustomFormatter)
+
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-a', '--file', metavar='file', dest='ascii_file',
+        help='ASCII figure in text file (with proper markers)')
+    group.add_argument('-i', '--image', metavar='file', dest='img_file',
+        help='ASCII figure in image (with proper markers)')
+
+    parser.add_argument('-t', '--threshold', metavar='value', required=False,
+        default=30, dest='threshold',
+        help='Threshold value.')
+    parser.add_argument('-f', '--truetype-font', metavar='file', required=False,
+        default=None, dest='truetype_file',
+        help='TryType font file. '
+             'E.g: /usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf')
+    parser.add_argument('-s', '--font-size', metavar='size', required=False,
+        default=17, dest='font_size',
+        help='TryType font size.')
+
+    args = parser.parse_args()
+    return args
 
 
 def grid_data(img):
@@ -289,7 +323,7 @@ def connect_nearby_chars(img):
     http://answers.opencv.org/question/169492/accessing-all-points-of-a-contour/
     https://docs.opencv.org/3.4.1/dd/d49/tutorial_py_contour_features.html
     """
-    gray_img = copy.copy(img)
+    gray_img = np.copy(img)
     contours, _ = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # First contour position is at the bottom of image
@@ -343,7 +377,7 @@ def find_nearest(head_cnt, contours, min_dist=15):
 
 def contour_points(img):
     """Get list of start/end point off all contours."""
-    cont_img = copy.copy(img)
+    cont_img = np.copy(img)
     contours, _ = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 

@@ -17,11 +17,13 @@ font = ImageFont.truetype('/usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf', s
 
 color = 'rgb(255, 255, 255)' # black color
 
-draw.text(xy=(50, 30), text='01234567890\nabcdefghijkl', fill=color, font=font)
 
-draw.text(xy=(50, 70), text='Happy Birthday!', fill=color, font=font)
-draw.text(xy=(50, 90), text='/\\/\\/\\/\\', fill=color, font=font)
-draw.text(xy=(50, 110), text='⢧⢧⢧⢧⢧⢧⢧', fill=color, font=font)
+draw.text(xy=(50, 30), text='01234567890\nabcdefghijkl', fill=color)
+# draw.text(xy=(50, 30), text='01234567890\nabcdefghijkl', fill=color, font=font)
+
+# draw.text(xy=(50, 70), text='Happy Birthday!', fill=color, font=font)
+# draw.text(xy=(50, 90), text='/\\/\\/\\/\\', fill=color, font=font)
+# draw.text(xy=(50, 110), text='⢧⢧⢧⢧⢧⢧⢧', fill=color, font=font)
 
 
 img.save('output.png', 'PNG', optimize=True, quality=20)
