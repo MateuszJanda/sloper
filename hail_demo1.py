@@ -5,7 +5,7 @@ import curses
 import random
 import time
 import ascii_engine as ae
-import tinyarray as ta
+
 
 REFRESH_RATE = 30   # FPS
 ANIMATION_TIME = 3  # [sec]
@@ -56,7 +56,6 @@ def create_scene(scr):
 
     terrain.add_array(norm_arr)
     screen.add_ascii_array(ascii_arr)
-    # screen.add_terrain_data()
 
     return screen, terrain
 
@@ -72,35 +71,17 @@ def create_bodies(count):
 
     idx = 0
     while idx < count:
-        y, x = height - (random.randint(2, 20) * 1.0), random.randint(1, width)
+        y, x = height - random.randint(2, 20), random.randint(1, width)
 
         if (y, x) in visited:
             continue
 
         visited[(y, x)] = True
         bodies.append(ae.Body(idx=idx,
-                              pos=ta.array([y, x]),
+                              pos=(y, x),
                               mass=1,
-                              vel=ta.array([-40.0, 0])))
+                              vel=(-40, 0)))
         idx += 1
-
-    # bodies = [
-    #     # Body(idx=1, pos=ta.array([80.0, 32]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 34]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 50]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 112]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([70.0, 110.5]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 110]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 23]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 22]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 21]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([80.0, 20]), mass=1, vel=ta.array([-40.0, 0])),
-    #     # Body(idx=1, pos=ta.array([1.0, 110]), mass=1, vel=ta.array([0.0, 1])),
-    #     # Body(idx=1, pos=ta.array([1.0, 116]), mass=1, vel=ta.array([0.0, 0])),
-    # ]
-
-    # for idx, body in enumerate(bodies):
-    #     body._idx = idx
 
     return bodies
 
