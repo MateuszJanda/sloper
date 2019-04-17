@@ -119,7 +119,7 @@ class Screen:
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x]):
                 arr_pos = ta.array([self._dot_scr_shape[0] - height  + y, x]) + arr_shift
-                pos = arrpos_to_pos(arr_pos)
+                pos = arr_to_phy(arr_pos)
                 self.draw_point(pos)
 
         self._save_background_backup()
@@ -132,7 +132,7 @@ class Screen:
         for x, y in it.product(range(width), range(height)):
             if self._terrain._normal_marks[y, x]:
                 arr_pos = ta.array([y, x])
-                pos = arrpos_to_pos(arr_pos)
+                pos = arr_to_phy(arr_pos)
                 self.draw_point(pos)
 
         self._save_background_backup()
@@ -173,7 +173,7 @@ class Screen:
         if not (0 <= pos[1] < self._dot_scr_shape[1] and 0 <= pos[0] < self._dot_scr_shape[0]):
             return
 
-        scr_pos = pos_to_scrpos(pos)
+        scr_pos = phy_to_scr(pos)
         cell_box = self._terrain.cut_scrcell_box(scr_pos)
         if ord(self._bg_buf[scr_pos[0], scr_pos[1]]) < ord(EMPTY_BRAILLE) and np.any(cell_box):
             uchar = self._cell_box_to_uchar(cell_box)
@@ -257,14 +257,14 @@ class NearestNeighborLookup:
     def __init__(self, bodies):
         self._bg_shape = ta.array([curses.LINES, curses.COLS-1])
         self._checked_pairs = {}
-        self._create_scrpos_map(bodies)
+        self._create_scr_pos_map(bodies)
 
-    def _create_scrpos_map(self, bodies):
+    def _create_scr_pos_map(self, bodies):
         """Map store for each screen cell list of bodies that is contains."""
         self._map = defaultdict(list)
         for body in bodies:
-            scr_pos = pos_to_scrpos(body.pos)
-            self._map[self._scrpos_hash(scr_pos)].append(body)
+            scr_pos = phy_to_scr(body.pos)
+            self._map[self._scr_pos_hash(scr_pos)].append(body)
 
     def neighbors(self, body):
         """Return list of body neighbors."""
@@ -275,10 +275,10 @@ class NearestNeighborLookup:
         result = []
         scr_range_x, scr_range_y = self._scr_bounding_box(body)
         for x, y in it.product(scr_range_x, scr_range_y):
-            scrpos_key = self._scrpos_hash(ta.array([y, x]))
+            scr_pos_key = self._scr_pos_hash(ta.array([y, x]))
 
             # Check all neighbors bodies from nearby screen cell
-            for neigh_body in self._map[scrpos_key]:
+            for neigh_body in self._map[scr_pos_key]:
                 pair_key = self._body_pair_hash(body, neigh_body)
 
                 # If body pairs was already checked do nothing. We can have
@@ -295,7 +295,7 @@ class NearestNeighborLookup:
         """Return bodies hashes in sorted order."""
         return minmax(hash(body1), hash(body2))
 
-    def _scrpos_hash(self, scr_pos):
+    def _scr_pos_hash(self, scr_pos):
         """
         Return screen pos hash. scr_pos (array/vector) doesn't have hash value,
         so this method generate it.
@@ -308,8 +308,8 @@ class NearestNeighborLookup:
         bodies should be searched.
         """
         direction = unit((body.pos - body.prev_pos)) * 3 * Body.RADIUS
-        scr_pos = pos_to_scrpos(body.prev_pos)
-        scr_prev_pos = pos_to_scrpos(body.pos + direction)
+        scr_pos = phy_to_scr(body.prev_pos)
+        scr_prev_pos = phy_to_scr(body.pos + direction)
 
         x1, x2 = minmax(scr_pos[1], scr_prev_pos[1])
         y1, y2 = minmax(scr_pos[0], scr_prev_pos[0])
@@ -328,9 +328,11 @@ class Terrain:
         self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
 
     def add_array(self, arr, scr_shift=ta.array([0, 0])):
-        """By default all arrays are drawn in bottom left corner of the screen."""
+        """
+        By default all arrays are drawn in bottom left corner of the screen.
+        """
         arr_size = ta.array(arr.shape[:2])
-        arr_shift = scrpos_to_arrpos(scr_shift)
+        arr_shift = scr_to_arr(scr_shift)
 
         x1 = arr_shift[1]
         x2 = x1 + arr_size[1]
@@ -341,10 +343,11 @@ class Terrain:
         self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
 
     def cut_scrcell_box(self, scr_pos):
-        """Cut normal vectors sub array with dimension of one screen cell -
+        """
+        Cut normal vectors sub array with dimension of one screen cell -
         shape=(4, 2).
         """
-        arr_pos = scrpos_to_arrpos(scr_pos)
+        arr_pos = scr_to_arr(scr_pos)
 
         cell_box = self._normal_marks[arr_pos[0]:arr_pos[0]+SCR_CELL_SHAPE[0],
                                       arr_pos[1]:arr_pos[1]+SCR_CELL_SHAPE[1]]
@@ -365,7 +368,7 @@ class Terrain:
             if box_markers[y, x]:
                 normal_vec = box[y, x]
 
-                global_pos = arrpos_to_pos(arr_tl + (y, x))
+                global_pos = arr_to_phy(arr_tl + (y, x))
                 result.append((global_pos, normal_vec))
 
         return result
@@ -375,8 +378,8 @@ class Terrain:
         Return top-left, bottom-right position of bounding box. Function add
         extra columns and rows in each dimension.
         """
-        arr_pos = pos_to_arrpos(pos)
-        arr_prev_pos = pos_to_arrpos(prev_pos)
+        arr_pos = phy_to_arr(pos)
+        arr_prev_pos = phy_to_arr(prev_pos)
 
         x1, x2 = minmax(arr_pos[1], arr_prev_pos[1])
         y1, y2 = minmax(arr_pos[0], arr_prev_pos[0])
@@ -395,7 +398,8 @@ class Terrain:
         # Cut normal vectors from terrain array
         box = self._normal_vecs[tl[0]:br[0], tl[1]:br[1]]
 
-        # If bounding box is out of terrain bounds, we need to add border padding
+        # If bounding box is out of terrain bounds, we need to add border
+        # padding
         expected_shape = (arr_br[0] - arr_tl[0], arr_br[1] - arr_tl[1], NORM_VEC_DIM)
         if expected_shape == box.shape:
             return box
@@ -461,7 +465,8 @@ class Importer:
 
     def _reshape_ascii(self, ascii_fig):
         """
-        Fill end of each line in ascii_fig with spaces, and convert it to np.array.
+        Fill end of each line in ascii_fig with spaces, and convert it to
+        np.array.
         """
         max_size = 0
         for line in ascii_fig:
@@ -578,16 +583,17 @@ def minmax(a, b):
     return (a, b) if a < b else (b, a)
 
 
-def pos_to_scrpos(pos):
+def phy_to_scr(pos):
     """
-    Buffer/screen cell position for given pos.
+    Screen cell position for given pos (physical position used in
+    calculations.
     """
     x = math.floor(pos[1]/SCR_CELL_SHAPE[1])
     y = curses.LINES - 1 - math.floor(pos[0]/SCR_CELL_SHAPE[0])
     return ta.array([y, x])
 
 
-def scrpos_to_arrpos(scr_pos):
+def scr_to_arr(scr_pos):
     """
     Return top-left corner of screen cell in array coordinates (Y from top to
     bottom).
@@ -595,15 +601,18 @@ def scrpos_to_arrpos(scr_pos):
     return scr_pos*SCR_CELL_SHAPE
 
 
-def arrpos_to_pos(arr_pos):
-    """Array position to Cartesian coordinate system."""
+def arr_to_phy(arr_pos):
+    """
+    Array position to Cartesian coordinate system used for physic
+    calculations.
+    """
     return ta.array([curses.LINES * SCR_CELL_SHAPE[0] - 1 - arr_pos[0], arr_pos[1]])
 
 
-def pos_to_arrpos(pos):
+def phy_to_arr(pos):
     """
-    Point position (in Cartesian coordinate system) to array position (Y from
-    top to bottom).
+    Position (in Cartesian coordinate system) used in physic calculation to
+    array position (Y from top to bottom).
     """
     y = curses.LINES * SCR_CELL_SHAPE[0] - 1 - math.floor(pos[0])
     return ta.array([y, math.floor(pos[1])])
@@ -614,11 +623,11 @@ def test_converters():
     For DEBUG.
     Check if converters work properly.
     """
-    arr_pos = pos_to_arrpos(ta.array([38, 50]))
-    assert(np.all(ta.array([38, 50]) == arrpos_to_pos(arr_pos)))
+    arr_pos = phy_to_arr(ta.array([38, 50]))
+    assert(np.all(ta.array([38, 50]) == arr_to_phy(arr_pos)))
 
-    arr_pos = pos_to_arrpos(ta.array([46.25706000000003, 34.0]))
-    assert np.all(ta.array([46, 34]) == arrpos_to_pos(arr_pos)), arrpos_to_pos(arr_pos)
+    arr_pos = phy_to_arr(ta.array([46.25706000000003, 34.0]))
+    assert np.all(ta.array([46, 34]) == arr_to_phy(arr_pos)), arr_to_phy(arr_pos)
 
 ##
 # Physic engine.
@@ -656,7 +665,9 @@ class Collision:
 
 
 def detect_collisions(bodies, terrain):
-    """Detect collisions for all bodies with other bodies and terrain obstacles."""
+    """
+    Detect collisions for all bodies with other bodies and terrain obstacles.
+    """
     collisions = []
     nnlookup = NearestNeighborLookup(bodies)
     for body in bodies:
