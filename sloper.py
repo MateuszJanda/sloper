@@ -82,14 +82,13 @@ def interpret_args():
 
     parser.add_argument('-t', '--threshold', metavar='value', required=False,
         default=30, dest='threshold',
-        help='Threshold value.')
+        help='Threshold value')
     parser.add_argument('-f', '--truetype-font', metavar='file', required=False,
-        default=None, dest='truetype_file',
-        help='TryType font file. '
-             'E.g: /usr/share/fonts/truetype/ubuntu/UbuntuMono-R.ttf')
+        default='UbuntuMono-R', dest='truetype_file',
+        help='TryType font file')
     parser.add_argument('-s', '--font-size', metavar='size', required=False,
         default=17, dest='font_size',
-        help='TryType font size.')
+        help='TryType font size')
 
     args = parser.parse_args()
     return args
