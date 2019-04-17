@@ -188,7 +188,7 @@ class Screen:
         return uchar
 
     def _pos_to_braille(self, pos):
-        """Point position as braille character in BUF_CELL."""
+        """Point position as braille character in screen cell."""
         by = math.floor(pos[0] % SCR_CELL_SHAPE[0])
         bx = math.floor(pos[1] % SCR_CELL_SHAPE[1])
 

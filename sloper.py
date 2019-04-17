@@ -37,9 +37,8 @@ def main():
     grid = grid_data(gray_img)
     erase_calibration_area(gray_img)
 
-    cont_img = connect_nearby_contours(gray_img)
+    cont_img = connect_nearby_chars(gray_img)
     cont_img = smooth_contours(cont_img)
-
     contour = contour_points(cont_img)
     normal_vec_arr = approximate_surface_slopes(contour, grid)
 
@@ -55,7 +54,7 @@ def main():
     draw_contour(debug_img, contour)
 
     cv2.imshow('Normal vectors', debug_img)
-    cv2.imshow('Terminal (ASCII) image', term_img)
+    cv2.imshow('ASCII image', term_img)
     cv2.imshow('Contours', cont_img)
 
     cv2.waitKey(0)
@@ -155,7 +154,7 @@ def erase_calibration_area(img):
 
 def draw_filled_cell(img, pt, grid):
     """For DEBUG
-    Fill buf cell with color.
+    Fill screen cell with color.
     """
     for x in range(pt.x, pt.x + grid.cell.width):
         for y in range(pt.y, pt.y + grid.cell.height):
@@ -231,7 +230,7 @@ def draw_norm_vec(img, field_pt, normal_vec, grid):
 
 def draw_contour(img, contour):
     """
-    Connect all counters point with lines.
+    Connect all contours point with lines.
     """
     for c in contour:
         img[c.y, c.x] = YELLOW_3D
@@ -280,7 +279,7 @@ def braille_in_cell(cell, grid):
     return braille_cell
 
 
-def connect_nearby_contours(img):
+def connect_nearby_chars(img):
     """
     Connect nearby contours (ASCII characters).
 
@@ -317,6 +316,7 @@ def connect_nearby_contours(img):
 
 
 def smooth_contours(img):
+    """Apply dilation and erosion to smooth contours shape."""
     kernel_dil = np.ones((3, 3), np.uint8)
     kernel_ero = np.ones((2, 2), np.uint8)
 
@@ -341,12 +341,17 @@ def find_nearest(head_cnt, contours, min_dist=15):
 
 
 def contour_points(img):
+    """Get list of start/end point off all contours."""
     cont_img = copy.copy(img)
     contours, _ = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
 
 def approximate_surface_slopes(contour, grid):
+    """
+    Go along ASCII image surface and calculate normal vector (perpendicular to
+    surface) for each position where braille dot, could be placed.
+    """
     height = ((grid.end.y - grid.start.y)//grid.cell.height) * SCR_CELL_SIZE.height
     width = ((grid.end.x - grid.start.x)//grid.cell.width) * SCR_CELL_SIZE.width
     normal_vec_arr = np.zeros(shape=[height, width, VECTOR_DIM], dtype=np.float32)
@@ -358,16 +363,16 @@ def approximate_surface_slopes(contour, grid):
             first_pt = c
             continue
 
-        idx, tl_pt, br_pt = dot_field(first_pt, grid)
+        center_pt, tl_pt, br_pt = dot_field(first_pt, grid)
         if in_boundaries(c, tl_pt, br_pt):
             last_pt = c
         elif last_pt:
             normal_vec = calc_normal_unit_vec(first_pt, last_pt)
-            normal_vec_arr[idx.y, idx.x] = normal_vec
+            normal_vec_arr[center_pt.y, center_pt.x] = normal_vec
             first_pt = c
             last_pt = None
         else:
-            normal_vec_arr[idx.y, idx.x] = normal_vec
+            normal_vec_arr[center_pt.y, center_pt.x] = normal_vec
             first_pt = c
             last_pt = None
 
@@ -375,10 +380,14 @@ def approximate_surface_slopes(contour, grid):
 
 
 def in_boundaries(test_pt, tl_pt, br_pt):
+    """Check if point in boundary."""
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
 
 def calc_normal_unit_vec(pt1, pt2):
+    """
+    Calculate normal unit vector perpendicular to vector defined by two points.
+    """
     # Calculation tangent line (ax + by + c = 0) to points
     # Y should be with minus, because OpenCV use different coordinate system
     if pt2.x - pt1.x == 0:
@@ -390,7 +399,7 @@ def calc_normal_unit_vec(pt1, pt2):
 
     # Normalized (unit) perpendicular vector to line (ax + by + c = 0)
     # equal to v = [-a, b].
-    # Values as stored in numpy.array where by convention dimensions should
+    # Values as stored in numpy array where by convention dimensions should
     # start from Y followed by X [Y, X]
     mag = math.sqrt(a**2 + b**2)
     if pt2.x <= pt1.x:
@@ -399,25 +408,29 @@ def calc_normal_unit_vec(pt1, pt2):
 
 
 def dot_field(pt, grid):
+    """
+    Calculate center and boundary points of field where braille dot could be
+    placed.
+    """
     width = grid.cell.width / SCR_CELL_SIZE.width
     height = grid.cell.height / SCR_CELL_SIZE.height
 
-    idx = Point(int((pt.x - grid.start.x)/width),
+    center_pt = Point(int((pt.x - grid.start.x)/width),
                 int((pt.y - grid.start.y)/height))
-    x = grid.start.x + idx.x * width
-    y = grid.start.y + idx.y * height
+    x = grid.start.x + center_pt.x * width
+    y = grid.start.y + center_pt.y * height
 
     if int(x + width) <= pt.x:
-        idx = Point(idx.x + 1, idx.y)
+        center_pt = Point(center_pt.x + 1, center_pt.y)
     if int(y + height) <= pt.y:
-        idx = Point(idx.x, idx.y + 1)
+        center_pt = Point(center_pt.x, center_pt.y + 1)
 
-    tl_pt = Point(int(grid.start.x + idx.x * width),
-                  int(grid.start.y + idx.y * height))
-    br_pt = Point(int(grid.start.x + (idx.x + 1) * width),
-                  int(grid.start.y + (idx.y + 1) * height))
+    tl_pt = Point(int(grid.start.x + center_pt.x * width),
+                  int(grid.start.y + center_pt.y * height))
+    br_pt = Point(int(grid.start.x + (center_pt.x + 1) * width),
+                  int(grid.start.y + (center_pt.y + 1) * height))
 
-    return idx, tl_pt, br_pt
+    return center_pt, tl_pt, br_pt
 
 
 def export_braille_data(file_name, braille_arr):
