@@ -29,12 +29,12 @@ YELLOW_3D = (0, 255, 255)
 def main():
     # args = interpret_args()
 
-    file_name = 'ascii_fig.png'
-    terminal_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
-
-    # Processing should be on the image with a black background and white
-    # foreground
-    _, gray_img = cv2.threshold(src=terminal_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
+    class A():
+        pass
+    args = A()
+    args.img_file = 'ascii_fig.png'
+    args.out_file = 'ascii_fig.png.norm'
+    terminal_img, gray_img = create_terminal_img(args)
 
     grid = grid_data(gray_img)
     erase_calibration_area(gray_img)
@@ -45,30 +45,11 @@ def main():
     normal_vec_arr = approximate_surface_slopes(contour, grid)
 
     braille_arr = braille_array(gray_img, grid)
-    export_braille_data(file_name, braille_arr)
-    export_normal_vec_arr(file_name, normal_vec_arr)
+    # export_braille_data(args.out_file, braille_arr)
+    export_normal_vec_arr(args.out_file, normal_vec_arr)
 
     # For inspection/debug purpose
-    cv2.imshow('ASCII image', terminal_img)
-
-    # Draw grid and markers cells.
-    grid_img = cv2.cvtColor(terminal_img, cv2.COLOR_GRAY2RGB)
-    draw_cell(grid_img, grid.start, grid)
-    draw_grid(grid_img, grid)
-    cv2.imshow('Grid and markers', grid_img)
-
-    cv2.imshow('Contours', contours_img)
-
-    # Braille dots in place where normal vector will be calculated
-    dots_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    draw_braille_dots(dots_img, normal_vec_arr, grid)
-    cv2.imshow('Braille dots', dots_img)
-
-    # Normal vectors perpendicular to the surface
-    normal_vec_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    draw_braille_normal_vec(normal_vec_img, normal_vec_arr, grid)
-    draw_contour(normal_vec_img, contour)
-    cv2.imshow('Normal vectors', normal_vec_img)
+    inspect(grid, normal_vec_arr, contour, terminal_img, gray_img, contours_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -104,6 +85,14 @@ def interpret_args():
     args = parser.parse_args()
     return args
 
+
+def create_terminal_img(args):
+    # if hasattr(args, 'img_file'):
+    terminal_img = cv2.imread(args.img_file, cv2.IMREAD_COLOR)
+    grid_img = cv2.cvtColor(terminal_img, cv2.COLOR_RGB2GRAY)
+    _, gray_img = cv2.threshold(src=grid_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
+
+    return terminal_img, gray_img
 
 def grid_data(img):
     """
@@ -196,92 +185,6 @@ def erase_calibration_area(img):
     cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK_1D, cv2.FILLED)
 
 
-def draw_cell(img, pt, grid, xor_value=158):
-    """
-    Mark screen cell with some color (xor with original color value).
-    """
-    val = np.array([xor_value, xor_value, xor_value]).astype(img.dtype)
-    for x in range(pt.x, pt.x + grid.cell.width):
-        for y in range(pt.y, pt.y + grid.cell.height):
-            img[y, x] ^= val
-
-
-def draw_grid(img, grid):
-    """
-    Draw grid that separate cells.
-    """
-    for x in range(grid.start.x, grid.end.x + 1, grid.cell.width):
-        cv2.line(img, (x, grid.start.y), (x, grid.end.y), BLUE_3D, 1)
-
-    for y in range(grid.start.y, grid.end.y + 1, grid.cell.height):
-        cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE_3D, 1)
-
-
-def draw_braille_dots(img, arr, grid):
-    """
-    Draw dot for each "not zero" element of array.
-    """
-    foreach_arr_elements(img, arr, grid, draw_dot)
-
-
-def draw_braille_normal_vec(img, arr, grid):
-    """
-    Draw perpendicular vector to the surface, where surface is every "non zero"
-    of array (array with normal vectors). Normal vectors are multiply by some
-    VEC_FACTOR, to be better visible.
-    """
-    foreach_arr_elements(img, arr, grid, draw_norm_vec)
-
-
-def foreach_arr_elements(img, arr, grid, draw_func):
-    """
-    Call draw_func() for each "non zero" array element.
-    """
-    x_samples = ((grid.end.x - grid.start.x)/grid.cell.width) * SCR_CELL_SIZE.width
-    y_samples = ((grid.end.y - grid.start.y)/grid.cell.height) * SCR_CELL_SIZE.height
-
-    for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
-        for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
-            if np.any(arr[by, bx]):
-                draw_func(img, field_pt=Point(x, y), normal_vec=arr[by, bx], grid=grid)
-
-
-def draw_dot(img, field_pt, normal_vec, grid):
-    """
-    Draw dot (braille dot) at given point.
-    """
-    dot_field_size = Size(grid.cell.height/SCR_CELL_SIZE.height,
-                          grid.cell.width/SCR_CELL_SIZE.width)
-    center = Point(int(field_pt.x + dot_field_size.width//2),
-                   int(field_pt.y + dot_field_size.height//2))
-    cv2.circle(img, center, radius=2, color=RED_3D, thickness=-1)
-
-
-def draw_norm_vec(img, field_pt, normal_vec, grid):
-    """
-    Draw vector (normal_vec) at given point. Basically normal_vec will be
-    multiplied by VEC_FACTOR to be better visible.
-    """
-    dot_field_size = Size(grid.cell.height/SCR_CELL_SIZE.height,
-                          grid.cell.width/SCR_CELL_SIZE.width)
-
-    start = Point(int(field_pt.x + dot_field_size.width//2),
-                  int(field_pt.y + dot_field_size.height//2))
-    # Y with minus, because OpenCV use different coordinates order
-    vec_end = Point(normal_vec[1], -normal_vec[0])
-    end = Point(start.x + int(vec_end.x*VEC_FACTOR),
-                start.y + int(vec_end.y*VEC_FACTOR))
-    cv2.line(img, start, end, GREEN_3D, 1)
-
-
-def draw_contour(img, contour):
-    """
-    Connect all contours point with lines.
-    """
-    for c in contour:
-        img[c.y, c.x] = YELLOW_3D
-
-
 def braille_array(img, grid):
     """
     Extract braille data - dots that cover chars (any pixel in dot field is
@@ -341,7 +244,7 @@ def connect_nearby_chars(img):
     last = contours.pop(0)
     chain = [last]
     while len(contours) > 0:
-        cnt = find_nearest(last, contours)
+        cnt = find_nearest_contour(last, contours)
 
         if cnt is None:
             raise(Exception('Error! Contours length: %d' % len(contours)))
@@ -372,7 +275,7 @@ def smooth_contours(img):
     return erosion_img
 
 
-def find_nearest(head_cnt, contours, min_dist=15):
+def find_nearest_contour(head_cnt, contours, min_dist=15):
     """Find nearest contour to current head contour."""
     best_cnt = None
     for cnt in contours:
@@ -487,7 +390,118 @@ def export_braille_data(file_name, braille_arr):
 def export_normal_vec_arr(file_name, arr):
     """Export braille data to file."""
     height, width, vec_dim = arr.shape
-    np.savetxt(file_name+'.norm', arr.reshape([height, width*vec_dim]), fmt='%.04f')
+    np.savetxt(file_name, arr.reshape([height, width*vec_dim]), fmt='%.04f')
+
+
+def inspect(grid, normal_vec_arr, contour, terminal_img, gray_img, contours_img):
+    """Inspect images and calculated data."""
+    cv2.imshow('ASCII image', terminal_img)
+
+    # Draw grid and markers cells.
+    # grid_img = cv2.cvtColor(terminal_img, cv2.COLOR_GRAY2RGB)
+    grid_img = np.copy(terminal_img)
+    draw_cell(grid_img, grid.start, grid)
+    draw_grid(grid_img, grid)
+    cv2.imshow('Grid and markers', grid_img)
+
+    cv2.imshow('Contours', contours_img)
+
+    # Braille dots in place where normal vector will be calculated
+    dots_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+    draw_braille_dots(dots_img, normal_vec_arr, grid)
+    cv2.imshow('Braille dots', dots_img)
+
+    # Normal vectors perpendicular to the surface
+    normal_vec_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+    draw_braille_normal_vec(normal_vec_img, normal_vec_arr, grid)
+    draw_contour(normal_vec_img, contour)
+    cv2.imshow('Normal vectors', normal_vec_img)
+
+
+def draw_cell(img, pt, grid, xor_value=158):
+    """
+    Mark screen cell with some color (xor with original color value).
+    """
+    val = np.array([xor_value, xor_value, xor_value]).astype(img.dtype)
+    for x in range(pt.x, pt.x + grid.cell.width):
+        for y in range(pt.y, pt.y + grid.cell.height):
+            img[y, x] ^= val
+
+
+def draw_grid(img, grid):
+    """
+    Draw grid that separate cells.
+    """
+    for x in range(grid.start.x, grid.end.x + 1, grid.cell.width):
+        cv2.line(img, (x, grid.start.y), (x, grid.end.y), BLUE_3D, 1)
+
+    for y in range(grid.start.y, grid.end.y + 1, grid.cell.height):
+        cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE_3D, 1)
+
+
+def draw_braille_dots(img, arr, grid):
+    """
+    Draw dot for each "not zero" element of array.
+    """
+    foreach_arr_elements(img, arr, grid, draw_dot)
+
+
+def draw_braille_normal_vec(img, arr, grid):
+    """
+    Draw perpendicular vector to the surface, where surface is every "non zero"
+    of array (array with normal vectors). Normal vectors are multiply by some
+    VEC_FACTOR, to be better visible.
+    """
+    foreach_arr_elements(img, arr, grid, draw_norm_vec)
+
+
+def foreach_arr_elements(img, arr, grid, draw_func):
+    """
+    Call draw_func() for each "non zero" array element.
+    """
+    x_samples = ((grid.end.x - grid.start.x)/grid.cell.width) * SCR_CELL_SIZE.width
+    y_samples = ((grid.end.y - grid.start.y)/grid.cell.height) * SCR_CELL_SIZE.height
+
+    for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
+        for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
+            if np.any(arr[by, bx]):
+                draw_func(img, field_pt=Point(x, y), normal_vec=arr[by, bx], grid=grid)
+
+
+def draw_dot(img, field_pt, normal_vec, grid):
+    """
+    Draw dot (braille dot) at given point.
+    """
+    dot_field_size = Size(grid.cell.height/SCR_CELL_SIZE.height,
+                          grid.cell.width/SCR_CELL_SIZE.width)
+    center = Point(int(field_pt.x + dot_field_size.width//2),
+                   int(field_pt.y + dot_field_size.height//2))
+    cv2.circle(img, center, radius=2, color=RED_3D, thickness=-1)
+
+
+def draw_norm_vec(img, field_pt, normal_vec, grid):
+    """
+    Draw vector (normal_vec) at given point. Basically normal_vec will be
+    multiplied by VEC_FACTOR to be better visible.
+    """
+    dot_field_size = Size(grid.cell.height/SCR_CELL_SIZE.height,
+                          grid.cell.width/SCR_CELL_SIZE.width)
+
+    start = Point(int(field_pt.x + dot_field_size.width//2),
+                  int(field_pt.y + dot_field_size.height//2))
+    # Y with minus, because OpenCV use different coordinates order
+    vec_end = Point(normal_vec[1], -normal_vec[0])
+    end = Point(start.x + int(vec_end.x*VEC_FACTOR),
+                start.y + int(vec_end.y*VEC_FACTOR))
+    cv2.line(img, start, end, GREEN_3D, 1)
+
+
+def draw_contour(img, contour):
+    """
+    Connect all contours point with lines.
+    """
+    for c in contour:
+        img[c.y, c.x] = YELLOW_3D
 
 
 if __name__ == '__main__':
