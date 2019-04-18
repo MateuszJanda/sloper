@@ -84,7 +84,7 @@ def interpret_args():
         default=30, dest='threshold',
         help='Threshold value')
     parser.add_argument('-f', '--truetype-font', metavar='file', required=False,
-        default='UbuntuMono-R', dest='truetype_file',
+        default='UbuntuMono-R', dest='font',
         help='TryType font file')
     parser.add_argument('-s', '--font-size', metavar='size', required=False,
         default=17, dest='font_size',

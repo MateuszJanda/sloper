@@ -707,7 +707,12 @@ def resolve_collisions(dt, collisions):
     Speculative contacts solver.
 
     References:
+    https://en.wikipedia.org/wiki/Collision_response#Impulse-based_reaction_model
     https://wildbunny.co.uk/blog/2011/03/25/speculative-contacts-an-continuous-collision-engine-approach-part-1/
+    http://twvideo01.ubm-us.net/o1/vault/gdc2013/slides/824737Catto_Erin_PhysicsForGame.pdf
+    https://github.com/mattleibow/jitterphysics/wiki/Speculative-Contacts
+    https://github.com/pratik2709/Speculative-Contacts
+    https://codepen.io/kenjiSpecial/pen/bNJQKQ
     """
     for _, c in it.product(range(NUM_ITERATION), collisions):
         # Body collide with screen borders
