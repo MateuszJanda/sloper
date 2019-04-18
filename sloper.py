@@ -27,37 +27,48 @@ YELLOW_3D = (0, 255, 255)
 
 
 def main():
-    args = interpret_args()
+    # args = interpret_args()
 
     file_name = 'ascii_fig.png'
-    term_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
+    terminal_img = cv2.imread(file_name, cv2.IMREAD_GRAYSCALE)
 
     # Processing should be on the image with a black background and white
     # foreground
-    _, gray_img = cv2.threshold(src=term_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
+    _, gray_img = cv2.threshold(src=terminal_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
 
     grid = grid_data(gray_img)
     erase_calibration_area(gray_img)
 
-    cont_img = connect_nearby_chars(gray_img)
-    cont_img = smooth_contours(cont_img)
-    contour = contour_points(cont_img)
+    contours_img = connect_nearby_chars(gray_img)
+    contours_img = smooth_contours(contours_img)
+    contour = contour_points(contours_img)
     normal_vec_arr = approximate_surface_slopes(contour, grid)
 
     braille_arr = braille_array(gray_img, grid)
     export_braille_data(file_name, braille_arr)
     export_normal_vec_arr(file_name, normal_vec_arr)
 
-    debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    # draw_filled_cell(term_img, grid.start, grid)
-    # draw_braille_dots(debug_img, normal_vec_arr, grid)
-    draw_braille_normal_vec(debug_img, normal_vec_arr, grid)
-    # draw_grid(debug_img, grid)
-    draw_contour(debug_img, contour)
+    # For inspection/debug purpose
+    cv2.imshow('ASCII image', terminal_img)
 
-    cv2.imshow('Normal vectors', debug_img)
-    cv2.imshow('ASCII image', term_img)
-    cv2.imshow('Contours', cont_img)
+    # Draw grid and markers cells.
+    grid_img = cv2.cvtColor(terminal_img, cv2.COLOR_GRAY2RGB)
+    draw_cell(grid_img, grid.start, grid)
+    draw_grid(grid_img, grid)
+    cv2.imshow('Grid and markers', grid_img)
+
+    cv2.imshow('Contours', contours_img)
+
+    # Braille dots in place where normal vector will be calculated
+    dots_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+    draw_braille_dots(dots_img, normal_vec_arr, grid)
+    cv2.imshow('Braille dots', dots_img)
+
+    # Normal vectors perpendicular to the surface
+    normal_vec_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+    draw_braille_normal_vec(normal_vec_img, normal_vec_arr, grid)
+    draw_contour(normal_vec_img, contour)
+    cv2.imshow('Normal vectors', normal_vec_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -185,17 +196,18 @@ def erase_calibration_area(img):
     cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK_1D, cv2.FILLED)
 
 
-def draw_filled_cell(img, pt, grid):
-    """For DEBUG
-    Fill screen cell with color.
+def draw_cell(img, pt, grid, xor_value=158):
     """
+    Mark screen cell with some color (xor with original color value).
+    """
+    val = np.array([xor_value, xor_value, xor_value]).astype(img.dtype)
     for x in range(pt.x, pt.x + grid.cell.width):
         for y in range(pt.y, pt.y + grid.cell.height):
-            img[y, x] ^= 158
+            img[y, x] ^= val
 
 
 def draw_grid(img, grid):
-    """For DEBUG
+    """
     Draw grid that separate cells.
     """
     for x in range(grid.start.x, grid.end.x + 1, grid.cell.width):
@@ -206,7 +218,7 @@ def draw_grid(img, grid):
 
 
 def draw_braille_dots(img, arr, grid):
-    """For DEBUG
+    """
     Draw dot for each "not zero" element of array.
     """
     foreach_arr_elements(img, arr, grid, draw_dot)
@@ -341,12 +353,12 @@ def connect_nearby_chars(img):
                 break
         last = cnt
 
-    cont_img = np.zeros_like(gray_img)
+    contours_img = np.zeros_like(gray_img)
 
     approx = cv2.approxPolyDP(np.vstack(chain), epsilon=2, closed=True)
-    cv2.drawContours(cont_img, [approx], -1, WHITE_1D, 1)
+    cv2.drawContours(contours_img, [approx], -1, WHITE_1D, 1)
 
-    return cont_img
+    return contours_img
 
 
 def smooth_contours(img):
@@ -376,8 +388,8 @@ def find_nearest(head_cnt, contours, min_dist=15):
 
 def contour_points(img):
     """Get list of start/end point off all contours."""
-    cont_img = np.copy(img)
-    contours, _ = cv2.findContours(cont_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    contours_img = np.copy(img)
+    contours, _ = cv2.findContours(contours_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
     return [Point(c[0, 0], c[0, 1]) for c in np.vstack(contours)]
 
 
