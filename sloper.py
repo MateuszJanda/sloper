@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import argparse
+from PIL import Image, ImageDraw, ImageFont
 import collections as co
 import itertools as it
 import numpy as np
@@ -13,7 +14,7 @@ Size = co.namedtuple('Size', ['height', 'width'])
 Grid = co.namedtuple('Grid', ['start', 'end', 'cell'])
 
 
-CALIBRATION_AREA_SIZE = 40
+CALIBRATION_AREA_SIZE = 60
 VEC_FACTOR = 20
 SCR_CELL_SIZE = Size(height=4, width=2)
 VECTOR_DIM = 2
@@ -21,6 +22,8 @@ VECTOR_DIM = 2
 BLACK_1D = 0
 WHITE_1D = 255
 BLUE_3D = (255, 0, 0)
+WHITE_3D = (255, 255, 255)
+BLACK_3D = (0, 0, 0)
 RED_3D = (0, 0, 255)
 GREEN_3D = (0, 255, 0)
 YELLOW_3D = (0, 255, 255)
@@ -32,9 +35,13 @@ def main():
     class A():
         pass
     args = A()
-    args.img_file = 'ascii_fig.png'
+    # args.img_file = 'ascii_fig.png'
+    args.ascii_file = 'ascii_fig.txt'
     args.out_file = 'ascii_fig.png.norm'
-    terminal_img, gray_img = create_terminal_img(args)
+    args.threshold = 30
+    args.font = 'UbuntuMono-R'
+    args.font_size = 17
+    terminal_img, gray_img = get_input_img(args)
 
     grid = grid_data(gray_img)
     erase_calibration_area(gray_img)
@@ -86,13 +93,25 @@ def interpret_args():
     return args
 
 
-def create_terminal_img(args):
-    # if hasattr(args, 'img_file'):
-    terminal_img = cv2.imread(args.img_file, cv2.IMREAD_COLOR)
+def get_input_img(args):
+    if hasattr(args, 'img_file'):
+        terminal_img = cv2.imread(args.img_file, cv2.IMREAD_COLOR)
+    else:
+        pil_img = Image.new('RGB', color=BLACK_3D, size=(400, 400))
+        draw = ImageDraw.Draw(pil_img)
+        font = ImageFont.truetype(args.font, size=args.font_size)
+
+        with open(args.ascii_file, 'r') as f:
+            draw.text(xy=(0, 0), text=f.read(), font=font, fill=WHITE_3D)
+
+        terminal_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+
     grid_img = cv2.cvtColor(terminal_img, cv2.COLOR_RGB2GRAY)
-    _, gray_img = cv2.threshold(src=grid_img, thresh=30, maxval=255, type=cv2.THRESH_BINARY)
+    _, gray_img = cv2.threshold(src=grid_img, thresh=args.threshold,
+        maxval=255, type=cv2.THRESH_BINARY)
 
     return terminal_img, gray_img
+
 
 def grid_data(img):
     """
