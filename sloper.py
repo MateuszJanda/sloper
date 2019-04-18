@@ -51,7 +51,7 @@ def main():
     contour = contour_points(contours_img)
     normal_vec_arr = approximate_surface_slopes(contour, grid)
 
-    braille_arr = braille_array(gray_img, grid)
+    # braille_arr = braille_array(gray_img, grid)
     # export_braille_data(args.out_file, braille_arr)
     export_normal_vec_arr(args.out_file, normal_vec_arr)
 
