@@ -371,6 +371,7 @@ def inspect(grid, normal_vec_arr, contour, terminal_img, gray_img, contours_img)
     grid_img = np.copy(terminal_img)
     draw_cell(grid_img, grid.start, grid)
     draw_grid(grid_img, grid)
+    draw_normal_vec_array_shape(grid_img, grid, normal_vec_arr)
     cv2.imshow('Grid and markers', grid_img)
 
     cv2.imshow('Contours', contours_img)
@@ -406,6 +407,19 @@ def draw_grid(img, grid):
 
     for y in range(grid.start.y, grid.end.y + 1, grid.cell.height):
         cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE_3D, 1)
+
+
+def draw_normal_vec_array_shape(img, grid, normal_vec_arr):
+    """
+    Draw normal vector array shape on grid.
+    """
+    end_pt = Point(grid.start.x + grid.cell.width * normal_vec_arr.shape[1] // SCR_CELL_SIZE.width,
+                   grid.start.y + grid.cell.height * normal_vec_arr.shape[0] // SCR_CELL_SIZE.height)
+
+    cv2.line(img, (grid.start.x, grid.start.y), (grid.start.x, end_pt.y), RED_3D, 1)
+    cv2.line(img, (grid.start.x, grid.start.y), (end_pt.x, grid.start.y), RED_3D, 1)
+    cv2.line(img, (grid.start.x, end_pt.y), (end_pt.x, end_pt.y), RED_3D, 1)
+    cv2.line(img, (end_pt.x, grid.start.y), (end_pt.x, end_pt.y), RED_3D, 1)
 
 
 def draw_braille_dots(img, arr, grid):
