@@ -575,14 +575,18 @@ def assert_that(condition):
 
 
 def adjust_array(global_shape, arr, shift):
-    """Adjust array (obstacle) and shift, when obstacle is out of screen."""
+    """
+    Adjust array (obstacle) and shift, when obstacle is out of screen or
+    overlaps the wall.
+    """
     if shift[1] > global_shape[1] or \
-      global_shape[0] - new_arr.shape[0] + shift[0] > global_shape[0]:
+      global_shape[0] - arr.shape[0] + shift[0] > global_shape[0]:
         return None, (0, 0)
 
     new_arr = np.copy(arr)
     shift_y, shift_x = shift
 
+    # Overlapping with left or right wall
     y = global_shape[0] - new_arr.shape[0] + shift[0]
     if y < 0:
         new_arr = new_arr[-y:, :]
@@ -590,6 +594,7 @@ def adjust_array(global_shape, arr, shift):
         new_arr = new_arr[:new_arr.shape[0]-shift[0], :]
         shift_y = 0
 
+    # Overlapping with top or bottom wall
     if shift[1] < 0:
         new_arr = new_arr[:, -shift[1]:]
         shift_x = 0
