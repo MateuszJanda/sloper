@@ -350,11 +350,12 @@ def approximate_surface_slopes(contour, grid):
     height = ((border_pt.y + 1) // SCR_CELL_SIZE.height) * SCR_CELL_SIZE.height
     width = ((border_pt.x + 1) // SCR_CELL_SIZE.width) * SCR_CELL_SIZE.width
 
-    del_rows = [idx for idx in range(width, normal_vec_arr.shape[1])]
-    normal_vec_arr = np.delete(normal_vec_arr, del_rows, axis=1)
+    del_rows = [r for r in range(height, normal_vec_arr.shape[0])]
+    normal_vec_arr = np.delete(normal_vec_arr, del_rows, axis=0)
 
-    del_columns = [idx for idx in range(height, normal_vec_arr.shape[0])]
-    normal_vec_arr = np.delete(normal_vec_arr, del_columns, axis=0)
+    del_columns = [c for c in range(width, normal_vec_arr.shape[1])]
+    normal_vec_arr = np.delete(normal_vec_arr, del_columns, axis=1)
+
     print('[+] Array with normal vectors shape:', normal_vec_arr.shape)
     print('[+] Array with normal vectors size:', Size(*normal_vec_arr.shape[:2]))
 
