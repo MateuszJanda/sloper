@@ -12,8 +12,7 @@ ANIMATION_TIME = 3  # [sec]
 
 
 def main(scr):
-    ae.setup_curses(scr)
-    ae.setup_telemetry(enable=True, terminal='/dev/pts/3')
+    ae.setup(scr, enable=True, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
     bodies = create_bodies(count=200)
