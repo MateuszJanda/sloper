@@ -36,17 +36,19 @@ def main():
         pass
     args = A()
     # args.img_file = 'ascii_fig.png'
-    args.ascii_file = 'ascii_fig.txt'
+    # args.ascii_file = 'ascii_fig.txt'
+    args.ascii_file = 'rect.txt'
     args.out_file = 'ascii_fig.norm'
     args.threshold = 30
     args.font = 'UbuntuMono-R'
     args.font_size = 17
+    args.radius = 15
     terminal_img, gray_img = get_input_img(args)
 
     grid = grid_data(gray_img)
     erase_calibration_area(gray_img)
 
-    contours_img = connect_nearby_chars(gray_img)
+    contours_img = connect_nearby_chars(gray_img, args.radius)
     contours_img = smooth_contours(contours_img)
     contour = contour_points(contours_img)
     normal_vec_arr = approximate_surface_slopes(contour, grid)
@@ -91,6 +93,9 @@ def interpret_args():
     parser.add_argument('-s', '--font-size', metavar='size', required=False,
         default=17, dest='font_size',
         help='TryType font size')
+    parser.add_argument('-r', '--radius', metavar='radius', required=False,
+        default=15, dest='radius',
+        help='Radius to nearest neighbor')
 
     args = parser.parse_args()
     return args
@@ -260,7 +265,7 @@ def erase_calibration_area(img):
     cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK_1D, cv2.FILLED)
 
 
-def connect_nearby_chars(img):
+def connect_nearby_chars(img, radius=15):
     """
     Connect nearby contours (ASCII characters).
 
@@ -276,7 +281,7 @@ def connect_nearby_chars(img):
     last = contours.pop(0)
     chain = [last]
     while len(contours) > 0:
-        cnt = find_nearest_contour(last, contours)
+        cnt = find_nearest_contour(last, contours, min_dist=radius)
 
         if cnt is None:
             raise(Exception('Error! Contours length: %d' % len(contours)))
