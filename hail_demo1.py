@@ -15,7 +15,7 @@ def main(scr):
     ae.setup(scr, enable=True, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
-    bodies = create_bodies(count=200)
+    bodies = create_bodies(count=30)
 
     dt = 1/REFRESH_RATE
 
@@ -40,7 +40,6 @@ def main(scr):
             screen.refresh()
 
             delay = max(0, dt - (time.time() - tic))
-            # ae.telemetry_log(delay)
             time.sleep(delay)
             t += dt
 
@@ -52,11 +51,12 @@ def create_scene(scr):
 
     im = ae.Importer()
 
-    ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
-    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(0, 25))
+    # ascii_arr, norm_arr = im.load('umbrella.txt', 'umbrella.norm')
+    # add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(0, 15))
 
-    ascii_arr, norm_arr = im.load('rect.txt', 'out.norm')
-    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-1, -1))
+    ascii_arr, norm_arr = im.load('rect.txt', 'rect.norm')
+    # add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-1, -1))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(1, -1))
 
     return screen, terrain
 
@@ -78,7 +78,7 @@ def create_bodies(count):
     idx = 0
     while idx < count:
         y = height - random.randint(2, 20)
-        x = random.randint(1, width)
+        x = random.randint(1, 30)
 
         if (y, x) in visited:
             continue

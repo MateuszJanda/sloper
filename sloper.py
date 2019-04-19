@@ -35,11 +35,13 @@ def main():
     class A():
         pass
     args = A()
-    # args.img_file = 'ascii_fig.png'
-    args.ascii_file = 'ascii_fig.txt'
+    # args.img_file = 'umbrella.png'
+    args.ascii_file = 'umbrella.txt'
+    args.out_file = 'umbrella.norm'
+
     # args.ascii_file = 'rect.txt'
     # args.out_file = 'rect.norm'
-    args.out_file = 'out.norm'
+
     args.threshold = 30
     args.font = 'UbuntuMono-R'
     args.font_size = 17

@@ -59,11 +59,12 @@ class Screen:
         Add static element to screen buffer. By default array will be drawn in
         bottom left corner.
         """
-        ascii_arr, scr_shift = adjust_array(ascii_arr, scr_shift)
+        ascii_arr, scr_shift = adjust_array(self._bg_buf.shape, ascii_arr, scr_shift)
 
         height, width = ascii_arr.shape
         for y, x in np.argwhere(ascii_arr!=' '):
             scr_pos = ta.array([self._bg_buf.shape[0] - height + y, x]) + scr_shift
+            log('scr_pos', scr_pos)
             self._bg_buf[scr_pos[0], scr_pos[1]] = ascii_arr[y, x]
 
         self._save_background_backup()
@@ -75,7 +76,7 @@ class Screen:
         bottom left corner.
         """
         arr_shift = scr_shift * SCR_CELL_SHAPE
-        arr, arr_shift = adjust_array(arr, arr_shift)
+        arr, arr_shift = adjust_array(self._bg_buf.shape, arr, arr_shift)
 
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
@@ -289,18 +290,18 @@ class Terrain:
                                             NORM_VEC_DIM))
         self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
 
-    def add_array(self, arr, scr_shift=ta.array([0, 0])):
+    def add_array(self, arr, scr_shift=(0, 0)):
         """
         By default all arrays are drawn in bottom left corner of the screen.
         """
         arr_shift = scr_to_arr(scr_shift)
-        arr, arr_shift = adjust_array(arr, arr_shift)
+        arr, arr_shift = adjust_array(self._normal_vecs.shape, arr, arr_shift)
         arr_shape = ta.array(arr.shape[:2])
 
         x1 = arr_shift[1]
         x2 = x1 + arr_shape[1]
-        y1 = self._normal_vecs.shape[0] - arr_shape[0] - arr_shift[0]
-        y2 = self._normal_vecs.shape[0] - arr_shift[0]
+        y1 = self._normal_vecs.shape[0] - arr_shape[0] + arr_shift[0]
+        y2 = self._normal_vecs.shape[0] + arr_shift[0]
         self._normal_vecs[y1:y2, x1:x2] = arr
 
         self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
@@ -567,18 +568,33 @@ def assert_that(condition):
         pdb.set_trace()
 
 
-def adjust_array(arr, shift):
-    """Adjust array and shift, when one of shift values is negative."""
+def adjust_array(global_shape, arr, shift):
+    """Adjust array and shift, obstacle is out of screen."""
     new_arr = np.copy(arr)
-    y, x = shift
+    shift_y, shift_x = shift
 
-    if shift[0] < 0:
-        new_arr = new_arr[:new_arr.shape[0]+shift[0], :]
-        y = 0
+    log('qqq', arr.shape)
+    if shift[1] > global_shape[1] or \
+      global_shape[0] - new_arr.shape[0] + shift[0] > global_shape[0]:
+        return np.array([[]]), (0, 0)
+
+    y = global_shape[0] - new_arr.shape[0] + shift[0]
+    if y < 0:
+        new_arr = new_arr[-y:, :]
+        shift_y = 0
+    elif global_shape[0] + shift[0] > global_shape[0]:
+        new_arr = new_arr[:new_arr.shape[0]-shift[0], :]
+        shift_y = 0
+        log('xxx', y, arr.shape, new_arr.shape)
+
     if shift[1] < 0:
         new_arr = new_arr[:, -shift[1]:]
-        x = 0
-    new_shift = ta.array([y ,x])
+        shift_x = 0
+    elif new_arr.shape[1] + shift[1] > global_shape[1]:
+        new_arr = new_arr[:, :new_arr.shape[1]-shift[1]]
+        shift_x = 0
+
+    new_shift = ta.array([shift_y ,shift_x])
 
     return new_arr, new_shift
 
