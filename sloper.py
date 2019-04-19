@@ -66,9 +66,11 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
 
 def interpret_args():
     parser = argparse.ArgumentParser(
-        description='',
-        usage='',
-        epilog='',
+        description='Sloper is an application that calculate surface of ASCII-art figures.\n'
+                    'Last version you can find on github.com/MateuszJanda/sloper',
+        usage='Please try to use -h, --help for more informations',
+        epilog='Example:\n'
+               'sloper.py -i ascii_ball.txt',
         formatter_class=CustomFormatter)
 
     group = parser.add_mutually_exclusive_group(required=True)
