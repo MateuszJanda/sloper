@@ -100,14 +100,23 @@ def get_input_img(args):
     if hasattr(args, 'img_file'):
         terminal_img = cv2.imread(args.img_file, cv2.IMREAD_COLOR)
     else:
-        pil_img = Image.new('RGB', color=BLACK_3D, size=(400, 400))
+        with open(args.ascii_file, 'r') as f:
+            text = f.read()
+
+        grid, ascii_size = ascii_grid_data(text)
+        cell_size = Size(height=args.font_size+2, width=(args.font_size+2)//2)
+        width = (grid.start.x + ascii_size.width + 2) * cell_size.width
+        height = (grid.start.y + ascii_size.height + 2) * cell_size.height
+        img_size = (height, width)
+        print('[+] Estimated image size:', cell_size)
+        print('[+] Estimated image size:', Size(height, width))
+        img_size = (330, 310)
+
+        pil_img = Image.new('RGB', color=BLACK_3D, size=img_size)
         draw = ImageDraw.Draw(pil_img)
         font = ImageFont.truetype(args.font, size=args.font_size)
 
-        with open(args.ascii_file, 'r') as f:
-            text = f.read()
-            ascii_grid_data(text)
-            draw.text(xy=(2, 2), text=text, font=font, fill=WHITE_3D)
+        draw.text(xy=(2, 2), text=text, font=font, fill=WHITE_3D)
 
         terminal_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
@@ -157,7 +166,7 @@ def ascii_grid_data(text):
     for line in ascii_arr:
         print(''.join(line))
 
-    return grid
+    return grid, ascii_size
 
 
 def grid_data(img):
