@@ -133,17 +133,12 @@ def ascii_grid_data(text):
     text_size = Size(*text_arr.shape)
     print('[+] Text array size:', text_size)
 
-    ascii_arr = text_arr
+    ascii_arr = np.copy(text_arr)
     del_rows = [r for r, margin in enumerate(np.all(ascii_arr==' ', axis=0)) if margin]
     ascii_arr = np.delete(ascii_arr, del_rows, axis=1)
 
     del_columns = [c for c, margin in enumerate(np.all(ascii_arr==' ', axis=1)) if margin]
     ascii_arr = np.delete(ascii_arr, del_columns, axis=0)
-
-    ascii_size = Size(*ascii_arr.shape)
-    print('[+] ASCII array (without margin) size:', ascii_size)
-    for line in ascii_arr:
-        print(''.join(line))
 
     for x, y in it.product(range(text_size.width), range(text_size.height)):
         if text_arr[y, x] == '_':
@@ -151,11 +146,17 @@ def ascii_grid_data(text):
                 if text_arr[y+1, x] == '^' and text_arr[y, x+1] == '^':
                     start_pt = Point(x, y)
 
+    ascii_size = Size(*ascii_arr.shape)
     end_pt = Point(x=start_pt.x + ascii_size.width,
                    y=start_pt.y + ascii_size.height)
     grid = Grid(start=start_pt, end=end_pt, cell=Size(1, 1))
     print('[+] Text grid top-left pos:', grid.start)
     print('[+] Text grid bottom-right pos:', grid.end)
+
+    print('[+] ASCII array (without margin) size:', ascii_size)
+    for line in ascii_arr:
+        print(''.join(line))
+
     return grid
 
 
