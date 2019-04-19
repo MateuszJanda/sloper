@@ -60,6 +60,9 @@ class Screen:
         bottom left corner.
         """
         ascii_arr, scr_shift = adjust_array(self._bg_buf.shape, ascii_arr, scr_shift)
+        log(ascii_arr)
+        if not np.any(ascii_arr!=' '):
+            return
 
         height, width = ascii_arr.shape
         for y, x in np.argwhere(ascii_arr!=' '):
@@ -77,6 +80,8 @@ class Screen:
         """
         arr_shift = scr_shift * SCR_CELL_SHAPE
         arr, arr_shift = adjust_array(self._bg_buf.shape, arr, arr_shift)
+        if not np.any(arr):
+            return
 
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
@@ -211,7 +216,7 @@ class Body:
         """string representation of object."""
         return "Body(%d)" % self._idx
 
-    def __repr__(self):
+
         """string representation of object."""
         return "Body(%d)" % self._idx
 
@@ -296,6 +301,9 @@ class Terrain:
         """
         arr_shift = scr_to_arr(scr_shift)
         arr, arr_shift = adjust_array(self._normal_vecs.shape, arr, arr_shift)
+        if not np.any(arr):
+            return
+
         arr_shape = ta.array(arr.shape[:2])
 
         x1 = arr_shift[1]
@@ -573,10 +581,9 @@ def adjust_array(global_shape, arr, shift):
     new_arr = np.copy(arr)
     shift_y, shift_x = shift
 
-    log('qqq', arr.shape)
     if shift[1] > global_shape[1] or \
       global_shape[0] - new_arr.shape[0] + shift[0] > global_shape[0]:
-        return np.array([[]]), (0, 0)
+        return None, (0, 0)
 
     y = global_shape[0] - new_arr.shape[0] + shift[0]
     if y < 0:
@@ -585,7 +592,6 @@ def adjust_array(global_shape, arr, shift):
     elif global_shape[0] + shift[0] > global_shape[0]:
         new_arr = new_arr[:new_arr.shape[0]-shift[0], :]
         shift_y = 0
-        log('xxx', y, arr.shape, new_arr.shape)
 
     if shift[1] < 0:
         new_arr = new_arr[:, -shift[1]:]
