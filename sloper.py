@@ -72,7 +72,11 @@ def interpret_args():
                     'Last version you can find on github.com/MateuszJanda/sloper',
         usage='Please try to use -h, --help for more informations',
         epilog='Example:\n'
-               'sloper.py -i ascii_ball.txt',
+               '# Detect surface of ASCII figure saved in stext file\n'
+               'sloper.py -a ascii_ball.txt\n'
+               '\n'
+               '# Detect surface of ASCII figure saved in image\n'
+               'sloper.py -i ball.png',
         formatter_class=CustomFormatter)
 
     group = parser.add_mutually_exclusive_group(required=True)
