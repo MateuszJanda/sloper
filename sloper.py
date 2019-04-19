@@ -280,6 +280,7 @@ def approximate_surface_slopes(contour, grid):
     normal_vec_arr = np.zeros(shape=[height, width, VECTOR_DIM], dtype=np.float32)
 
     first_pt, last_pt = None, None
+    border_pt = Point(0, 0)
     normal_vec = np.array([0, 0])
     for c in contour:
         if not first_pt:
@@ -294,10 +295,25 @@ def approximate_surface_slopes(contour, grid):
             normal_vec_arr[center_pt.y, center_pt.x] = normal_vec
             first_pt = c
             last_pt = None
+            border_pt = border_point(center_pt, border_pt)
         else:
             normal_vec_arr[center_pt.y, center_pt.x] = normal_vec
             first_pt = c
             last_pt = None
+            border_pt = border_point(center_pt, border_pt)
+
+    print('Shape 1', normal_vec_arr.shape)
+    height = ((border_pt.y + 1) // SCR_CELL_SIZE.height) * SCR_CELL_SIZE.height
+    width = ((border_pt.x + 1) // SCR_CELL_SIZE.width) * SCR_CELL_SIZE.width
+    print('w h', width, height)
+    print('border_pt', border_pt)
+
+    del_rows = [idx for idx in range(width, normal_vec_arr.shape[1])]
+    normal_vec_arr = np.delete(normal_vec_arr, del_rows, axis=1)
+
+    del_columns = [idx for idx in range(height, normal_vec_arr.shape[0])]
+    normal_vec_arr = np.delete(normal_vec_arr, del_columns, axis=0)
+    print('Shape 2', normal_vec_arr.shape)
 
     return normal_vec_arr
 
@@ -354,6 +370,13 @@ def dot_field(pt, grid):
                   int(grid.start.y + (center_pt.y + 1) * height))
 
     return center_pt, tl_pt, br_pt
+
+
+def border_point(current_pt, old_pt):
+    x = current_pt.x if current_pt.x > old_pt.x else old_pt.x
+    y = current_pt.y if current_pt.y > old_pt.y else old_pt.y
+
+    return Point(x, y)
 
 
 def export_normal_vec_arr(file_name, arr):
@@ -442,11 +465,13 @@ def foreach_arr_elements(img, arr, grid, draw_func):
     """
     Call draw_func() for each "non zero" array element.
     """
-    x_samples = ((grid.end.x - grid.start.x)/grid.cell.width) * SCR_CELL_SIZE.width
-    y_samples = ((grid.end.y - grid.start.y)/grid.cell.height) * SCR_CELL_SIZE.height
+    end_x = grid.start.x + (arr.shape[1] / SCR_CELL_SIZE.width) * grid.cell.width
+    end_y = grid.start.y + (arr.shape[0] / SCR_CELL_SIZE.height) * grid.cell.height
+    samples_x = ((end_x - grid.start.x)/grid.cell.width) * SCR_CELL_SIZE.width
+    samples_y = ((end_y - grid.start.y)/grid.cell.height) * SCR_CELL_SIZE.height
 
-    for bx, x in enumerate(np.linspace(grid.start.x, grid.end.x, x_samples, endpoint=False)):
-        for by, y in enumerate(np.linspace(grid.start.y, grid.end.y, y_samples, endpoint=False)):
+    for bx, x in enumerate(np.linspace(grid.start.x, end_x, samples_x, endpoint=False)):
+        for by, y in enumerate(np.linspace(grid.start.y, end_y, samples_y, endpoint=False)):
             if np.any(arr[by, bx]):
                 draw_func(img, field_pt=Point(x, y), normal_vec=arr[by, bx], grid=grid)
 
