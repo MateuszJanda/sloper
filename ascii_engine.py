@@ -35,41 +35,10 @@ GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
 
 
-def setup_curses(scr):
-    """Setup curses screen."""
-    curses.start_color()
-    curses.use_default_colors()
-    curses.halfdelay(5)
-    curses.noecho()
-    curses.curs_set(False)
-    scr.clear()
-
-
-def setup_telemetry(enable=False, terminal='/dev/pts/1'):
-    """
-    Redirect stderr to other terminal. Run tty command, to get terminal id.
-
-    $ tty
-    /dev/pts/1
-    """
-    global TELEMETRY_MODE
-    TELEMETRY_MODE = enable
-    if TELEMETRY_MODE:
-        sys.stderr = open(terminal, 'w')
-
-
-def telemetry_log(*args, **kwargs):
-    """Print on stderr."""
-    if TELEMETRY_MODE:
-        print(*args, file=sys.stderr)
-
-
-def assert_that(condition):
-    """Assert condition, disable curses and run pdb."""
-    if not condition:
-        curses.endwin()
-        sys.stderr = sys.stdout
-        pdb.set_trace()
+def setup(scr, enable=False, terminal='/dev/pts/1'):
+    """Main setup function."""
+    setup_curses(scr)
+    setup_telemetry(enable, terminal)
 
 
 class Screen:
@@ -214,7 +183,7 @@ class Screen:
         self._curses_scr.refresh()
 
     def progress(self, current_time, total_time):
-        """Show simulation calculation progress"""
+        """Show simulation calculation progress."""
         prog = 'Progress {proc:03.2f}%: {ctime:0.2f}/{ttime:0.2f} [sec] '.format(
             proc=current_time/total_time * 100,
             ctime=current_time,
@@ -460,7 +429,7 @@ class Importer:
     def _reshape_ascii(self, ascii_fig):
         """
         Fill end of each line in ascii_fig with spaces, and convert it to
-        np.array.
+        numpy array.
         """
         max_size = 0
         for line in ascii_fig:
@@ -504,7 +473,7 @@ class Importer:
     def _remove_norm_margin(self, norm_arr):
         """
         Remove margin from array with normal vectors (line and columns with
-        np.array([0, 0]) at the edges.
+        numpy array ([0, 0]) at the edges.
         """
         if norm_arr.shape[1] % SCR_CELL_SHAPE[1] or norm_arr.shape[0] % SCR_CELL_SHAPE[0]:
             raise Exception("Arrays with normal vector can't be transformed \
@@ -545,7 +514,7 @@ class Importer:
         Print ASCII markers for cells in array with normal vectors.
         """
         ascii_markers = self._reduce_norm(norm_arr)
-        telemetry_log(ascii_markers.astype(int))
+        log(ascii_markers.astype(int))
 
     def _validate_arrays(self, ascii_arr, norm_arr):
         """Validate if both arrays describe same thing."""
@@ -555,28 +524,61 @@ class Importer:
             raise Exception('Imported arrays (ascii/norm) - mismatch size',
                 ascii_arr.shape, norm_arr_shape)
 
-        telemetry_log('Validation OK')
+        log('Validation OK')
 
 ##
 # Helper functions.
 ##
 
+def setup_curses(scr):
+    """Setup curses screen."""
+    curses.start_color()
+    curses.use_default_colors()
+    curses.halfdelay(5)
+    curses.noecho()
+    curses.curs_set(False)
+    scr.clear()
+
+
+def setup_telemetry(enable=False, terminal='/dev/pts/1'):
+    """
+    Redirect stderr to other terminal. Run tty command, to get terminal id.
+
+    $ tty
+    /dev/pts/1
+    """
+    global TELEMETRY_MODE
+    TELEMETRY_MODE = enable
+    if TELEMETRY_MODE:
+        sys.stderr = open(terminal, 'w')
+
+
+def log(*args, **kwargs):
+    """Print on stderr."""
+    if TELEMETRY_MODE:
+        print(*args, file=sys.stderr)
+
+
+def assert_that(condition):
+    """Assert condition, disable curses and run pdb."""
+    if not condition:
+        curses.endwin()
+        sys.stderr = sys.stdout
+        pdb.set_trace()
+
+
 def adjust_array(arr, shift):
+    """Adjust array and shift, when one of shift values is negative."""
     new_arr = np.copy(arr)
     y, x = shift
 
-    telemetry_log('shift1', shift)
-    telemetry_log('arr1', arr.shape)
     if shift[0] < 0:
         new_arr = new_arr[:new_arr.shape[0]+shift[0], :]
-        telemetry_log('calc', new_arr.shape[0]-shift[0])
         y = 0
     if shift[1] < 0:
         new_arr = new_arr[:, -shift[1]:]
         x = 0
     new_shift = ta.array([y ,x])
-    telemetry_log('new_shift', new_shift)
-    telemetry_log('new_arr', new_arr.shape)
 
     return new_arr, new_shift
 
@@ -671,6 +673,7 @@ def integrate(dt, bodies):
 
 
 class Collision:
+    """Collision data need to resolve collision."""
     def __init__(self, body1, body2, dist, normal_vec):
         self.body1 = body1
         self.body2 = body2
