@@ -137,8 +137,8 @@ def grid_data(img):
                    start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height)
 
     grid = Grid(start_pt, end_pt, cell_size)
-    print('[+] Cell top-left:', grid.start)
-    print('[+] Cell bottom-right:', grid.end)
+    print('[+] Grid top-left:', grid.start)
+    print('[+] Grid bottom-right:', grid.end)
     print('[+] Cell size:', grid.cell)
     return grid
 
@@ -307,18 +307,16 @@ def approximate_surface_slopes(contour, grid):
             last_pt = None
             border_pt = border_point(center_pt, border_pt)
 
-    print('Shape 1', normal_vec_arr.shape)
     height = ((border_pt.y + 1) // SCR_CELL_SIZE.height) * SCR_CELL_SIZE.height
     width = ((border_pt.x + 1) // SCR_CELL_SIZE.width) * SCR_CELL_SIZE.width
-    print('w h', width, height)
-    print('border_pt', border_pt)
 
     del_rows = [idx for idx in range(width, normal_vec_arr.shape[1])]
     normal_vec_arr = np.delete(normal_vec_arr, del_rows, axis=1)
 
     del_columns = [idx for idx in range(height, normal_vec_arr.shape[0])]
     normal_vec_arr = np.delete(normal_vec_arr, del_columns, axis=0)
-    print('Shape 2', normal_vec_arr.shape)
+    print('[+] Array with normal vectors shape:', normal_vec_arr.shape)
+    print('[+] Array with normal vectors size:', Size(*normal_vec_arr.shape[:2]))
 
     return normal_vec_arr
 
