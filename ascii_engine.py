@@ -575,13 +575,13 @@ def assert_that(condition):
 
 
 def adjust_array(global_shape, arr, shift):
-    """Adjust array and shift, obstacle is out of screen."""
-    new_arr = np.copy(arr)
-    shift_y, shift_x = shift
-
+    """Adjust array (obstacle) and shift, when obstacle is out of screen."""
     if shift[1] > global_shape[1] or \
       global_shape[0] - new_arr.shape[0] + shift[0] > global_shape[0]:
         return None, (0, 0)
+
+    new_arr = np.copy(arr)
+    shift_y, shift_x = shift
 
     y = global_shape[0] - new_arr.shape[0] + shift[0]
     if y < 0:
@@ -597,7 +597,7 @@ def adjust_array(global_shape, arr, shift):
         x = new_arr.shape[1] + shift[1] - global_shape[1]
         new_arr = new_arr[:, :new_arr.shape[1]-x]
 
-    new_shift = ta.array([shift_y ,shift_x])
+    new_shift = (shift_y ,shift_x)
 
     return new_arr, new_shift
 
