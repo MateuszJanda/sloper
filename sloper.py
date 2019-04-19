@@ -121,11 +121,26 @@ def get_input_img(args):
 def ascii_grid_data(text):
     text_width = 0
     for line in text.split('\n'):
-        text_width = len(line) if len(line) > text_width else text_width
+        text_width = max(text_width, len(line))
 
     text_height = len(text.split('\n'))
-    print('[+] Text array size:', Size(height=text_height, width=text_width))
+    text_size = Size(height=text_height, width=text_width)
+    print('[+] Text array size:', text_size)
 
+    text_arr = []
+    for line in text.split('\n'):
+        l = [ch for ch in line]
+        l += [ch for ch in (text_size.width - len(line)) * ' ']
+        text_arr.append(l)
+
+    text_arr = np.array(text_arr)
+
+
+
+
+    # for line in text_arr:
+    #     print(''.join(line))
+    # print('Shape ', text_arr.shape)
 
 
 def grid_data(img):
