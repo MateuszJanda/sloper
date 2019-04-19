@@ -90,22 +90,11 @@ class Screen:
         Add static element to screen buffer. By default array will be drawn in
         bottom left corner.
         """
-        telemetry_log('ascii_arr.shape', ascii_arr.shape)
-        h, w = scr_shift
-        if scr_shift[0] < 0:
-            ascii_arr = ascii_arr[:ascii_arr.shape[0]-scr_shift[0], :]
-            h = 0
-        if scr_shift[1] < 0:
-            ascii_arr = ascii_arr[:, -scr_shift[1]:]
-            w = 0
-        scr_shift = ta.array([h ,w])
-        telemetry_log('ascii_arr.shape', ascii_arr.shape)
+        ascii_arr, scr_shift = adjust_array(ascii_arr, scr_shift)
 
-        # telemetry_log('scr_shift', scr_shift)
         height, width = ascii_arr.shape
         for y, x in np.argwhere(ascii_arr!=' '):
             scr_pos = ta.array([self._bg_buf.shape[0] - height + y, x]) + scr_shift
-            # telemetry_log('yx', y, x)
             self._bg_buf[scr_pos[0], scr_pos[1]] = ascii_arr[y, x]
 
         self._save_background_backup()
@@ -117,6 +106,8 @@ class Screen:
         bottom left corner.
         """
         arr_shift = scr_shift * SCR_CELL_SHAPE
+        arr, arr_shift = adjust_array(arr, arr_shift)
+
         height, width, _ = arr.shape
         for x, y in it.product(range(width), range(height)):
             if np.any(arr[y, x]):
@@ -334,15 +325,7 @@ class Terrain:
         By default all arrays are drawn in bottom left corner of the screen.
         """
         arr_shift = scr_to_arr(scr_shift)
-
-        h, w = arr_shift
-        if arr_shift[0] < 0:
-            arr = arr[:arr.shape[0]-arr_shift[0], :]
-            h = 0
-        if arr_shift[1] < 0:
-            arr = arr[:, -arr_shift[1]:]
-            w = 0
-        arr_shift = ta.array([h ,w])
+        arr, arr_shift = adjust_array(arr, arr_shift)
         arr_shape = ta.array(arr.shape[:2])
 
         x1 = arr_shift[1]
@@ -577,6 +560,26 @@ class Importer:
 ##
 # Helper functions.
 ##
+
+def adjust_array(arr, shift):
+    new_arr = np.copy(arr)
+    y, x = shift
+
+    telemetry_log('shift1', shift)
+    telemetry_log('arr1', arr.shape)
+    if shift[0] < 0:
+        new_arr = new_arr[:new_arr.shape[0]+shift[0], :]
+        telemetry_log('calc', new_arr.shape[0]-shift[0])
+        y = 0
+    if shift[1] < 0:
+        new_arr = new_arr[:, -shift[1]:]
+        x = 0
+    new_shift = ta.array([y ,x])
+    telemetry_log('new_shift', new_shift)
+    telemetry_log('new_arr', new_arr.shape)
+
+    return new_arr, new_shift
+
 
 def magnitude(vec):
     """Calculate vector magnitude."""
