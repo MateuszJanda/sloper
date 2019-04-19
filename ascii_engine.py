@@ -586,7 +586,6 @@ def adjust_array(global_shape, arr, shift):
     y = global_shape[0] - new_arr.shape[0] + shift[0]
     if y < 0:
         new_arr = new_arr[-y:, :]
-        shift_y = 0
     elif global_shape[0] + shift[0] > global_shape[0]:
         new_arr = new_arr[:new_arr.shape[0]-shift[0], :]
         shift_y = 0
