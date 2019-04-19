@@ -51,8 +51,6 @@ def main():
     contour = contour_points(contours_img)
     normal_vec_arr = approximate_surface_slopes(contour, grid)
 
-    # braille_arr = braille_array(gray_img, grid)
-    # export_braille_data(args.out_file, braille_arr)
     export_normal_vec_arr(args.out_file, normal_vec_arr)
 
     # For inspection/debug purpose
@@ -202,49 +200,6 @@ def separator_height(img, under_tl_pt, under_br_pt):
 def erase_calibration_area(img):
     """Erase calibration are from image (fill are with black)."""
     cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK_1D, cv2.FILLED)
-
-
-def braille_array(img, grid):
-    """
-    Extract braille data - dots that cover chars (any pixel in dot field is
-    "non zero") in all cells.
-    """
-    height = ((grid.end.y - grid.start.y) // grid.cell.height) * SCR_CELL_SIZE.height
-    width = ((grid.end.x - grid.start.x) // grid.cell.width) * SCR_CELL_SIZE.width
-    braille_arr = np.zeros(shape=[height, width], dtype=img.dtype)
-
-    for cx, x in enumerate(range(grid.start.x, grid.end.x, grid.cell.width)):
-        for cy, y in enumerate(range(grid.start.y, grid.end.y, grid.cell.height)):
-            cell = img[y:y+grid.cell.height, x:x+grid.cell.width]
-
-            braille_cell = braille_in_cell(cell, grid)
-            x1 = cx * SCR_CELL_SIZE.width
-            x2 = cx * SCR_CELL_SIZE.width + SCR_CELL_SIZE.width
-            y1 = cy * SCR_CELL_SIZE.height
-            y2 = cy * SCR_CELL_SIZE.height + SCR_CELL_SIZE.height
-            braille_arr[y1:y2, x1:x2] = braille_cell
-
-    return braille_arr
-
-
-def braille_in_cell(cell, grid):
-    """Extract braille data - dots that cover chars from one cell."""
-    dot_field_size = Size(grid.cell.height // SCR_CELL_SIZE.height,
-                          grid.cell.width // SCR_CELL_SIZE.width)
-    braille_cell = np.zeros(shape=SCR_CELL_SIZE, dtype=cell.dtype)
-
-    for bx, x in enumerate(np.linspace(0, grid.cell.width, SCR_CELL_SIZE.width, endpoint=False)):
-        for by, y in enumerate(np.linspace(0, grid.cell.height, SCR_CELL_SIZE.height, endpoint=False)):
-            y1, y2 = int(y), int(y)+dot_field_size.height
-            x1, x2 = int(x), int(x)+dot_field_size.width
-            dot_field = cell[y1:y2, x1:x2]
-
-            if dot_field.any():
-                braille_cell[by, bx] = WHITE_1D
-            else:
-                braille_cell[by, bx] = BLACK_1D
-
-    return braille_cell
 
 
 def connect_nearby_chars(img):
@@ -399,11 +354,6 @@ def dot_field(pt, grid):
                   int(grid.start.y + (center_pt.y + 1) * height))
 
     return center_pt, tl_pt, br_pt
-
-
-def export_braille_data(file_name, braille_arr):
-    """Export braille data to file."""
-    np.savetxt(file_name+'.braille', braille_arr, fmt='%02x')
 
 
 def export_normal_vec_arr(file_name, arr):
