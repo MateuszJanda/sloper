@@ -123,19 +123,32 @@ def ascii_grid_data(text):
     for line in text.split('\n'):
         text_width = max(text_width, len(line))
 
-    text_height = len(text.split('\n'))
-    text_size = Size(height=text_height, width=text_width)
-    print('[+] Text array size:', text_size)
+    # text_height = len(text.split('\n'))
+    # text_size = Size(height=text_height, width=text_width)
+
 
     text_arr = []
     for line in text.split('\n'):
         l = [ch for ch in line]
-        l += [ch for ch in (text_size.width - len(line)) * ' ']
+        l += [ch for ch in (text_width - len(line)) * ' ']
         text_arr.append(l)
 
     text_arr = np.array(text_arr)
+    text_size = Size(*text_arr.shape)
+    print('[+] Text array size:', text_size)
 
+    for x, y in it.product(range(text_size.width), range(text_size.height)):
+        if text_arr[y, x] == '_':
+            if y+1 < text_size.height and x+1 < text_size.width:
+                if text_arr[y+1, x] == '^' and text_arr[y, x+1] == '^':
+                    start_pt = Point(x, y)
 
+    ascii_arr = text_arr
+    del_rows = [r for r, margin in enumerate(np.all(ascii_arr==' ', axis=0)) if margin]
+    ascii_arr = np.delete(ascii_arr, del_rows, axis=1)
+
+    del_columns = [c for c, margin in enumerate(np.all(ascii_arr==' ', axis=1)) if margin]
+    ascii_arr = np.delete(ascii_arr, del_columns, axis=0)
 
 
     # for line in text_arr:
