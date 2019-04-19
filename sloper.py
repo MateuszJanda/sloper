@@ -37,7 +37,7 @@ def main():
     args = A()
     # args.img_file = 'ascii_fig.png'
     args.ascii_file = 'ascii_fig.txt'
-    args.out_file = 'ascii_fig.png.norm'
+    args.out_file = 'ascii_fig.norm'
     args.threshold = 30
     args.font = 'UbuntuMono-R'
     args.font_size = 17
@@ -77,6 +77,9 @@ def interpret_args():
     group.add_argument('-i', '--image', metavar='file', dest='img_file',
         help='ASCII figure in image (with proper markers)')
 
+    parser.add_argument('-o', '--output-file', metavar='file', required=False,
+        default='output.norm', dest='out_file',
+        help='Output file with array of normal vectors')
     parser.add_argument('-t', '--threshold', metavar='value', required=False,
         default=30, dest='threshold',
         help='Threshold value')
