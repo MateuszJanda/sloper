@@ -36,9 +36,9 @@ def main():
         pass
     args = A()
     # args.img_file = 'ascii_fig.png'
-    # args.ascii_file = 'ascii_fig.txt'
-    args.ascii_file = 'rect.txt'
-    args.out_file = 'ascii_fig.norm'
+    args.ascii_file = 'ascii_fig.txt'
+    # args.ascii_file = 'rect.txt'
+    args.out_file = 'out.norm'
     args.threshold = 30
     args.font = 'UbuntuMono-R'
     args.font_size = 17
