@@ -103,7 +103,7 @@ def get_input_img(args):
         font = ImageFont.truetype(args.font, size=args.font_size)
 
         with open(args.ascii_file, 'r') as f:
-            draw.text(xy=(0, 0), text=f.read(), font=font, fill=WHITE_3D)
+            draw.text(xy=(2, 2), text=f.read(), font=font, fill=WHITE_3D)
 
         terminal_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
