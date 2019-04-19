@@ -60,14 +60,12 @@ class Screen:
         bottom left corner.
         """
         ascii_arr, scr_shift = adjust_array(self._bg_buf.shape, ascii_arr, scr_shift)
-        log(ascii_arr)
-        if not np.any(ascii_arr!=' '):
+        if ascii_arr is None:
             return
 
         height, width = ascii_arr.shape
         for y, x in np.argwhere(ascii_arr!=' '):
             scr_pos = ta.array([self._bg_buf.shape[0] - height + y, x]) + scr_shift
-            log('scr_pos', scr_pos)
             self._bg_buf[scr_pos[0], scr_pos[1]] = ascii_arr[y, x]
 
         self._save_background_backup()
@@ -80,7 +78,7 @@ class Screen:
         """
         arr_shift = scr_shift * SCR_CELL_SHAPE
         arr, arr_shift = adjust_array(self._bg_buf.shape, arr, arr_shift)
-        if not np.any(arr):
+        if arr is None:
             return
 
         height, width, _ = arr.shape
@@ -301,7 +299,7 @@ class Terrain:
         """
         arr_shift = scr_to_arr(scr_shift)
         arr, arr_shift = adjust_array(self._normal_vecs.shape, arr, arr_shift)
-        if not np.any(arr):
+        if arr is None:
             return
 
         arr_shape = ta.array(arr.shape[:2])
@@ -597,8 +595,8 @@ def adjust_array(global_shape, arr, shift):
         new_arr = new_arr[:, -shift[1]:]
         shift_x = 0
     elif new_arr.shape[1] + shift[1] > global_shape[1]:
-        new_arr = new_arr[:, :new_arr.shape[1]-shift[1]]
-        shift_x = 0
+        x = new_arr.shape[1] + shift[1] - global_shape[1]
+        new_arr = new_arr[:, :new_arr.shape[1]-x]
 
     new_shift = ta.array([shift_y ,shift_x])
 
