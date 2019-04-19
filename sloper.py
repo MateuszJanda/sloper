@@ -105,7 +105,9 @@ def get_input_img(args):
         font = ImageFont.truetype(args.font, size=args.font_size)
 
         with open(args.ascii_file, 'r') as f:
-            draw.text(xy=(2, 2), text=f.read(), font=font, fill=WHITE_3D)
+            text = f.read()
+            ascii_grid_data(text)
+            draw.text(xy=(2, 2), text=text, font=font, fill=WHITE_3D)
 
         terminal_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
@@ -114,6 +116,16 @@ def get_input_img(args):
         maxval=255, type=cv2.THRESH_BINARY)
 
     return terminal_img, gray_img
+
+
+def ascii_grid_data(text):
+    text_width = 0
+    for line in text.split('\n'):
+        text_width = len(line) if len(line) > text_width else text_width
+
+    text_height = len(text.split('\n'))
+    print('[+] Text array size:', Size(height=text_height, width=text_width))
+
 
 
 def grid_data(img):
