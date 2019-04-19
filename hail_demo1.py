@@ -13,10 +13,10 @@ ANIMATION_TIME = 3  # [sec]
 
 def main(scr):
     ae.setup_curses(scr)
-    ae.setup_telemetry(enable=False, terminal='/dev/pts/3')
+    ae.setup_telemetry(enable=True, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
-    bodies = create_bodies(count=200)
+    bodies = create_bodies(count=20)
 
     dt = 1/REFRESH_RATE
 
@@ -41,7 +41,7 @@ def main(scr):
             screen.refresh()
 
             delay = max(0, dt - (time.time() - tic))
-            ae.telemetry_log(delay)
+            # ae.telemetry_log(delay)
             time.sleep(delay)
             t += dt
 
@@ -53,9 +53,12 @@ def create_scene(scr):
 
     im = ae.Importer()
     ascii_arr, norm_arr = im.load('ascii_fig.txt', 'ascii_fig.png.norm')
+    # ascii_arr, norm_arr = im.load('rect.txt', 'out.norm')
 
-    terrain.add_array(norm_arr)
-    screen.add_ascii_array(ascii_arr)
+    scr_shift = (0, -5)
+    terrain.add_array(norm_arr, scr_shift)
+    screen.add_ascii_array(ascii_arr, scr_shift)
+    # screen.add_common_array(norm_arr, scr_shift)
 
     return screen, terrain
 
@@ -72,7 +75,7 @@ def create_bodies(count):
     idx = 0
     while idx < count:
         y = height - random.randint(2, 20)
-        x = random.randint(1, width)
+        x = random.randint(1, 40)
 
         if (y, x) in visited:
             continue

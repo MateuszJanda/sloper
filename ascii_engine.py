@@ -90,9 +90,22 @@ class Screen:
         Add static element to screen buffer. By default array will be drawn in
         bottom left corner.
         """
+        telemetry_log('ascii_arr.shape', ascii_arr.shape)
+        h, w = scr_shift
+        if scr_shift[0] < 0:
+            ascii_arr = ascii_arr[:ascii_arr.shape[0]-scr_shift[0], :]
+            h = 0
+        if scr_shift[1] < 0:
+            ascii_arr = ascii_arr[:, -scr_shift[1]:]
+            w = 0
+        scr_shift = ta.array([h ,w])
+        telemetry_log('ascii_arr.shape', ascii_arr.shape)
+
+        # telemetry_log('scr_shift', scr_shift)
         height, width = ascii_arr.shape
         for y, x in np.argwhere(ascii_arr!=' '):
             scr_pos = ta.array([self._bg_buf.shape[0] - height + y, x]) + scr_shift
+            # telemetry_log('yx', y, x)
             self._bg_buf[scr_pos[0], scr_pos[1]] = ascii_arr[y, x]
 
         self._save_background_backup()
@@ -320,8 +333,17 @@ class Terrain:
         """
         By default all arrays are drawn in bottom left corner of the screen.
         """
-        arr_shape = ta.array(arr.shape[:2])
         arr_shift = scr_to_arr(scr_shift)
+
+        h, w = arr_shift
+        if arr_shift[0] < 0:
+            arr = arr[:arr.shape[0]-arr_shift[0], :]
+            h = 0
+        if arr_shift[1] < 0:
+            arr = arr[:, -arr_shift[1]:]
+            w = 0
+        arr_shift = ta.array([h ,w])
+        arr_shape = ta.array(arr.shape[:2])
 
         x1 = arr_shift[1]
         x2 = x1 + arr_shape[1]
@@ -739,3 +761,6 @@ def resolve_collisions(dt, collisions):
             c.body1.vel -= (c.normal_vec / c.body1.mass) * impulse
             c.body2.vel += (c.normal_vec / c.body2.mass) * impulse
 
+
+if __name__ == '__main__':
+    print('Library. Nothing to execute.')
