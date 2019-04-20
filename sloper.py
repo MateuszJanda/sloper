@@ -372,8 +372,8 @@ def approximate_surface_slopes(contour, grid):
             last_pt = None
             border_pt = border_point(center_pt, border_pt)
 
-    height = ((border_pt.y + 1) // SCR_CELL_SIZE.height) * SCR_CELL_SIZE.height
-    width = ((border_pt.x + 1) // SCR_CELL_SIZE.width) * SCR_CELL_SIZE.width
+    height = (border_pt.y // SCR_CELL_SIZE.height + 1) * SCR_CELL_SIZE.height
+    width = (border_pt.x // SCR_CELL_SIZE.width + 1) * SCR_CELL_SIZE.width
 
     del_rows = [r for r in range(height, surface_arr.shape[0])]
     surface_arr = np.delete(surface_arr, del_rows, axis=0)
