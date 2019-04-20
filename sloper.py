@@ -37,10 +37,10 @@ def main():
     args = A()
     # args.img_file = 'umbrella.png'
     args.ascii_file = 'umbrella.txt'
-    args.out_file = 'umbrella.norm'
+    args.out_file = 'umbrella.surf'
 
     # args.ascii_file = 'rect.txt'
-    # args.out_file = 'rect.norm'
+    # args.out_file = 'rect.surf'
 
     args.threshold = 30
     args.font = 'UbuntuMono-R'
@@ -54,12 +54,12 @@ def main():
     contours_img = connect_nearby_chars(gray_img, args.radius)
     contours_img = smooth_contours(contours_img)
     contour = contour_points(contours_img)
-    normal_vec_arr = approximate_surface_slopes(contour, grid)
+    surface_arr = approximate_surface_slopes(contour, grid)
 
-    export_normal_vec_arr(args.out_file, normal_vec_arr)
+    export_surface_arr(args.out_file, surface_arr)
 
     # For inspection/debug purpose
-    inspect(grid, normal_vec_arr, contour, terminal_img, gray_img, contours_img)
+    inspect(grid, surface_arr, contour, terminal_img, gray_img, contours_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -89,8 +89,8 @@ def interpret_args():
         help='ASCII figure in image (with proper markers)')
 
     parser.add_argument('-o', '--output-file', metavar='file', required=False,
-        default='output.norm', dest='out_file',
-        help='Output file with array of normal vectors')
+        default='output.surf', dest='out_file',
+        help='Output file for surface array')
     parser.add_argument('-t', '--threshold', metavar='value', required=False,
         default=30, dest='threshold',
         help='Threshold value')
@@ -347,7 +347,7 @@ def approximate_surface_slopes(contour, grid):
     """
     height = ((grid.end.y - grid.start.y)//grid.cell.height) * SCR_CELL_SIZE.height
     width = ((grid.end.x - grid.start.x)//grid.cell.width) * SCR_CELL_SIZE.width
-    normal_vec_arr = np.zeros(shape=[height, width, NORM_VEC_DIM], dtype=np.float32)
+    surface_arr = np.zeros(shape=[height, width, NORM_VEC_DIM], dtype=np.float32)
 
     first_pt, last_pt = None, None
     border_pt = Point(0, 0)
@@ -361,13 +361,13 @@ def approximate_surface_slopes(contour, grid):
         if in_boundaries(c, tl_pt, br_pt):
             last_pt = c
         elif last_pt:
-            normal_vec = calc_normal_unit_vec(first_pt, last_pt)
-            normal_vec_arr[center_pt.y, center_pt.x] = normal_vec
+            normal_vec = normal_unit_vec(first_pt, last_pt)
+            surface_arr[center_pt.y, center_pt.x] = normal_vec
             first_pt = c
             last_pt = None
             border_pt = border_point(center_pt, border_pt)
         else:
-            normal_vec_arr[center_pt.y, center_pt.x] = normal_vec
+            surface_arr[center_pt.y, center_pt.x] = normal_vec
             first_pt = c
             last_pt = None
             border_pt = border_point(center_pt, border_pt)
@@ -375,16 +375,16 @@ def approximate_surface_slopes(contour, grid):
     height = ((border_pt.y + 1) // SCR_CELL_SIZE.height) * SCR_CELL_SIZE.height
     width = ((border_pt.x + 1) // SCR_CELL_SIZE.width) * SCR_CELL_SIZE.width
 
-    del_rows = [r for r in range(height, normal_vec_arr.shape[0])]
-    normal_vec_arr = np.delete(normal_vec_arr, del_rows, axis=0)
+    del_rows = [r for r in range(height, surface_arr.shape[0])]
+    surface_arr = np.delete(surface_arr, del_rows, axis=0)
 
-    del_columns = [c for c in range(width, normal_vec_arr.shape[1])]
-    normal_vec_arr = np.delete(normal_vec_arr, del_columns, axis=1)
+    del_columns = [c for c in range(width, surface_arr.shape[1])]
+    surface_arr = np.delete(surface_arr, del_columns, axis=1)
 
-    print('[+] Array with normal vectors shape:', normal_vec_arr.shape)
-    print('[+] Array with normal vectors size:', Size(*normal_vec_arr.shape[:2]))
+    print('[+] Surface array shape:', surface_arr.shape)
+    print('[+] Surface array size:', Size(*surface_arr.shape[:2]))
 
-    return normal_vec_arr
+    return surface_arr
 
 
 def in_boundaries(test_pt, tl_pt, br_pt):
@@ -392,7 +392,7 @@ def in_boundaries(test_pt, tl_pt, br_pt):
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
 
-def calc_normal_unit_vec(pt1, pt2):
+def normal_unit_vec(pt1, pt2):
     """
     Calculate normal unit vector perpendicular to vector defined by two points.
     """
@@ -448,13 +448,13 @@ def border_point(current_pt, old_pt):
     return Point(x, y)
 
 
-def export_normal_vec_arr(file_name, arr):
+def export_surface_arr(file_name, arr):
     """Export braille data to file."""
     height, width, vec_dim = arr.shape
     np.savetxt(file_name, arr.reshape([height, width*vec_dim]), fmt='%.04f')
 
 
-def inspect(grid, normal_vec_arr, contour, terminal_img, gray_img, contours_img):
+def inspect(grid, surface_arr, contour, terminal_img, gray_img, contours_img):
     """Inspect images and calculated data."""
     cv2.imshow('ASCII image', terminal_img)
 
@@ -463,21 +463,21 @@ def inspect(grid, normal_vec_arr, contour, terminal_img, gray_img, contours_img)
     grid_img = np.copy(terminal_img)
     draw_cell(grid_img, grid.start, grid)
     draw_grid(grid_img, grid)
-    draw_normal_vec_array_shape(grid_img, grid, normal_vec_arr)
+    draw_surface_arr_shape(grid_img, grid, surface_arr)
     cv2.imshow('Grid and markers', grid_img)
 
     cv2.imshow('Contours', contours_img)
 
-    # Braille dots in place where normal vector will be calculated
+    # Braille dots in place where normal vector was calculated
     dots_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    draw_braille_dots(dots_img, normal_vec_arr, grid)
+    draw_braille_dots(dots_img, surface_arr, grid)
     cv2.imshow('Braille dots', dots_img)
 
     # Normal vectors perpendicular to the surface
-    normal_vec_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    draw_braille_normal_vec(normal_vec_img, normal_vec_arr, grid)
-    draw_contour(normal_vec_img, contour)
-    cv2.imshow('Normal vectors', normal_vec_img)
+    surface_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+    draw_normal_vecs(surface_img, surface_arr, grid)
+    draw_contour(surface_img, contour)
+    cv2.imshow('Normal vectors', surface_img)
 
 
 def draw_cell(img, pt, grid, xor_value=158):
@@ -501,12 +501,12 @@ def draw_grid(img, grid):
         cv2.line(img, (grid.start.x, y), (grid.end.x, y), BLUE_3D, 1)
 
 
-def draw_normal_vec_array_shape(img, grid, normal_vec_arr):
+def draw_surface_arr_shape(img, grid, surface_arr):
     """
-    Draw normal vector array shape on grid.
+    Draw surface_arr shape on grid.
     """
-    end_pt = Point(grid.start.x + grid.cell.width * normal_vec_arr.shape[1] // SCR_CELL_SIZE.width,
-                   grid.start.y + grid.cell.height * normal_vec_arr.shape[0] // SCR_CELL_SIZE.height)
+    end_pt = Point(grid.start.x + grid.cell.width * surface_arr.shape[1] // SCR_CELL_SIZE.width,
+                   grid.start.y + grid.cell.height * surface_arr.shape[0] // SCR_CELL_SIZE.height)
 
     cv2.line(img, (grid.start.x, grid.start.y), (grid.start.x, end_pt.y), RED_3D, 1)
     cv2.line(img, (grid.start.x, grid.start.y), (end_pt.x, grid.start.y), RED_3D, 1)
@@ -521,13 +521,13 @@ def draw_braille_dots(img, arr, grid):
     foreach_arr_elements(img, arr, grid, draw_dot)
 
 
-def draw_braille_normal_vec(img, arr, grid):
+def draw_normal_vecs(img, arr, grid):
     """
     Draw perpendicular vector to the surface, where surface is every "non zero"
     of array (array with normal vectors). Normal vectors are multiply by some
     VEC_FACTOR, to be better visible.
     """
-    foreach_arr_elements(img, arr, grid, draw_norm_vec)
+    foreach_arr_elements(img, arr, grid, draw_normal_vec)
 
 
 def foreach_arr_elements(img, arr, grid, draw_func):
@@ -556,7 +556,7 @@ def draw_dot(img, field_pt, normal_vec, grid):
     cv2.circle(img, center, radius=2, color=RED_3D, thickness=-1)
 
 
-def draw_norm_vec(img, field_pt, normal_vec, grid):
+def draw_normal_vec(img, field_pt, normal_vec, grid):
     """
     Draw vector (normal_vec) at given point. Basically normal_vec will be
     multiplied by VEC_FACTOR to be better visible.

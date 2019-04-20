@@ -51,10 +51,10 @@ def create_scene(scr):
 
     im = ae.Importer()
 
-    ascii_arr, norm_arr = im.load('umbrella.txt', 'umbrella.norm')
+    ascii_arr, norm_arr = im.load('umbrella.txt', 'umbrella.surf')
     add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(0, 25))
 
-    ascii_arr, norm_arr = im.load('rect.txt', 'rect.norm')
+    ascii_arr, norm_arr = im.load('rect.txt', 'rect.surf')
     add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-5, 5))
     add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(1, -1))
 
