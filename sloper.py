@@ -17,7 +17,7 @@ Grid = co.namedtuple('Grid', ['start', 'end', 'cell'])
 CALIBRATION_AREA_SIZE = 60
 VEC_FACTOR = 20
 SCR_CELL_SIZE = Size(height=4, width=2)
-VECTOR_DIM = 2
+NORM_VEC_DIM = 2
 
 BLACK_1D = 0
 WHITE_1D = 255
@@ -347,7 +347,7 @@ def approximate_surface_slopes(contour, grid):
     """
     height = ((grid.end.y - grid.start.y)//grid.cell.height) * SCR_CELL_SIZE.height
     width = ((grid.end.x - grid.start.x)//grid.cell.width) * SCR_CELL_SIZE.width
-    normal_vec_arr = np.zeros(shape=[height, width, VECTOR_DIM], dtype=np.float32)
+    normal_vec_arr = np.zeros(shape=[height, width, NORM_VEC_DIM], dtype=np.float32)
 
     first_pt, last_pt = None, None
     border_pt = Point(0, 0)
