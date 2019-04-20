@@ -388,7 +388,7 @@ def approximate_surface_slopes(contour, grid):
 
 
 def in_boundaries(test_pt, tl_pt, br_pt):
-    """Check if point in boundary."""
+    """Check if point is in boundaries."""
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
 
 
