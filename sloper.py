@@ -52,10 +52,10 @@ def main():
     erase_calibration_area(gray_img)
 
     contours_img = connect_nearby_chars(gray_img, args.radius)
-    contours_img = smooth_contours(contours_img)
+    contours_img = smooth_contours(grid, contours_img)
     contour = contour_points(contours_img)
-    surface_arr = approximate_surface_slopes(contour, grid)
 
+    surface_arr = approximate_surface_slopes(contour, grid)
     export_surface_arr(args.out_file, surface_arr)
 
     # For inspection/debug purpose
@@ -115,31 +115,43 @@ def get_input_img(args):
         with open(args.ascii_file, 'r') as f:
             text = f.read()
 
-        grid, ascii_size = ascii_grid_data(text)
-        cell_size = Size(height=args.font_size+2, width=(args.font_size+2)//2)
-        width = (grid.start.x + ascii_size.width + 2) * cell_size.width
-        height = (grid.start.y + ascii_size.height + 2) * cell_size.height
-        img_size = (height, width)
-        print('[+] Estimated image size:', cell_size)
-        print('[+] Estimated image size:', Size(height, width))
-        img_size = (330, 310)
-
-        pil_img = Image.new('RGB', color=BLACK_3D, size=img_size)
+        wh_size = estimate_ascii_img_size(text, args)
+        pil_img = Image.new('RGB', color=BLACK_3D, size=wh_size)
         draw = ImageDraw.Draw(pil_img)
         font = ImageFont.truetype(args.font, size=args.font_size)
 
         draw.text(xy=(2, 2), text=text, font=font, fill=WHITE_3D)
-
         terminal_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
-    grid_img = cv2.cvtColor(terminal_img, cv2.COLOR_RGB2GRAY)
-    _, gray_img = cv2.threshold(src=grid_img, thresh=args.threshold,
+    gray_img = cv2.cvtColor(terminal_img, cv2.COLOR_RGB2GRAY)
+    _, gray_img = cv2.threshold(src=gray_img, thresh=args.threshold,
         maxval=255, type=cv2.THRESH_BINARY)
 
     return terminal_img, gray_img
 
 
-def ascii_grid_data(text):
+def estimate_ascii_img_size(text, args):
+    grid = grid_ascii_data(text)
+    cell_size = Size(height=args.font_size+2, width=(args.font_size+2)//2)
+    width = (grid.end.x + 2) * cell_size.width
+    height = (grid.end.y + 2) * cell_size.height
+
+    img_size = Size(height, width)
+
+    print('[+] Estimated cell size:', cell_size)
+    print('[+] Estimated image size:', img_size)
+
+    return (img_size.width, img_size.height)
+
+
+def grid_ascii_data(text):
+    """
+    Calculate grid data for text/ASCII.
+    Return:
+        top-left point where first cell (grid) start
+        bottom-right point where last cell (grid) end
+        cell size (width, height), always (1, 1)
+    """
     text_width = 0
     for line in text.split('\n'):
         text_width = max(text_width, len(line))
@@ -163,11 +175,11 @@ def ascii_grid_data(text):
     print('[+] Text grid top-left pos:', grid.start)
     print('[+] Text grid bottom-right pos:', grid.end)
 
-    print('[+] ASCII array (without margin) size:', text_size)
+    print('[+] ASCII array (without margins) size:', text_size)
     for line in text_arr:
         print(''.join(line))
 
-    return grid, text_size
+    return grid
 
 
 def remove_ascii_margins(ascii_arr):
@@ -217,7 +229,7 @@ def grid_data(img):
                    start_pt.y + ((img.shape[0] - start_pt.y) // cell_size.height) * cell_size.height)
 
     grid = Grid(start_pt, end_pt, cell_size)
-    print('[+] Imaeg grid top-left pos:', grid.start)
+    print('[+] Image grid top-left pos:', grid.start)
     print('[+] Image grid bottom-right pos:', grid.end)
     print('[+] Image cell size:', grid.cell)
     return grid
@@ -306,7 +318,8 @@ def connect_nearby_chars(img, radius=15):
         cnt = find_nearest_contour(last, contours, min_dist=radius)
 
         if cnt is None:
-            raise(Exception('Error! Contours length: %d' % len(contours)))
+            print('[!] Contours length: %d' % len(contours))
+            raise Exception('Error! Contour not found. Try to change radius or font size.')
 
         chain.append(cnt)
         for i in range(len(contours)):
@@ -323,13 +336,17 @@ def connect_nearby_chars(img, radius=15):
     return contours_img
 
 
-def smooth_contours(img):
+def smooth_contours(grid, img):
     """Apply dilation and erosion to smooth contours shape."""
     kernel_dil = np.ones((3, 3), np.uint8)
     kernel_ero = np.ones((2, 2), np.uint8)
 
     dilation_img = cv2.dilate(img, kernel_dil, iterations=1)
     erosion_img = cv2.erode(dilation_img, kernel_ero, iterations=1)
+
+    # Trim image borders
+    cv2.line(erosion_img, (grid.end.x, 0), (grid.end.x, grid.end.y), BLACK_1D, 1)
+    cv2.line(erosion_img, (0, grid.end.y), (grid.end.x, grid.end.y), BLACK_1D, 1)
 
     return erosion_img
 
@@ -449,11 +466,11 @@ def dot_field(pt, grid):
 
 
 def border_point(current_pt, old_pt):
+    """Choose most bottom-right point."""
     x = current_pt.x if current_pt.x > old_pt.x else old_pt.x
     y = current_pt.y if current_pt.y > old_pt.y else old_pt.y
 
     return Point(x, y)
-
 
 
 def remove_margins(surface_arr, border_pt):
