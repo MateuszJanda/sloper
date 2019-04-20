@@ -151,34 +151,49 @@ def ascii_grid_data(text):
         text_arr.append(l)
 
     text_arr = np.array(text_arr)
-    text_size = Size(*text_arr.shape)
-    print('[+] Text array size:', text_size)
+    print('[+] Text array size:', Size(*text_arr.shape))
 
-    ascii_arr = np.copy(text_arr)
+    text_arr = remove_ascii_margins(text_arr)
+    start_pt = marker_ascii_pos(text_arr)
+
+    text_size = Size(*text_arr.shape)
+    end_pt = Point(x=start_pt.x + text_size.width,
+                   y=start_pt.y + text_size.height)
+    grid = Grid(start=start_pt, end=end_pt, cell=Size(1, 1))
+    print('[+] Text grid top-left pos:', grid.start)
+    print('[+] Text grid bottom-right pos:', grid.end)
+
+    print('[+] ASCII array (without margin) size:', text_size)
+    for line in text_arr:
+        print(''.join(line))
+
+    return grid, text_size
+
+
+def remove_ascii_margins(ascii_arr):
+    """Remove margins from ASCII array."""
     del_rows = [r for r, margin in enumerate(np.all(ascii_arr==' ', axis=0)) if margin]
     ascii_arr = np.delete(ascii_arr, del_rows, axis=1)
 
     del_columns = [c for c, margin in enumerate(np.all(ascii_arr==' ', axis=1)) if margin]
     ascii_arr = np.delete(ascii_arr, del_columns, axis=0)
 
-    for x, y in it.product(range(text_size.width), range(text_size.height)):
-        if text_arr[y, x] == '_':
-            if y+1 < text_size.height and x+1 < text_size.width:
-                if text_arr[y+1, x] == '^' and text_arr[y, x+1] == '^':
-                    start_pt = Point(x, y)
+    return ascii_arr
 
-    ascii_size = Size(*ascii_arr.shape)
-    end_pt = Point(x=start_pt.x + ascii_size.width,
-                   y=start_pt.y + ascii_size.height)
-    grid = Grid(start=start_pt, end=end_pt, cell=Size(1, 1))
-    print('[+] Text grid top-left pos:', grid.start)
-    print('[+] Text grid bottom-right pos:', grid.end)
 
-    print('[+] ASCII array (without margin) size:', ascii_size)
-    for line in ascii_arr:
-        print(''.join(line))
+def marker_ascii_pos(text_arr):
+    """
+    Find marker position in ASCII array. Markers must by placed in first
+    3x3 sub array.
+    """
+    DIM = 3
+    for x, y in it.product(range(DIM), range(DIM)):
+        if y+1 > text_arr.shape[0] or x+1 > text_arr.shape[1]:
+            continue
+        if text_arr[y, x] == '_' and text_arr[y+1, x] == '^' and text_arr[y, x+1] == '^':
+            return Point(x, y)
 
-    return grid, ascii_size
+    return None
 
 
 def grid_data(img):
@@ -379,27 +394,6 @@ def approximate_surface_slopes(contour, grid):
     return surface_arr
 
 
-def remove_margins(surface_arr, border_pt):
-    """Remove surface margins."""
-    if border_pt.y % SCR_CELL_SIZE.height:
-        height = (border_pt.y // SCR_CELL_SIZE.height + 1) * SCR_CELL_SIZE.height
-    else:
-        height = (border_pt.y // SCR_CELL_SIZE.height) * SCR_CELL_SIZE.height
-
-    if border_pt.x % SCR_CELL_SIZE.width:
-        width = (border_pt.x // SCR_CELL_SIZE.width + 1) * SCR_CELL_SIZE.width
-    else:
-        width = (border_pt.x // SCR_CELL_SIZE.width) * SCR_CELL_SIZE.width
-
-    del_rows = [r for r in range(height, surface_arr.shape[0])]
-    surface_arr = np.delete(surface_arr, del_rows, axis=0)
-
-    del_columns = [c for c in range(width, surface_arr.shape[1])]
-    surface_arr = np.delete(surface_arr, del_columns, axis=1)
-
-    return surface_arr
-
-
 def in_boundaries(test_pt, tl_pt, br_pt):
     """Check if point is in boundaries."""
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
@@ -459,6 +453,28 @@ def border_point(current_pt, old_pt):
     y = current_pt.y if current_pt.y > old_pt.y else old_pt.y
 
     return Point(x, y)
+
+
+
+def remove_margins(surface_arr, border_pt):
+    """Remove surface margins."""
+    if border_pt.y % SCR_CELL_SIZE.height:
+        height = (border_pt.y // SCR_CELL_SIZE.height + 1) * SCR_CELL_SIZE.height
+    else:
+        height = (border_pt.y // SCR_CELL_SIZE.height) * SCR_CELL_SIZE.height
+
+    if border_pt.x % SCR_CELL_SIZE.width:
+        width = (border_pt.x // SCR_CELL_SIZE.width + 1) * SCR_CELL_SIZE.width
+    else:
+        width = (border_pt.x // SCR_CELL_SIZE.width) * SCR_CELL_SIZE.width
+
+    del_rows = [r for r in range(height, surface_arr.shape[0])]
+    surface_arr = np.delete(surface_arr, del_rows, axis=0)
+
+    del_columns = [c for c in range(width, surface_arr.shape[1])]
+    surface_arr = np.delete(surface_arr, del_columns, axis=1)
+
+    return surface_arr
 
 
 def export_surface_arr(file_name, arr):
