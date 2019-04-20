@@ -39,8 +39,8 @@ def main():
     args.ascii_file = 'umbrella.txt'
     args.out_file = 'umbrella.surf'
 
-    # args.ascii_file = 'rect.txt'
-    # args.out_file = 'rect.surf'
+    # args.ascii_file = 'rect2.txt'
+    # args.out_file = 'rect2.surf'
 
     args.threshold = 30
     args.font = 'UbuntuMono-R'
@@ -372,17 +372,30 @@ def approximate_surface_slopes(contour, grid):
             last_pt = None
             border_pt = border_point(center_pt, border_pt)
 
-    height = (border_pt.y // SCR_CELL_SIZE.height + 1) * SCR_CELL_SIZE.height
-    width = (border_pt.x // SCR_CELL_SIZE.width + 1) * SCR_CELL_SIZE.width
+    surface_arr = remove_margins(surface_arr, border_pt)
+    print('[+] Surface array shape:', surface_arr.shape)
+    print('[+] Surface array size:', Size(*surface_arr.shape[:2]))
+
+    return surface_arr
+
+
+def remove_margins(surface_arr, border_pt):
+    """Remove surface margins."""
+    if border_pt.y % SCR_CELL_SIZE.height:
+        height = (border_pt.y // SCR_CELL_SIZE.height + 1) * SCR_CELL_SIZE.height
+    else:
+        height = (border_pt.y // SCR_CELL_SIZE.height) * SCR_CELL_SIZE.height
+
+    if border_pt.x % SCR_CELL_SIZE.width:
+        width = (border_pt.x // SCR_CELL_SIZE.width + 1) * SCR_CELL_SIZE.width
+    else:
+        width = (border_pt.x // SCR_CELL_SIZE.width) * SCR_CELL_SIZE.width
 
     del_rows = [r for r in range(height, surface_arr.shape[0])]
     surface_arr = np.delete(surface_arr, del_rows, axis=0)
 
     del_columns = [c for c in range(width, surface_arr.shape[1])]
     surface_arr = np.delete(surface_arr, del_columns, axis=1)
-
-    print('[+] Surface array shape:', surface_arr.shape)
-    print('[+] Surface array size:', Size(*surface_arr.shape[:2]))
 
     return surface_arr
 
