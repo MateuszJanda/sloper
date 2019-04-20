@@ -8,14 +8,14 @@ import ascii_engine as ae
 
 
 REFRESH_RATE = 30  # FPS
-ANIMATION_TIME = 10  # [sec]
+ANIMATION_TIME = 2  # [sec]
 
 
 def main(scr):
     ae.setup(scr, enable=True, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
-    bodies = create_bodies(count=2000)
+    bodies = create_bodies(count=500)
 
     dt = 1/REFRESH_RATE
 
@@ -62,7 +62,7 @@ def create_scene(scr):
 
 
 def add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift):
-    terrain.add_array(norm_arr, scr_shift)
+    terrain.add_surface_array(norm_arr, scr_shift)
     screen.add_ascii_array(ascii_arr, scr_shift)
 
 

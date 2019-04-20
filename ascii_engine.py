@@ -94,9 +94,9 @@ class Screen:
         """For DEBUG
         Redraw terrain array.
         """
-        height, width, _ = self._terrain._normal_vecs.shape
+        height, width, _ = self._terrain._surf.shape
         for x, y in it.product(range(width), range(height)):
-            if self._terrain._normal_marks[y, x]:
+            if self._terrain._surf_marks[y, x]:
                 arr_pos = ta.array([y, x])
                 pos = arr_to_phy(arr_pos)
                 self.draw_point(pos)
@@ -286,19 +286,19 @@ class Terrain:
     EMPTY = np.array([0, 0])
 
     def __init__(self):
-        normal_vecs_shape = ta.array([curses.LINES*SCR_CELL_SHAPE[0],
-                                      (curses.COLS-1)*SCR_CELL_SHAPE[1]])
-        self._normal_vecs = np.zeros(shape=(normal_vecs_shape[0],
-                                            normal_vecs_shape[1],
-                                            NORM_VEC_DIM))
-        self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
+        surf_shape = ta.array([curses.LINES*SCR_CELL_SHAPE[0],
+                               (curses.COLS-1)*SCR_CELL_SHAPE[1]])
+        self._surf = np.zeros(shape=(surf_shape[0],
+                                     surf_shape[1],
+                                     NORM_VEC_DIM))
+        self._surf_marks = np.logical_or.reduce(self._surf!=Terrain.EMPTY, axis=-1)
 
-    def add_array(self, arr, scr_shift=(0, 0)):
+    def add_surface_array(self, arr, scr_shift=(0, 0)):
         """
         By default all arrays are drawn in bottom left corner of the screen.
         """
         arr_shift = scr_to_arr(scr_shift)
-        arr, arr_shift = adjust_array(self._normal_vecs.shape, arr, arr_shift)
+        arr, arr_shift = adjust_array(self._surf.shape, arr, arr_shift)
         if arr is None:
             return
 
@@ -306,20 +306,20 @@ class Terrain:
 
         x1 = arr_shift[1]
         x2 = x1 + arr_shape[1]
-        y1 = self._normal_vecs.shape[0] - arr_shape[0] + arr_shift[0]
-        y2 = self._normal_vecs.shape[0] + arr_shift[0]
-        self._normal_vecs[y1:y2, x1:x2] = arr
+        y1 = self._surf.shape[0] - arr_shape[0] + arr_shift[0]
+        y2 = self._surf.shape[0] + arr_shift[0]
+        self._surf[y1:y2, x1:x2] = arr
 
-        self._normal_marks = np.logical_or.reduce(self._normal_vecs!=Terrain.EMPTY, axis=-1)
+        self._surf_marks = np.logical_or.reduce(self._surf!=Terrain.EMPTY, axis=-1)
 
     def cut_scrcell_box(self, scr_pos):
         """
-        Cut normal vectors sub array with dimension of one screen cell -
-        shape=(4, 2).
+        Cut surface sub array (normal vectors) with dimension of one screen
+        cell - shape=(4, 2).
         """
         arr_pos = scr_to_arr(scr_pos)
 
-        cell_box = self._normal_marks[arr_pos[0]:arr_pos[0]+SCR_CELL_SHAPE[0],
+        cell_box = self._surf_marks[arr_pos[0]:arr_pos[0]+SCR_CELL_SHAPE[0],
                                       arr_pos[1]:arr_pos[1]+SCR_CELL_SHAPE[1]]
         return cell_box
 
@@ -328,8 +328,8 @@ class Terrain:
         Return all obstacles (represented by normal vectors) in rectangle, where
         pos and prev_pos determine rectangle diagonal.
         """
-        arr_tl, arr_br = self._array_bounding_box(pos, prev_pos)
-        box = self._cut_normal_vec_box(arr_tl, arr_br)
+        arr_tl, arr_br = self._bounding_box(pos, prev_pos)
+        box = self._cut_surface_box(arr_tl, arr_br)
         box_markers = np.logical_or.reduce(box!=Terrain.EMPTY, axis=-1)
 
         result = []
@@ -343,7 +343,7 @@ class Terrain:
 
         return result
 
-    def _array_bounding_box(self, pos, prev_pos):
+    def _bounding_box(self, pos, prev_pos):
         """
         Return top-left, bottom-right position of bounding box. Function add
         extra columns and rows in each dimension.
@@ -356,17 +356,17 @@ class Terrain:
 
         return ta.array([y1-1, x1-1]), ta.array([y2+2, x2+2])
 
-    def _cut_normal_vec_box(self, arr_tl, arr_br):
+    def _cut_surface_box(self, arr_tl, arr_br):
         """
-        Cut sub array from normal vectors, where arr_tl is top-left position,
+        Cut sub array with normal vectors, where arr_tl is top-left position,
         and arr_br bottom-right position of bounding rectangle.
         """
         # Fit array corner coordinates to not go out-of-bounds
         tl = ta.array([max(arr_tl[0], 0), max(arr_tl[1], 0)])
-        br = ta.array([min(arr_br[0], self._normal_vecs.shape[0]),
-                       min(arr_br[1], self._normal_vecs.shape[1])])
+        br = ta.array([min(arr_br[0], self._surf.shape[0]),
+                       min(arr_br[1], self._surf.shape[1])])
         # Cut normal vectors from terrain array
-        box = self._normal_vecs[tl[0]:br[0], tl[1]:br[1]]
+        box = self._surf[tl[0]:br[0], tl[1]:br[1]]
 
         # If bounding box is out of terrain bounds, we need to add border
         # padding
@@ -380,14 +380,14 @@ class Terrain:
         if arr_tl[1] < 0:
             wall = np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=ta.array([0, 1]))
             box = np.concatenate((wall, box), axis=1)
-        elif arr_br[1] > self._normal_vecs.shape[1]:
+        elif arr_br[1] > self._surf.shape[1]:
             wall = np.full(shape=(box.shape[0], 1, NORM_VEC_DIM), fill_value=ta.array([0, -1]))
             box = np.concatenate((box, wall), axis=1)
 
         if arr_tl[0] < 0:
             wall = np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=ta.array([-1, 0]))
             box = np.concatenate((wall, box), axis=0)
-        elif arr_br[0] > self._normal_vecs.shape[0]:
+        elif arr_br[0] > self._surf.shape[0]:
             wall = np.full(shape=(1, box.shape[1], NORM_VEC_DIM), fill_value=ta.array([1, 0]))
             box = np.concatenate((box, wall), axis=0)
 
@@ -395,33 +395,33 @@ class Terrain:
         # value = ±√(1² + 1²) = ±0.7071
         if arr_tl[1] < 0 and arr_tl[0] < 0:
             box[0, 0] = ta.array([-0.7071, 0.7071])
-        elif arr_tl[1] < 0 and arr_br[0] > self._normal_vecs.shape[0]:
+        elif arr_tl[1] < 0 and arr_br[0] > self._surf.shape[0]:
             box[-1, 0] = ta.array([0.7071, 0.7071])
-        elif arr_br[1] > self._normal_vecs.shape[1] and arr_tl[0] < 0:
+        elif arr_br[1] > self._surf.shape[1] and arr_tl[0] < 0:
             box[0, -1] = ta.array([-0.7071, -0.7071])
-        elif arr_br[1] > self._normal_vecs.shape[1] and arr_br[0] > self._normal_vecs.shape[0]:
+        elif arr_br[1] > self._surf.shape[1] and arr_br[0] > self._surf.shape[0]:
             box[0, -1] = ta.array([0.7071, -0.7071])
 
         return box
 
 
 class Importer:
-    def load(self, ascii_file, normal_vec_file):
+    def load(self, ascii_file, surface_file):
         """Load arrays from files."""
-        ascii_arr = self._import_ascii_arr(ascii_file)
+        ascii_arr = self._import_ascii_array(ascii_file)
         ascii_arr = self._remove_ascii_marker(ascii_arr)
         ascii_arr = self._remove_ascii_margin(ascii_arr)
 
-        norm_arr = self._import_norm_arr(normal_vec_file)
-        norm_arr = self._remove_norm_margin(norm_arr)
+        surf_arr = self._import_surface_array(surface_file)
+        surf_arr = self._remove_surface_margin(surf_arr)
 
-        self._reduce_norm(norm_arr)
-        self._print_ascii_markers(norm_arr)
+        self._reduce_surf(surf_arr)
+        self._print_ascii_markers(surf_arr)
 
-        self._validate_arrays(ascii_arr, norm_arr)
-        return ascii_arr, norm_arr
+        self._validate_arrays(ascii_arr, surf_arr)
+        return ascii_arr, surf_arr
 
-    def _import_ascii_arr(self, ascii_file):
+    def _import_ascii_array(self, ascii_file):
         """Import ASCII figure from file."""
         ascii_fig = []
         with open(ascii_file, 'r') as f:
@@ -469,42 +469,42 @@ class Importer:
 
         return ascii_arr
 
-    def _import_norm_arr(self, normal_vec_file):
+    def _import_surface_array(self, surface_file):
         """Import array with normal vector."""
-        arr = np.loadtxt(normal_vec_file)
+        arr = np.loadtxt(surface_file)
         height, width = arr.shape
-        norm_arr = arr.reshape(height, width // NORM_VEC_DIM, NORM_VEC_DIM)
+        surf_arr = arr.reshape(height, width // NORM_VEC_DIM, NORM_VEC_DIM)
 
-        return norm_arr
+        return surf_arr
 
-    def _remove_norm_margin(self, norm_arr):
+    def _remove_surface_margin(self, surf_arr):
         """
         Remove margin from array with normal vectors (line and columns with
         numpy array ([0, 0]) at the edges.
         """
-        if norm_arr.shape[1] % SCR_CELL_SHAPE[1] or norm_arr.shape[0] % SCR_CELL_SHAPE[0]:
-            raise Exception("Arrays with normal vector can't be transformed \
-                to screen size buffer")
+        if surf_arr.shape[1] % SCR_CELL_SHAPE[1] or surf_arr.shape[0] % SCR_CELL_SHAPE[0]:
+            raise Exception("Arrays with surface (normal vectors) can't be " \
+                "transformed to screen size buffer")
 
-        ascii_markers = self._reduce_norm(norm_arr)
+        ascii_markers = self._reduce_surf(surf_arr)
         del_rows = [list(range(idx*SCR_CELL_SHAPE[0], idx*SCR_CELL_SHAPE[0]+SCR_CELL_SHAPE[0]))
                     for idx, margin in enumerate(np.all(ascii_markers==False, axis=1)) if margin]
-        norm_arr = np.delete(norm_arr, del_rows, axis=0)
+        surf_arr = np.delete(surf_arr, del_rows, axis=0)
 
         del_columns = [list(range(idx*SCR_CELL_SHAPE[1], idx*SCR_CELL_SHAPE[1]+SCR_CELL_SHAPE[1]))
                        for idx, margin in enumerate(np.all(ascii_markers==False, axis=0)) if margin]
-        norm_arr = np.delete(norm_arr, del_columns, axis=1)
+        surf_arr = np.delete(surf_arr, del_columns, axis=1)
 
-        return norm_arr
+        return surf_arr
 
-    def _reduce_norm(self, norm_arr):
+    def _reduce_surf(self, surf_arr):
         """
         Reduce array with normal vectors (for each braille characters), to
         "ASCII figure" array size, and mark if in "ASCII/screen cell" there
         was any character.
         """
         EMPTY_VEC = np.array([0, 0])
-        marker_arr = np.logical_or.reduce(norm_arr!=EMPTY_VEC, axis=-1)
+        marker_arr = np.logical_or.reduce(surf_arr!=EMPTY_VEC, axis=-1)
 
         result = []
         for y in range(0, marker_arr.shape[0], SCR_CELL_SHAPE[0]):
@@ -516,22 +516,22 @@ class Importer:
 
         return result
 
-    def _print_ascii_markers(self, norm_arr):
+    def _print_ascii_markers(self, surf_arr):
         """
         Print ASCII markers for cells in array with normal vectors.
         """
-        ascii_markers = self._reduce_norm(norm_arr)
+        ascii_markers = self._reduce_surf(surf_arr)
         log(ascii_markers.astype(int))
 
-    def _validate_arrays(self, ascii_arr, norm_arr):
+    def _validate_arrays(self, ascii_arr, surf_arr):
         """Validate if both arrays describe same thing."""
-        norm_arr_shape = norm_arr.shape[:2] // SCR_CELL_SHAPE
+        surf_arr_shape = surf_arr.shape[:2] // SCR_CELL_SHAPE
 
-        if np.any(ascii_arr.shape != norm_arr_shape):
-            raise Exception('Imported arrays (ascii/norm) - mismatch size',
-                ascii_arr.shape, norm_arr_shape)
+        if np.any(ascii_arr.shape != surf_arr_shape):
+            raise Exception('Imported arrays (ascii/surface) - mismatch size',
+                ascii_arr.shape, surf_arr_shape)
 
-        log('Validation OK')
+        log('Validation (ascii/surface): OK')
 
 ##
 # Helper functions.
