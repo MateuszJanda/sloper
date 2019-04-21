@@ -30,26 +30,11 @@ YELLOW_3D = (0, 255, 255)
 
 
 def main():
-    # args = interpret_args()
+    args = interpret_args()
 
     grid, surface_arr, contour = None, None, None
     terminal_img, gray_img, contours_img = None, None, None
 
-    class A():
-        pass
-    args = A()
-    # args.img_file = 'umbrella.png'
-    args.ascii_file = 'umbrella.txt'
-    args.out_file = 'umbrella.surf'
-
-    # args.ascii_file = 'rect2.txt'
-    # args.out_file = 'rect2.surf'
-
-    args.threshold = 30
-    args.font = 'UbuntuMono-R'
-    args.font_size = 17
-    args.radius = 15
-    args.calib_area = 60
     terminal_img, gray_img = get_input_img(args)
 
     try:
@@ -79,7 +64,7 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
 
 def interpret_args():
     parser = argparse.ArgumentParser(
-        description='Sloper is an application that calculate surface of ASCII-art figures.\n'
+        description='Sloper calculate surface slope of ASCII-art figures.\n'
                     'Last version you can find on github.com/MateuszJanda/sloper',
         usage='Please try to use -h, --help for more informations',
         epilog='Example:\n'
@@ -90,25 +75,22 @@ def interpret_args():
                'sloper.py -i ball.png',
         formatter_class=CustomFormatter)
 
-    exclusive = parser.add_mutually_exclusive_group(required=True)
-    image_group = exclusive.add_argument_group('Image specific parameters')
-    ascii_group = exclusive.add_argument_group('Text/ASCII specific parameters')
-
-    image_group.add_argument('-i', '--image', metavar='file', dest='img_file',
+    group = parser.add_mutually_exclusive_group(required=True)
+    group.add_argument('-i', '--image', metavar='file', dest='img_file',
         help='ASCII figure in image (with proper markers)')
-
-    ascii_group.add_argument('-a', '--file', metavar='file', dest='ascii_file',
+    group.add_argument('-a', '--ascii', metavar='file', dest='ascii_file',
         help='ASCII figure in text file (with proper markers)')
-    ascii_group.add_argument('-f', '--truetype-font', metavar='file', required=False,
-        default='UbuntuMono-R', dest='font',
-        help='TryType font file')
-    ascii_group.add_argument('-s', '--font-size', metavar='size', required=False,
-        default=17, dest='font_size',
-        help='TryType font size')
+
 
     parser.add_argument('-o', '--output-file', metavar='file', required=False,
         default='output.surf', dest='out_file',
         help='Output file for surface array')
+    parser.add_argument('-f', '--truetype-font', metavar='file', required=False,
+        default='UbuntuMono-R', dest='font',
+        help='TryType font file')
+    parser.add_argument('-s', '--font-size', metavar='size', required=False,
+        default=17, dest='font_size',
+        help='TryType font size')
     parser.add_argument('-c', '--calibration-size', metavar='size', required=False,
         dest='calib_area',
         help='Calibration area size')
