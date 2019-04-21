@@ -53,9 +53,8 @@ def main():
     finally:
         inspect(grid, args.calib_area, surface_arr, contour, terminal_img,
             gray_img, contours_img)
-
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
 
 class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescriptionHelpFormatter):
@@ -103,6 +102,9 @@ def interpret_args():
 
     args = parser.parse_args()
     estimate_calibration_area(args)
+    args.font_size = int(args.font_size)
+    args.radius = int(args.radius)
+    args.threshold = int(args.threshold)
 
     print('[+] Font size:', args.font_size)
     print('[+] Radius:', args.radius)
@@ -330,10 +332,10 @@ def connect_nearby_chars(img, radius=15):
     last = contours.pop(0)
     chain = [last]
     while len(contours) > 0:
-        cnt = find_nearest_contour(last, contours, min_dist=radius)
+        cnt = find_nearest_contour(last, contours, radius)
 
         if cnt is None:
-            print('[ ] Contours length: %d' % len(contours))
+            print('[i] Contours length: %d' % len(contours))
             raise Exception('Error! Contour not found. Try to change radius or font size.')
 
         chain.append(cnt)
@@ -366,15 +368,15 @@ def smooth_contours(grid, img):
     return erosion_img
 
 
-def find_nearest_contour(head_cnt, contours, min_dist=15):
+def find_nearest_contour(head_cnt, contours, radius=15):
     """Find nearest contour to current head contour."""
     best_cnt = None
     for cnt in contours:
         for head_pos, cnt_pos in it.product(head_cnt, cnt):
             dist = np.linalg.norm(head_pos-cnt_pos)
 
-            if abs(dist) < min_dist:
-                min_dist = abs(dist)
+            if abs(dist) < radius:
+                radius = abs(dist)
                 best_cnt = cnt
 
     return best_cnt
