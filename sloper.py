@@ -15,7 +15,6 @@ Size = co.namedtuple('Size', ['height', 'width'])
 Grid = co.namedtuple('Grid', ['start', 'end', 'cell'])
 
 
-CALIBRATION_AREA_SIZE = 60
 VEC_FACTOR = 20
 SCR_CELL_SIZE = Size(height=4, width=2)
 NORM_VEC_DIM = 2
@@ -50,11 +49,12 @@ def main():
     args.font = 'UbuntuMono-R'
     args.font_size = 17
     args.radius = 15
+    args.calib_area = 60
     terminal_img, gray_img = get_input_img(args)
 
     try:
-        grid = grid_data(gray_img)
-        erase_calibration_area(gray_img)
+        grid = grid_data(gray_img, args.calib_area)
+        erase_calibration_area(gray_img, args.calib_area)
 
         contours_img = connect_nearby_chars(gray_img, args.radius)
         contours_img = smooth_contours(grid, contours_img)
@@ -89,30 +89,53 @@ def interpret_args():
                'sloper.py -i ball.png',
         formatter_class=CustomFormatter)
 
-    group = parser.add_mutually_exclusive_group(required=True)
-    group.add_argument('-a', '--file', metavar='file', dest='ascii_file',
-        help='ASCII figure in text file (with proper markers)')
-    group.add_argument('-i', '--image', metavar='file', dest='img_file',
+    exclusive = parser.add_mutually_exclusive_group(required=True)
+    image_group = exclusive.add_argument_group('Image specific parameters')
+    ascii_group = exclusive.add_argument_group('Text/ASCII specific parameters')
+
+    image_group.add_argument('-i', '--image', metavar='file', dest='img_file',
         help='ASCII figure in image (with proper markers)')
+
+    ascii_group.add_argument('-a', '--file', metavar='file', dest='ascii_file',
+        help='ASCII figure in text file (with proper markers)')
+    ascii_group.add_argument('-f', '--truetype-font', metavar='file', required=False,
+        default='UbuntuMono-R', dest='font',
+        help='TryType font file')
+    ascii_group.add_argument('-s', '--font-size', metavar='size', required=False,
+        default=17, dest='font_size',
+        help='TryType font size')
 
     parser.add_argument('-o', '--output-file', metavar='file', required=False,
         default='output.surf', dest='out_file',
         help='Output file for surface array')
-    parser.add_argument('-t', '--threshold', metavar='value', required=False,
-        default=30, dest='threshold',
-        help='Threshold value')
-    parser.add_argument('-f', '--truetype-font', metavar='file', required=False,
-        default='UbuntuMono-R', dest='font',
-        help='TryType font file')
-    parser.add_argument('-s', '--font-size', metavar='size', required=False,
-        default=17, dest='font_size',
-        help='TryType font size')
+    parser.add_argument('-c', '--calibration-size', metavar='size', required=False,
+        dest='calib_area',
+        help='Calibration area size')
     parser.add_argument('-r', '--radius', metavar='radius', required=False,
         default=15, dest='radius',
         help='Radius to nearest neighbor')
+    parser.add_argument('-t', '--threshold', metavar='value', required=False,
+        default=30, dest='threshold',
+        help='Threshold value')
 
     args = parser.parse_args()
+    calib_area()
+
+    print('[+] Font size:', args.font_size)
+    print('[+] Radius:', arg.radius)
+    print('[+] Threshold:', arg.threshold)
+
     return args
+
+
+def calibration_area(args):
+    CALIBRATION_AREA_SIZE = 60
+    if hasattr(args, 'img_file') and not hasattr(args, 'calib_area'):
+        args.calib_area = CALIBRATION_AREA_SIZE
+    elif hasattr(args, 'ascii_file') and not hasattr(args, 'calib_area'):
+        args.calib_area = (args.font_size + 2) * 3
+
+    print('[+] Calibration area:', args.calib_area)
 
 
 def get_input_img(args):
@@ -127,7 +150,8 @@ def get_input_img(args):
         draw = ImageDraw.Draw(pil_img)
         font = ImageFont.truetype(args.font, size=args.font_size)
 
-        draw.text(xy=(2, 2), text=text, font=font, fill=WHITE_3D)
+        EXTRA_MARGINS = (2, 2)
+        draw.text(xy=EXTRA_MARGINS, text=text, font=font, fill=WHITE_3D)
         terminal_img = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
 
     gray_img = cv2.cvtColor(terminal_img, cv2.COLOR_RGB2GRAY)
@@ -138,10 +162,11 @@ def get_input_img(args):
 
 
 def estimate_ascii_img_size(text, args):
+    EXTRA = 2
     grid = grid_ascii_data(text)
-    cell_size = Size(height=args.font_size+2, width=(args.font_size+2)//2)
-    width = (grid.end.x + 2) * cell_size.width
-    height = (grid.end.y + 2) * cell_size.height
+    cell_size = Size(height=args.font_size+EXTRA, width=(args.font_size+EXTRA)//2)
+    width = (grid.end.x + EXTRA) * cell_size.width
+    height = (grid.end.y + EXTRA) * cell_size.height
 
     img_size = Size(height, width)
 
@@ -215,7 +240,7 @@ def marker_ascii_pos(text_arr):
     return None
 
 
-def grid_data(img):
+def grid_data(img, calib_area):
     """
     Calculate grid data.
     Return:
@@ -223,9 +248,9 @@ def grid_data(img):
         bottom-right point where last cell (grid) end
         cell size (width, height)
     """
-    under_tl_pt, under_br_pt = underscore_pos(img)
-    roof_pt = roof_pos(img, under_tl_pt, under_br_pt)
-    sep_height = separator_height(img, under_tl_pt, under_br_pt)
+    under_tl_pt, under_br_pt = underscore_pos(img, calib_area)
+    roof_pt = roof_pos(img, calib_area, under_tl_pt, under_br_pt)
+    sep_height = separator_height(img, calib_area, under_tl_pt, under_br_pt)
 
     width = under_br_pt.x - under_tl_pt.x + 1
     height = under_br_pt.y - roof_pt.y + sep_height
@@ -242,24 +267,24 @@ def grid_data(img):
     return grid
 
 
-def underscore_pos(img):
+def underscore_pos(img, calib_area):
     """
     Return underscore ('_') position (top-left point, bottom-right point).
     """
     under_tl_pt = None
-    for x, y in it.product(range(CALIBRATION_AREA_SIZE), range(CALIBRATION_AREA_SIZE)):
+    for x, y in it.product(range(calib_area), range(calib_area)):
         if img[y, x] != BLACK_1D:
             under_tl_pt = Point(x, y)
             break
 
     tmp = None
-    for x in range(under_tl_pt.x, CALIBRATION_AREA_SIZE):
+    for x in range(under_tl_pt.x, calib_area):
         if img[under_tl_pt.y, x] == BLACK_1D:
             break
         tmp = Point(x, under_tl_pt.y)
 
     under_br_pt = None
-    for y in range(tmp.y, CALIBRATION_AREA_SIZE):
+    for y in range(tmp.y, calib_area):
         if img[y, tmp.x] == BLACK_1D:
             break
         under_br_pt = Point(tmp.x, y)
@@ -269,13 +294,13 @@ def underscore_pos(img):
     return under_tl_pt, under_br_pt
 
 
-def roof_pos(img, under_tl_pt, under_br_pt):
+def roof_pos(img, calib_area, under_tl_pt, under_br_pt):
     """Return roof sign '^' position (the pick point)."""
-    roof_pt = Point(0, CALIBRATION_AREA_SIZE)
+    roof_pt = Point(0, calib_area)
     width = under_br_pt.x - under_tl_pt.x + 1
 
     for x in range(under_br_pt.x + 1, under_br_pt.x + width):
-        for y in range(CALIBRATION_AREA_SIZE):
+        for y in range(calib_area):
             if img[y, x] != BLACK_1D and y < roof_pt.y:
                 roof_pt = Point(x, y)
 
@@ -283,15 +308,15 @@ def roof_pos(img, under_tl_pt, under_br_pt):
     return roof_pt
 
 
-def separator_height(img, under_tl_pt, under_br_pt):
+def separator_height(img, calib_area, under_tl_pt, under_br_pt):
     """
     Return separator height between underscore '_' and bottom roof sign '^'.
     """
-    roof_pt = Point(0, CALIBRATION_AREA_SIZE)
+    roof_pt = Point(0, calib_area)
     width = under_br_pt.x - under_tl_pt.x + 1
 
     for x in range(under_tl_pt.x, under_tl_pt.x + width):
-        for y in range(under_br_pt.y + 1, CALIBRATION_AREA_SIZE):
+        for y in range(under_br_pt.y + 1, calib_area):
             if img[y, x] != BLACK_1D and y < roof_pt.y:
                 roof_pt = Point(x, y)
 
@@ -301,9 +326,9 @@ def separator_height(img, under_tl_pt, under_br_pt):
     return height
 
 
-def erase_calibration_area(img):
+def erase_calibration_area(img, calib_area):
     """Erase calibration are from image (fill are with black)."""
-    cv2.rectangle(img, (0, 0), (CALIBRATION_AREA_SIZE, CALIBRATION_AREA_SIZE), BLACK_1D, cv2.FILLED)
+    cv2.rectangle(img, (0, 0), (calib_area, calib_area), BLACK_1D, cv2.FILLED)
 
 
 def connect_nearby_chars(img, radius=15):
