@@ -39,7 +39,7 @@ def main():
 
     try:
         grid = grid_data(gray_img, args.calib_area)
-        erase_calibration_area(gray_img, args.calib_area)
+        erase_estimate_calibration_area(gray_img, args.calib_area)
 
         contours_img = connect_nearby_chars(gray_img, args.radius)
         contours_img = smooth_contours(grid, contours_img)
@@ -102,16 +102,16 @@ def interpret_args():
         help='Threshold value')
 
     args = parser.parse_args()
-    calib_area()
+    estimate_calibration_area(args)
 
     print('[+] Font size:', args.font_size)
-    print('[+] Radius:', arg.radius)
-    print('[+] Threshold:', arg.threshold)
+    print('[+] Radius:', args.radius)
+    print('[+] Threshold:', args.threshold)
 
     return args
 
 
-def calibration_area(args):
+def estimate_calibration_area(args):
     CALIBRATION_AREA_SIZE = 60
     if hasattr(args, 'img_file') and not hasattr(args, 'calib_area'):
         args.calib_area = CALIBRATION_AREA_SIZE
@@ -309,7 +309,7 @@ def separator_height(img, calib_area, under_tl_pt, under_br_pt):
     return height
 
 
-def erase_calibration_area(img, calib_area):
+def erase_estimate_calibration_area(img, calib_area):
     """Erase calibration are from image (fill are with black)."""
     cv2.rectangle(img, (0, 0), (calib_area, calib_area), BLACK_1D, cv2.FILLED)
 
@@ -520,7 +520,7 @@ def inspect(grid, calib_area, surface_arr, contour, terminal_img, gray_img, cont
     grid_img = np.copy(terminal_img)
 
     if terminal_img is not None:
-        draw_calibration_area(terminal_img, calib_area)
+        draw_estimate_calibration_area(terminal_img, calib_area)
 
     # Draw grid and markers cells.
     if not (terminal_img is None or surface_arr is None or grid is None):
@@ -546,7 +546,7 @@ def inspect(grid, calib_area, surface_arr, contour, terminal_img, gray_img, cont
         cv2.imshow('Normal vectors', surface_img)
 
 
-def draw_calibration_area(img, calib_area):
+def draw_estimate_calibration_area(img, calib_area):
     cv2.line(img, (0, calib_area), (calib_area, calib_area), YELLOW_3D, 1)
     cv2.line(img, (calib_area, 0), (calib_area, calib_area), YELLOW_3D, 1)
     cv2.imshow('ASCII image', img)
