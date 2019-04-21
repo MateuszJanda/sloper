@@ -12,7 +12,7 @@ ANIMATION_TIME = 2  # [sec]
 
 
 def main(scr):
-    ae.setup(scr, enable=True, terminal='/dev/pts/3')
+    ae.setup(scr, enable=False, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
     bodies = create_bodies(count=500)
@@ -51,10 +51,10 @@ def create_scene(scr):
 
     im = ae.Importer()
 
-    ascii_arr, norm_arr = im.load('umbrella.txt', 'umbrella.surf')
+    ascii_arr, norm_arr = im.load('ascii_data/umbrella.txt', 'ascii_data/umbrella.surf')
     add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(0, 25))
 
-    ascii_arr, norm_arr = im.load('rect.txt', 'rect.surf')
+    ascii_arr, norm_arr = im.load('ascii_data/rect.txt', 'ascii_data/rect.surf')
     add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-5, 5))
     add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(1, -1))
 
