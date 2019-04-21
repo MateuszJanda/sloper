@@ -113,16 +113,16 @@ def interpret_args():
 
 def estimate_calibration_area(args):
     CALIBRATION_AREA_SIZE = 60
-    if hasattr(args, 'img_file') and not hasattr(args, 'calib_area'):
+    if args.img_file and not args.calib_area:
         args.calib_area = CALIBRATION_AREA_SIZE
-    elif hasattr(args, 'ascii_file') and not hasattr(args, 'calib_area'):
+    elif args.ascii_file and not args.calib_area:
         args.calib_area = (args.font_size + 2) * 3
 
     print('[+] Calibration area:', args.calib_area)
 
 
 def get_input_img(args):
-    if hasattr(args, 'img_file'):
+    if args.img_file:
         terminal_img = cv2.imread(args.img_file, cv2.IMREAD_COLOR)
     else:
         with open(args.ascii_file, 'r') as f:
