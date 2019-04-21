@@ -66,7 +66,8 @@ def main():
         print('[!] Exception')
         traceback.print_exc()
     finally:
-        inspect(grid, surface_arr, contour, terminal_img, gray_img, contours_img)
+        inspect(grid, args.calib_area, surface_arr, contour, terminal_img,
+            gray_img, contours_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -532,14 +533,15 @@ def export_surface_arr(file_name, arr):
     np.savetxt(file_name, arr.reshape([height, width*vec_dim]), fmt='%.04f')
 
 
-def inspect(grid, surface_arr, contour, terminal_img, gray_img, contours_img):
+def inspect(grid, calib_area, surface_arr, contour, terminal_img, gray_img, contours_img):
     """Inspect calculated data."""
+    grid_img = np.copy(terminal_img)
+
     if terminal_img is not None:
-        cv2.imshow('ASCII image', terminal_img)
+        draw_calibration_area(terminal_img, calib_area)
 
     # Draw grid and markers cells.
     if not (terminal_img is None or surface_arr is None or grid is None):
-        grid_img = np.copy(terminal_img)
         draw_cell(grid_img, grid.start, grid)
         draw_grid(grid_img, grid)
         draw_surface_arr_shape(grid_img, grid, surface_arr)
@@ -560,6 +562,12 @@ def inspect(grid, surface_arr, contour, terminal_img, gray_img, contours_img):
         draw_normal_vecs(surface_img, surface_arr, grid)
         draw_contour(surface_img, contour)
         cv2.imshow('Normal vectors', surface_img)
+
+
+def draw_calibration_area(img, calib_area):
+    cv2.line(img, (0, calib_area), (calib_area, calib_area), YELLOW_3D, 1)
+    cv2.line(img, (calib_area, 0), (calib_area, calib_area), YELLOW_3D, 1)
+    cv2.imshow('ASCII image', img)
 
 
 def draw_cell(img, pt, grid, xor_value=158):
