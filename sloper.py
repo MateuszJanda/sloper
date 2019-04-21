@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+import traceback
 import argparse
 from PIL import Image, ImageDraw, ImageFont
 import collections as co
@@ -32,6 +33,9 @@ YELLOW_3D = (0, 255, 255)
 def main():
     # args = interpret_args()
 
+    grid, surface_arr, contour = None, None, None
+    terminal_img, gray_img, contours_img = None, None, None
+
     class A():
         pass
     args = A()
@@ -48,18 +52,21 @@ def main():
     args.radius = 15
     terminal_img, gray_img = get_input_img(args)
 
-    grid = grid_data(gray_img)
-    erase_calibration_area(gray_img)
+    try:
+        grid = grid_data(gray_img)
+        erase_calibration_area(gray_img)
 
-    contours_img = connect_nearby_chars(gray_img, args.radius)
-    contours_img = smooth_contours(grid, contours_img)
-    contour = contour_points(contours_img)
+        contours_img = connect_nearby_chars(gray_img, args.radius)
+        contours_img = smooth_contours(grid, contours_img)
+        contour = contour_points(contours_img)
 
-    surface_arr = approximate_surface_slopes(contour, grid)
-    export_surface_arr(args.out_file, surface_arr)
-
-    # For inspection/debug purpose
-    inspect(grid, surface_arr, contour, terminal_img, gray_img, contours_img)
+        surface_arr = approximate_surface_slopes(contour, grid)
+        export_surface_arr(args.out_file, surface_arr)
+    except:
+        print('[!] Exception')
+        traceback.print_exc()
+    finally:
+        inspect(grid, surface_arr, contour, terminal_img, gray_img, contours_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -318,7 +325,7 @@ def connect_nearby_chars(img, radius=15):
         cnt = find_nearest_contour(last, contours, min_dist=radius)
 
         if cnt is None:
-            print('[!] Contours length: %d' % len(contours))
+            print('[ ] Contours length: %d' % len(contours))
             raise Exception('Error! Contour not found. Try to change radius or font size.')
 
         chain.append(cnt)
@@ -501,29 +508,33 @@ def export_surface_arr(file_name, arr):
 
 
 def inspect(grid, surface_arr, contour, terminal_img, gray_img, contours_img):
-    """Inspect images and calculated data."""
-    cv2.imshow('ASCII image', terminal_img)
+    """Inspect calculated data."""
+    if terminal_img is not None:
+        cv2.imshow('ASCII image', terminal_img)
 
     # Draw grid and markers cells.
-    # grid_img = cv2.cvtColor(terminal_img, cv2.COLOR_GRAY2RGB)
-    grid_img = np.copy(terminal_img)
-    draw_cell(grid_img, grid.start, grid)
-    draw_grid(grid_img, grid)
-    draw_surface_arr_shape(grid_img, grid, surface_arr)
-    cv2.imshow('Grid and markers', grid_img)
+    if not (terminal_img is None or surface_arr is None or grid is None):
+        grid_img = np.copy(terminal_img)
+        draw_cell(grid_img, grid.start, grid)
+        draw_grid(grid_img, grid)
+        draw_surface_arr_shape(grid_img, grid, surface_arr)
+        cv2.imshow('Grid and markers', grid_img)
 
-    cv2.imshow('Contours', contours_img)
+    if contours_img is not None:
+        cv2.imshow('Contours', contours_img)
 
     # Braille dots in place where normal vector was calculated
-    dots_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    draw_braille_dots(dots_img, surface_arr, grid)
-    cv2.imshow('Braille dots', dots_img)
+    if not (gray_img is None or surface_arr is None or grid is None):
+        dots_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+        draw_braille_dots(dots_img, surface_arr, grid)
+        cv2.imshow('Braille dots', dots_img)
 
     # Normal vectors perpendicular to the surface
-    surface_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-    draw_normal_vecs(surface_img, surface_arr, grid)
-    draw_contour(surface_img, contour)
-    cv2.imshow('Normal vectors', surface_img)
+    if not (gray_img is None or surface_arr is None or grid is None or contour is None):
+        surface_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+        draw_normal_vecs(surface_img, surface_arr, grid)
+        draw_contour(surface_img, contour)
+        cv2.imshow('Normal vectors', surface_img)
 
 
 def draw_cell(img, pt, grid, xor_value=158):
