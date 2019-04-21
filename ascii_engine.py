@@ -521,7 +521,8 @@ class Importer:
         Print ASCII markers for cells in array with normal vectors.
         """
         ascii_markers = self._reduce_surf(surf_arr)
-        log(ascii_markers.astype(int))
+        for line in ascii_markers:
+            log(''.join(['1' if m else ' ' for m in line]))
 
     def _validate_arrays(self, ascii_arr, surf_arr):
         """Validate if both arrays describe same thing."""
