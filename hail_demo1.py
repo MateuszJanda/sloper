@@ -8,14 +8,14 @@ import ascii_engine as ae
 
 
 REFRESH_RATE = 30  # FPS
-ANIMATION_TIME = 2  # [sec]
+ANIMATION_TIME = 10  # [sec]
 
 
 def main(scr):
     ae.setup(scr, enable=False, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
-    bodies = create_bodies(count=500)
+    bodies = create_bodies(count=2000)
 
     dt = 1/REFRESH_RATE
 
@@ -51,12 +51,15 @@ def create_scene(scr):
 
     im = ae.Importer()
 
-    ascii_arr, norm_arr = im.load('ascii_data/umbrella.txt', 'ascii_data/umbrella.surf')
+    ascii_arr, norm_arr = im.load('ascii_data/umbrella.txt', 'ascii_data/umbrella-drilled.surf')
     add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(0, 25))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-2, 64))
 
     ascii_arr, norm_arr = im.load('ascii_data/rect.txt', 'ascii_data/rect.surf')
-    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-5, 5))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-7, 5))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-9, 105))
     add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(1, -1))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(3, 75))
 
     return screen, terrain
 
@@ -77,7 +80,7 @@ def create_bodies(count):
 
     idx = 0
     while idx < count:
-        y = height - random.randint(2, 20)
+        y = height - random.randint(2, 25)
         x = random.randint(1, width)
 
         if (y, x) in visited:
