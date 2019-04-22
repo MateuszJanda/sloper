@@ -8,14 +8,14 @@ import ascii_engine as ae
 
 
 REFRESH_RATE = 30  # FPS
-ANIMATION_TIME = 2  # [sec]
+ANIMATION_TIME = 10  # [sec]
 
 
 def main(scr):
     ae.setup(scr, enable=False, terminal='/dev/pts/3')
 
     screen, terrain = create_scene(scr)
-    bodies = create_bodies(count=100)
+    bodies = create_bodies(count=2000)
 
     dt = 1/REFRESH_RATE
 
@@ -52,14 +52,14 @@ def create_scene(scr):
     im = ae.Importer()
 
     ascii_arr, norm_arr = im.load('ascii_data/letter_l.txt', 'ascii_data/letter_l-drilled.surf')
-    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-8, 10))
-    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-4, 50))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-12, 40))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-8, 80))
 
     ascii_arr, norm_arr = im.load('ascii_data/letter_o.txt', 'ascii_data/letter_o-drilled.surf')
-    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-6, 30))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-10, 58))
 
     ascii_arr, norm_arr = im.load('ascii_data/cat.txt', 'ascii_data/cat-drilled.surf')
-    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(0, 3))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(0, 10))
 
     return screen, terrain
 
