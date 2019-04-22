@@ -102,10 +102,11 @@ def interpret_args():
         help='Threshold value')
 
     args = parser.parse_args()
-    estimate_calibration_area(args)
+
     args.font_size = int(args.font_size)
     args.radius = int(args.radius)
     args.threshold = int(args.threshold)
+    estimate_calibration_area(args)
 
     print('[+] Font size:', args.font_size)
     print('[+] Radius:', args.radius)
@@ -330,13 +331,18 @@ def connect_nearby_chars(img, radius=15):
     contours, _ = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # First contour position is at the bottom of image
+    print('[+] Contours count:', len(contours))
     last = contours.pop(0)
     chain = [last]
     while len(contours) > 0:
         cnt = find_nearest_contour(last, contours, radius)
 
         if cnt is None:
-            print('[i] Contours length: %d' % len(contours))
+            print('[i] Contours left:', len(contours))
+            approx = cv2.approxPolyDP(np.vstack(chain), epsilon=2, closed=True)
+            debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+            cv2.drawContours(debug_img, [approx], -1, GREEN_3D, 1)
+            cv2.imshow('Debug', debug_img)
             raise Exception('Error! Contour not found. Try to change radius or font size.')
 
         chain.append(cnt)
