@@ -68,11 +68,11 @@ def interpret_args():
         usage='Please try to use -h, --help for more informations',
         epilog='Example:\n'
                '# Detect surface of ASCII figure saved in text file\n'
-               '$ python sloper.py -a ascii_data/umbrella.txt\n'
+               '$ python sloper.py -a ascii_data/umbrella-drilled.txt\n'
                '$ python sloper.py -a ascii_data/cat-drilled.txt -r 17 -o ascii_data/cat-drilled.surf\n'
                '\n'
                '# Detect surface of ASCII figure saved in image\n'
-               '$ python sloper.py -i ascii_data/umbrella.png',
+               '$ python sloper.py -i ascii_data/umbrella-drilled.png',
         formatter_class=CustomFormatter)
 
     group = parser.add_mutually_exclusive_group(required=True)
