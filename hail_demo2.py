@@ -11,7 +11,7 @@ REFRESH_RATE = 30  # FPS
 
 
 def main(scr):
-    ae.setup(scr, enable=False, terminal='/dev/pts/3')
+    ae.setup(scr, debug=False, terminal='/dev/pts/3')
     random.seed(3300)
 
     screen, terrain = create_scene(scr)

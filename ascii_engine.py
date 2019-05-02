@@ -35,10 +35,10 @@ GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
 
 
-def setup(scr, enable=False, terminal='/dev/pts/1'):
+def setup(scr, debug=False, terminal='/dev/pts/1'):
     """Main setup function."""
     setup_curses(scr)
-    setup_telemetry(enable, terminal)
+    setup_telemetry(debug, terminal)
 
 
 class Screen:
@@ -548,7 +548,7 @@ def setup_curses(scr):
     scr.clear()
 
 
-def setup_telemetry(enable=False, terminal='/dev/pts/1'):
+def setup_telemetry(debug=False, terminal='/dev/pts/1'):
     """
     Redirect stderr to other terminal. Run tty command, to get terminal id.
 
@@ -556,7 +556,7 @@ def setup_telemetry(enable=False, terminal='/dev/pts/1'):
     /dev/pts/1
     """
     global TELEMETRY_MODE
-    TELEMETRY_MODE = enable
+    TELEMETRY_MODE = debug
     if TELEMETRY_MODE:
         sys.stderr = open(terminal, 'w')
 
