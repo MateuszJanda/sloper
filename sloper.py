@@ -1,5 +1,10 @@
 #! /usr/bin/env python3
 
+"""
+Author: Mateusz Janda <mateusz janda at gmail com>
+Site: github.com/MateuszJanda
+"""
+
 import traceback
 import argparse
 from PIL import Image, ImageDraw, ImageFont
@@ -63,7 +68,7 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
 
 def interpret_args():
     parser = argparse.ArgumentParser(
-        description='Sloper calculate surface slope of ASCII-art figures.\n'
+        description='Sloper calculate surface shape (normal vectors to the surface) of ASCII figure.\n'
                     'Last version you can find on github.com/MateuszJanda/sloper',
         usage='Please try to use -h, --help for more informations',
         epilog='Example:\n'
