@@ -22,6 +22,11 @@ _^
 ```
 Secondly, figure must be "drilled" from all characters that are not part of surface.
 
+<p align="center">
+<img src="./doc/umbrella_not_drilled.png"/>
+<img src="./doc/umbrella_drilled.png"/>
+</p>
+
 When grid and markers are calculated, sloper find nearest neighbor to each character, and join them to get figure contour.
 
 <p align="center">
