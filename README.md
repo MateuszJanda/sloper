@@ -27,7 +27,7 @@ When grid and markers are calculated, sloper find nearest neighbor to each chara
 <p align="center">
 <img src="./doc/ascii_image.png"/>
 <img src="./doc/grid_and_markers.png"/>
-<img src="./doc/doc/contours.png"/>
+<img src="./doc/contours.png"/>
 </p>
 
 Next for each point, where braille dot may appear, sloper calculate normal vector to the surface in this point.
