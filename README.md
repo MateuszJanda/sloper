@@ -1,7 +1,7 @@
 # sloper 0.9
 Sloper calculate surface shape (normal vectors to the surface) of ASCII figure that later can be used by ASCII physic engine (ascii_engine.py).
 
-## ascii_engine.py (examples)
+## ascii_engine.py (demos)
 <p align="center">
 <img src="./doc/demo1.gif"/>
 <img src="./doc/demo3.gif"/>
@@ -42,3 +42,8 @@ Next for each point, where braille dot may appear, sloper calculate normal vecto
 <img src="./doc/braille_dots.png"/>
 <img src="./doc/normal_vectors.png"/>
 </p>
+
+## Usage
+```
+$ python sloper.py -a ascii_data/umbrella-drilled.txt
+```
