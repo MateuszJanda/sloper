@@ -1,19 +1,20 @@
 # sloper 0.9
-Sloper calculate surface shape (normal vectors to the surface) of ASCII figure that later can be used by ASCII physic engine.
+Sloper calculate surface shape (normal vectors to the surface) of ASCII figure that later can be used by ASCII physic engine (ascii_engine.py).
 
+## ascii_engine.py (examples)
 <p align="center">
 <img src="./doc/demo1.gif"/>
 <img src="./doc/demo3.gif"/>
 </p>
 
-# Dependencies
+## Dependencies
 Tested with:
 - numpy            1.16.3
 - tinyarray        1.2.1
 - opencv-python    4.1.0.25
 - Pillow           6.0.0
 
-# Requirements
+## Requirements
 Sloper use very simple method to find surface shape (at least in this version), that's why any input data must be pre-processed by user.
 First of all each figure must contain marker at the top-left corner in 3x3 area, that help sloper calculate cell and grid size.
 ```
