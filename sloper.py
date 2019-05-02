@@ -347,7 +347,7 @@ def connect_nearby_chars(img, radius=15):
 
         chain.append(cnt)
         for i in range(len(contours)):
-            if np.all(cnt == contours[i]):
+            if cnt.shape == contours[i].shape and np.all(cnt == contours[i]):
                 contours.pop(i)
                 break
         last = cnt
@@ -615,10 +615,10 @@ def foreach_arr_elements(img, arr, grid, draw_func):
     """
     Call draw_func() for each "non zero" array element.
     """
-    end_x = grid.start.x + (arr.shape[1] / SCR_CELL_SIZE.width) * grid.cell.width
-    end_y = grid.start.y + (arr.shape[0] / SCR_CELL_SIZE.height) * grid.cell.height
-    samples_x = ((end_x - grid.start.x)/grid.cell.width) * SCR_CELL_SIZE.width
-    samples_y = ((end_y - grid.start.y)/grid.cell.height) * SCR_CELL_SIZE.height
+    end_x = grid.start.x + int(arr.shape[1]/SCR_CELL_SIZE.width) * grid.cell.width
+    end_y = grid.start.y + int(arr.shape[0]/SCR_CELL_SIZE.height) * grid.cell.height
+    samples_x = int((end_x - grid.start.x)/grid.cell.width) * SCR_CELL_SIZE.width
+    samples_y = int((end_y - grid.start.y)/grid.cell.height) * SCR_CELL_SIZE.height
 
     for bx, x in enumerate(np.linspace(grid.start.x, end_x, samples_x, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, end_y, samples_y, endpoint=False)):
