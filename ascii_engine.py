@@ -422,7 +422,7 @@ class Importer:
         self._reduce_surf(surf_arr)
         self._print_ascii_markers(surf_arr)
 
-        self._validate_arrays(ascii_arr, surf_arr)
+        # self._validate_arrays(ascii_arr, surf_arr)
         return ascii_arr, surf_arr
 
     def _import_ascii_array(self, ascii_file):

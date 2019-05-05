@@ -69,7 +69,8 @@ class CustomFormatter(argparse.ArgumentDefaultsHelpFormatter, argparse.RawDescri
 def interpret_args():
     parser = argparse.ArgumentParser(
         description='Sloper calculate surface shape (normal vectors to the surface) of ASCII figure.\n'
-                    'Last version you can find on github.com/MateuszJanda/sloper',
+                    'Last version you can find on github.com/MateuszJanda/sloper\n'
+                    'Mateusz Janda (c) <mateusz janda at gmail com>',
         usage='Please try to use -h, --help for more informations',
         epilog='Example:\n'
                '# Detect surface of ASCII figure saved in text file\n'
@@ -339,16 +340,26 @@ def connect_nearby_chars(img, radius=15):
     print('[+] Contours count:', len(contours))
     last = contours.pop(0)
     chain = [last]
+    r = radius
+    rrr = 0
     while len(contours) > 0:
         cnt = find_nearest_contour(last, contours, radius)
 
         if cnt is None:
-            print('[i] Contours left:', len(contours))
-            approx = cv2.approxPolyDP(np.vstack(chain), epsilon=2, closed=True)
-            debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-            cv2.drawContours(debug_img, [approx], -1, GREEN_3D, 1)
-            cv2.imshow('Debug', debug_img)
-            raise Exception('Error! Contour not found. Try to change radius or font size.')
+            # print('[i] Contours left:', len(contours))
+            # approx = cv2.approxPolyDP(np.vstack(chain), epsilon=2, closed=True)
+            # debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+            # cv2.drawContours(debug_img, [approx], -1, GREEN_3D, 1)
+            # cv2.imshow('Debug', debug_img)
+            # raise Exception('Error! Contour not found. Try to change radius or font size.')
+            radius += 2
+            rrr += 1
+            print('rrr', rrr)
+            continue
+
+        if rrr:
+            radius = r
+            rrr = 0
 
         chain.append(cnt)
         for i in range(len(contours)):
