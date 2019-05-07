@@ -28,7 +28,7 @@ import tinyarray as ta
 
 
 # Applications constants
-TELEMETRY_MODE = False
+DEBUG_MODE = False
 EMPTY_BRAILLE = u'\u2800'
 SCR_CELL_SHAPE = ta.array([4, 2])
 NORM_VEC_DIM = 2
@@ -39,10 +39,10 @@ GRAVITY_ACC = 9.8  # [m/s^2]
 COEFFICIENT_OF_RESTITUTION = 0.5
 
 
-def setup(scr, debug=False, terminal='/dev/pts/1'):
+def setup(scr, debug_terminal=None):
     """Main setup function."""
     setup_curses(scr)
-    setup_telemetry(debug, terminal)
+    setup_telemetry(debug_terminal)
 
 
 class Screen:
@@ -410,7 +410,7 @@ class Terrain:
 
 
 class Importer:
-    def load(self, ascii_file, surface_file):
+    def load(self, ascii_file, surface_file, validate=True):
         """Load arrays from files."""
         ascii_arr = self._import_ascii_array(ascii_file)
         ascii_arr = self._remove_ascii_marker(ascii_arr)
@@ -422,7 +422,9 @@ class Importer:
         self._reduce_surf(surf_arr)
         self._print_ascii_markers(surf_arr)
 
-        # self._validate_arrays(ascii_arr, surf_arr)
+        if validate:
+            self._validate_arrays(ascii_arr, surf_arr)
+
         return ascii_arr, surf_arr
 
     def _import_ascii_array(self, ascii_file):
@@ -552,22 +554,22 @@ def setup_curses(scr):
     scr.clear()
 
 
-def setup_telemetry(debug=False, terminal='/dev/pts/1'):
+def setup_telemetry(debug_terminal='/dev/pts/1'):
     """
     Redirect stderr to other terminal. Run tty command, to get terminal id.
 
     $ tty
     /dev/pts/1
     """
-    global TELEMETRY_MODE
-    TELEMETRY_MODE = debug
-    if TELEMETRY_MODE:
-        sys.stderr = open(terminal, 'w')
+    global DEBUG_MODE
+    DEBUG_MODE= True if debug_terminal else False
+    if DEBUG_MODE:
+        sys.stderr = open(debug_terminal, 'w')
 
 
 def log(*args, **kwargs):
     """Print on stderr."""
-    if TELEMETRY_MODE:
+    if DEBUG_MODE:
         print(*args, file=sys.stderr)
 
 

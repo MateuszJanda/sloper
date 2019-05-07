@@ -17,7 +17,7 @@ ANIMATION_TIME = 10  # [sec]
 
 
 def main(scr):
-    ae.setup(scr, debug=False, terminal='/dev/pts/3')
+    ae.setup(scr, debug_terminal=None)
 
     screen, terrain = create_scene(scr)
     bodies = create_bodies(count=2000)
