@@ -52,6 +52,7 @@ def main():
 
         surface_arr = approximate_surface_slopes(contour, grid)
         export_surface_arr(args.out_file, surface_arr)
+        print('[i] Done')
     except:
         print('[!] Exception')
         traceback.print_exc()
@@ -114,9 +115,9 @@ def interpret_args():
     args.threshold = int(args.threshold)
     estimate_calibration_area(args)
 
-    print('[+] Font size:', args.font_size)
-    print('[+] Radius:', args.radius)
-    print('[+] Threshold:', args.threshold)
+    print('[-] Font size:', args.font_size)
+    print('[-] Radius:', args.radius)
+    print('[-] Threshold:', args.threshold)
 
     return args
 
@@ -128,7 +129,7 @@ def estimate_calibration_area(args):
     elif args.ascii_file and not args.calib_area:
         args.calib_area = (args.font_size + 2) * 3
 
-    print('[+] Calibration area:', args.calib_area)
+    print('[-] Calibration area:', args.calib_area)
 
 
 def get_input_img(args):
@@ -324,7 +325,7 @@ def erase_estimate_calibration_area(img, calib_area):
     cv2.rectangle(img, (0, 0), (calib_area, calib_area), BLACK_1D, cv2.FILLED)
 
 
-def connect_nearby_chars(img, radius=15):
+def connect_nearby_chars(img, radius=15, radius_limit=100):
     """
     Connect nearby contours (ASCII characters).
 
@@ -337,29 +338,29 @@ def connect_nearby_chars(img, radius=15):
     contours, _ = cv2.findContours(gray_img, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
     # First contour position is at the bottom of image
-    print('[+] Contours count:', len(contours))
     last = contours.pop(0)
     chain = [last]
     r = radius
-    rrr = 0
     while len(contours) > 0:
-        cnt = find_nearest_contour(last, contours, radius)
+        print('[+] Contours left:', len(contours))
+        cnt = find_nearest_contour(last, contours, r)
 
         if cnt is None:
-            # print('[i] Contours left:', len(contours))
-            # approx = cv2.approxPolyDP(np.vstack(chain), epsilon=2, closed=True)
-            # debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
-            # cv2.drawContours(debug_img, [approx], -1, GREEN_3D, 1)
-            # cv2.imshow('Debug', debug_img)
-            # raise Exception('Error! Contour not found. Try to change radius or font size.')
-            radius += 2
-            rrr += 1
-            print('rrr', rrr)
+            r += 2
+            print('  [+] Contour not found, radius increment:', r)
             continue
 
-        if rrr:
-            radius = r
-            rrr = 0
+        if r > radius_limit:
+            print('[!] Radius limit exceeded')
+            approx = cv2.approxPolyDP(np.vstack(chain), epsilon=2, closed=True)
+            debug_img = cv2.cvtColor(gray_img, cv2.COLOR_GRAY2RGB)
+            cv2.drawContours(debug_img, [approx], -1, GREEN_3D, 1)
+            cv2.imshow('Debug', debug_img)
+            raise Exception('Error: Contour not found. Radius limit exceeded')
+
+        # Restore original radius for next contour search
+        if r != radius:
+            r = radius
 
         chain.append(cnt)
         for i in range(len(contours)):
