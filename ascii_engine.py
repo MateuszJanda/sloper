@@ -3,6 +3,7 @@
 """
 Author: Mateusz Janda <mateusz janda at gmail com>
 Site: github.com/MateuszJanda
+Ad maiorem Dei gloriam
 """
 
 """
