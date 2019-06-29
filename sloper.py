@@ -47,12 +47,16 @@ def main():
         grid = grid_data(gray_img, args.calib_area)
         erase_estimate_calibration_area(gray_img, args.calib_area)
 
-        contours_img = connect_nearby_chars(gray_img, args.radius)
-        contours_img = smooth_contours(grid, contours_img)
-        contour = contour_points(contours_img)
+        if args.to_braille:
+            dots_arr = create_dots_array(gray_img, grid)
+            export_dots_arr(args.out_file, dots_arr)
+        else:
+            contours_img = connect_nearby_chars(gray_img, args.radius)
+            contours_img = smooth_contours(grid, contours_img)
+            contour = contour_points(contours_img)
 
-        surface_arr = approximate_surface_slopes(contour, grid)
-        export_surface_arr(args.out_file, surface_arr)
+            surface_arr = approximate_surface_slopes(contour, grid)
+            export_surface_arr(args.out_file, surface_arr)
         print('[i] Done')
     except:
         print('[!] Exception')
@@ -89,7 +93,9 @@ def interpret_args():
     group.add_argument('-a', '--ascii', metavar='file', dest='ascii_file',
         help='ASCII figure in text file (with proper markers)')
 
-
+    parser.add_argument('-b', '--to-braille', metavar='file', required=False,
+        dest='to_braille',
+        help='Convert ASCII figure to braille dots coordinates array.')
     parser.add_argument('-o', '--output-file', metavar='file', required=False,
         default='output.surf', dest='out_file',
         help='Output file for surface array')
@@ -453,6 +459,25 @@ def approximate_surface_slopes(contour, grid):
     return surface_arr
 
 
+def create_dots_array(gray_img, grid):
+    height = ((grid.end.y - grid.start.y)//grid.cell.height) * SCR_CELL_SIZE.height
+    width = ((grid.end.x - grid.start.x)//grid.cell.width) * SCR_CELL_SIZE.width
+    dot_arr = np.zeros(shape=[height, width], dtype=np.int32)
+
+    samples_y = (grid.end.y - grid.start.y) / height
+    samples_x = (grid.end.x - grid.start.x) / width
+
+    for idy, y in enumerate(np.linspace(grid.start.y, grid.end.y, height, endpoint=False)):
+        for idx, x in enumerate(np.linspace(grid.start.x, grid.end.x, width, endpoint=False)):
+            tl_pt = Point(x=int(x), y=int(y))
+            br_pt = Point(x=int(x+samples_x), y=int(y+samples_y))
+
+            if np.any(gray_img[tl_pt.y:br_pt.y, tl_pt.x:br_pt.x]):
+                dot_arr[idy, idx] = 1
+
+    return dot_arr
+
+
 def in_boundaries(test_pt, tl_pt, br_pt):
     """Check if point is in boundaries."""
     return tl_pt.x <= test_pt.x < br_pt.x and tl_pt.y <= test_pt.y < br_pt.y
@@ -540,6 +565,12 @@ def export_surface_arr(file_name, arr):
     """Export braille data to file."""
     height, width, vec_dim = arr.shape
     np.savetxt(file_name, arr.reshape([height, width*vec_dim]), fmt='%.04f')
+
+
+def export_dots_arr(file_name, arr):
+    """Export dots markers to file."""
+    height, width = arr.shape
+    np.savetxt(file_name, arr.reshape([height, width]), fmt='%d')
 
 
 def inspect(grid, calib_area, surface_arr, contour, terminal_img, gray_img, contours_img):
