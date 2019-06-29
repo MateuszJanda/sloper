@@ -93,7 +93,7 @@ def interpret_args():
     group.add_argument('-a', '--ascii', metavar='file', dest='ascii_file',
         help='ASCII figure in text file (with proper markers)')
 
-    parser.add_argument('-b', '--to-braille', metavar='file', required=False,
+    parser.add_argument('-b', '--to-braille', action='store_true', required=False,
         dest='to_braille',
         help='Convert ASCII figure to braille dots coordinates array.')
     parser.add_argument('-o', '--output-file', metavar='file', required=False,
