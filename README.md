@@ -7,14 +7,18 @@ Sloper calculate surface shape (normal vectors to the surface) of ASCII figure t
 <img src="./doc/demo3.gif"/>
 </p>
 
-## Dependencies
+## Requirements
+```
+$ pip install -r requirements.txt
+```
 Tested with:
 - numpy            1.16.3
 - tinyarray        1.2.1
 - opencv-python    4.1.0.25
 - Pillow           6.0.0
 
-## Requirements
+
+## Description
 Sloper use very simple method to find surface shape (at least in this version), that's why any input data must be pre-processed by user.
 First of all each figure must contain marker at the top-left corner in 3x3 area, that help sloper calculate cell and grid size.
 ```
