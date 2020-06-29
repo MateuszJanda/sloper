@@ -2,7 +2,7 @@
 
 """
 Author: Mateusz Janda <mateusz janda at gmail com>
-Site: github.com/MateuszJanda
+Site: github.com/MateuszJanda/sloper
 Ad maiorem Dei gloriam
 """
 
