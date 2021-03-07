@@ -165,7 +165,7 @@ def get_input_img(args):
 def estimate_ascii_img_size(text, args):
     EXTRA = 2
     grid = grid_ascii_data(text)
-    cell_size = Size(height=args.font_size+EXTRA, width=(args.font_size+EXTRA)//2)
+    cell_size = Size(height = args.font_size + EXTRA, width=(args.font_size + EXTRA) // 2)
     width = (grid.end.x + EXTRA) * cell_size.width
     height = (grid.end.y + EXTRA) * cell_size.height
 
@@ -217,10 +217,10 @@ def grid_ascii_data(text):
 
 def remove_ascii_margins(ascii_arr):
     """Remove margins from ASCII array."""
-    del_rows = [r for r, margin in enumerate(np.all(ascii_arr==' ', axis=0)) if margin]
+    del_rows = [r for r, margin in enumerate(np.all(ascii_arr == ' ', axis=0)) if margin]
     ascii_arr = np.delete(ascii_arr, del_rows, axis=1)
 
-    del_columns = [c for c, margin in enumerate(np.all(ascii_arr==' ', axis=1)) if margin]
+    del_columns = [c for c, margin in enumerate(np.all(ascii_arr == ' ', axis=1)) if margin]
     ascii_arr = np.delete(ascii_arr, del_columns, axis=0)
 
     return ascii_arr
@@ -233,9 +233,9 @@ def marker_ascii_pos(text_arr):
     """
     DIM = 3
     for x, y in it.product(range(DIM), range(DIM)):
-        if y+1 > text_arr.shape[0] or x+1 > text_arr.shape[1]:
+        if y + 1 > text_arr.shape[0] or x + 1 > text_arr.shape[1]:
             continue
-        if text_arr[y, x] == '_' and text_arr[y+1, x] == '^' and text_arr[y, x+1] == '^':
+        if text_arr[y, x] == '_' and text_arr[y + 1, x] == '^' and text_arr[y, x + 1] == '^':
             return Point(x, y)
 
     return None
@@ -404,7 +404,7 @@ def find_nearest_contour(head_cnt, contours, radius=15):
     best_cnt = None
     for cnt in contours:
         for head_pos, cnt_pos in it.product(head_cnt, cnt):
-            dist = np.linalg.norm(head_pos-cnt_pos)
+            dist = np.linalg.norm(head_pos - cnt_pos)
 
             if abs(dist) < radius:
                 radius = abs(dist)
@@ -425,8 +425,8 @@ def approximate_surface_slopes(contour, grid):
     Go along ASCII image surface and calculate normal vector (perpendicular to
     surface) for each position where braille dot, could be placed.
     """
-    height = ((grid.end.y - grid.start.y)//grid.cell.height) * SCR_CELL_SIZE.height
-    width = ((grid.end.x - grid.start.x)//grid.cell.width) * SCR_CELL_SIZE.width
+    height = ((grid.end.y - grid.start.y) // grid.cell.height) * SCR_CELL_SIZE.height
+    width = ((grid.end.x - grid.start.x) // grid.cell.width) * SCR_CELL_SIZE.width
     surface_arr = np.zeros(shape=[height, width, NORM_VEC_DIM], dtype=np.float32)
 
     first_pt, last_pt = None, None
@@ -460,8 +460,8 @@ def approximate_surface_slopes(contour, grid):
 
 
 def create_dots_array(gray_img, grid):
-    height = ((grid.end.y - grid.start.y)//grid.cell.height) * SCR_CELL_SIZE.height
-    width = ((grid.end.x - grid.start.x)//grid.cell.width) * SCR_CELL_SIZE.width
+    height = ((grid.end.y - grid.start.y) // grid.cell.height) * SCR_CELL_SIZE.height
+    width = ((grid.end.x - grid.start.x) // grid.cell.width) * SCR_CELL_SIZE.width
     dot_arr = np.zeros(shape=[height, width], dtype=np.int32)
 
     samples_y = (grid.end.y - grid.start.y) / height
@@ -470,7 +470,7 @@ def create_dots_array(gray_img, grid):
     for idy, y in enumerate(np.linspace(grid.start.y, grid.end.y, height, endpoint=False)):
         for idx, x in enumerate(np.linspace(grid.start.x, grid.end.x, width, endpoint=False)):
             tl_pt = Point(x=int(x), y=int(y))
-            br_pt = Point(x=int(x+samples_x), y=int(y+samples_y))
+            br_pt = Point(x=int(x + samples_x), y=int(y + samples_y))
 
             if np.any(gray_img[tl_pt.y:br_pt.y, tl_pt.x:br_pt.x]):
                 dot_arr[idy, idx] = 1
@@ -493,7 +493,7 @@ def normal_unit_vec(pt1, pt2):
         a = 1.0 if pt2.y > pt1.y else -1.0
         b = 0.0
     else:
-        a = (-pt2.y + pt1.y)/float(pt2.x - pt1.x)
+        a = (-pt2.y + pt1.y) / float(pt2.x - pt1.x)
         b = 1.0
 
     # Normalized (unit) perpendicular vector to line (ax + by + c = 0)
@@ -502,8 +502,8 @@ def normal_unit_vec(pt1, pt2):
     # start from Y followed by X [Y, X]
     mag = math.sqrt(a**2 + b**2)
     if pt2.x <= pt1.x:
-        return np.array([b/mag, -a/mag])
-    return np.array([-b/mag, a/mag])
+        return np.array([b / mag, -a / mag])
+    return np.array([-b / mag, a / mag])
 
 
 def dot_field(pt, grid):
@@ -514,8 +514,8 @@ def dot_field(pt, grid):
     width = grid.cell.width / SCR_CELL_SIZE.width
     height = grid.cell.height / SCR_CELL_SIZE.height
 
-    center_pt = Point(int((pt.x - grid.start.x)/width),
-                int((pt.y - grid.start.y)/height))
+    center_pt = Point(int((pt.x - grid.start.x) / width),
+                int((pt.y - grid.start.y) / height))
     x = grid.start.x + center_pt.x * width
     y = grid.start.y + center_pt.y * height
 
@@ -564,7 +564,7 @@ def remove_margins(surface_arr, border_pt):
 def export_surface_arr(file_name, arr):
     """Export braille data to file."""
     height, width, vec_dim = arr.shape
-    np.savetxt(file_name, arr.reshape([height, width*vec_dim]), fmt='%.04f')
+    np.savetxt(file_name, arr.reshape([height, width * vec_dim]), fmt='%.04f')
 
 
 def export_dots_arr(file_name, arr):
@@ -664,10 +664,10 @@ def foreach_arr_elements(img, arr, grid, draw_func):
     """
     Call draw_func() for each "non zero" array element.
     """
-    end_x = grid.start.x + int(arr.shape[1]/SCR_CELL_SIZE.width) * grid.cell.width
-    end_y = grid.start.y + int(arr.shape[0]/SCR_CELL_SIZE.height) * grid.cell.height
-    samples_x = int((end_x - grid.start.x)/grid.cell.width) * SCR_CELL_SIZE.width
-    samples_y = int((end_y - grid.start.y)/grid.cell.height) * SCR_CELL_SIZE.height
+    end_x = grid.start.x + int(arr.shape[1] / SCR_CELL_SIZE.width) * grid.cell.width
+    end_y = grid.start.y + int(arr.shape[0] / SCR_CELL_SIZE.height) * grid.cell.height
+    samples_x = int((end_x - grid.start.x) / grid.cell.width) * SCR_CELL_SIZE.width
+    samples_y = int((end_y - grid.start.y) / grid.cell.height) * SCR_CELL_SIZE.height
 
     for bx, x in enumerate(np.linspace(grid.start.x, end_x, samples_x, endpoint=False)):
         for by, y in enumerate(np.linspace(grid.start.y, end_y, samples_y, endpoint=False)):
@@ -679,10 +679,10 @@ def draw_dot(img, field_pt, normal_vec, grid):
     """
     Draw dot (braille dot) at given point.
     """
-    dot_field_size = Size(grid.cell.height/SCR_CELL_SIZE.height,
-                          grid.cell.width/SCR_CELL_SIZE.width)
-    center = Point(int(field_pt.x + dot_field_size.width//2),
-                   int(field_pt.y + dot_field_size.height//2))
+    dot_field_size = Size(grid.cell.height / SCR_CELL_SIZE.height,
+                          grid.cell.width / SCR_CELL_SIZE.width)
+    center = Point(int(field_pt.x + dot_field_size.width // 2),
+                   int(field_pt.y + dot_field_size.height // 2))
     cv2.circle(img, center, radius=2, color=RED_3D, thickness=-1)
 
 
@@ -691,15 +691,15 @@ def draw_normal_vec(img, field_pt, normal_vec, grid):
     Draw vector (normal_vec) at given point. Basically normal_vec will be
     multiplied by VEC_FACTOR to be better visible.
     """
-    dot_field_size = Size(grid.cell.height/SCR_CELL_SIZE.height,
-                          grid.cell.width/SCR_CELL_SIZE.width)
+    dot_field_size = Size(grid.cell.height / SCR_CELL_SIZE.height,
+                          grid.cell.width / SCR_CELL_SIZE.width)
 
-    start = Point(int(field_pt.x + dot_field_size.width//2),
-                  int(field_pt.y + dot_field_size.height//2))
+    start = Point(int(field_pt.x + dot_field_size.width // 2),
+                  int(field_pt.y + dot_field_size.height // 2))
     # Y with minus, because OpenCV use different coordinates order
     vec_end = Point(normal_vec[1], -normal_vec[0])
-    end = Point(start.x + int(vec_end.x*VEC_FACTOR),
-                start.y + int(vec_end.y*VEC_FACTOR))
+    end = Point(start.x + int(vec_end.x * VEC_FACTOR),
+                start.y + int(vec_end.y * VEC_FACTOR))
     cv2.line(img, start, end, GREEN_3D, 1)
 
 
