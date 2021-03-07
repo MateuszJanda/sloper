@@ -21,7 +21,7 @@ def main(scr):
     ae.setup(scr, debug_terminal=None)
 
     screen, terrain = create_scene(scr)
-    bodies = create_bodies(count=100)
+    bodies = create_bodies(count=2000)
 
     dt = 1 / REFRESH_RATE
 
@@ -58,7 +58,7 @@ def create_scene(scr):
     im = ae.Importer()
 
     ascii_arr, norm_arr = im.load('ascii_data/sloper.txt', 'ascii_data/sloper-drilled.surf')
-    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(0, 25))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-10, 40))
 
     return screen, terrain
 
