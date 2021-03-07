@@ -58,7 +58,7 @@ def create_scene(scr):
     im = ae.Importer()
 
     ascii_arr, norm_arr = im.load('ascii_data/sloper.txt', 'ascii_data/sloper-drilled.surf')
-    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-10, 40))
+    add_obstacle(screen, terrain, ascii_arr, norm_arr, scr_shift=(-3, 18))
 
     return screen, terrain
 
