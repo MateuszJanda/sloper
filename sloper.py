@@ -101,10 +101,10 @@ def interpret_args():
         help='Output file for surface array')
     parser.add_argument('-f', '--truetype-font', metavar='file', required=False,
         default='UbuntuMono-R', dest='font',
-        help='TryType font file')
+        help='TrueType font file')
     parser.add_argument('-s', '--font-size', metavar='size', required=False,
         default=17, dest='font_size',
-        help='TryType font size')
+        help='TrueType font size')
     parser.add_argument('-c', '--calibration-size', metavar='size', required=False,
         dest='calib_area',
         help='Calibration area size')
