@@ -1,6 +1,6 @@
 #!/bin/bash
 
-VIDEO_FILE="caputerd_screen.mp4"
+VIDEO_FILE="captured_screen.mp4"
 
 if [[ $1 == "-c" || $1 == "--capture" ]]; then
     ffmpeg -video_size 960x540 -framerate 25 -f x11grab -i :0.0+0,48 $VIDEO_FILE
