@@ -1,10 +1,8 @@
 #! /usr/bin/env python3
 
-"""
-Author: Mateusz Janda <mateusz janda at gmail com>
-Site: github.com/MateuszJanda/sloper
-Ad maiorem Dei gloriam
-"""
+# Author: Mateusz Janda <mateusz janda at gmail com>
+# Site: github.com/MateuszJanda/sloper
+# Ad maiorem Dei gloriam
 
 import locale
 import curses
