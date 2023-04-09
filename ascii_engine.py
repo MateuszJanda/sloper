@@ -218,10 +218,6 @@ class Body:
         return "Body(%d)" % self._idx
 
 
-        """string representation of object."""
-        return "Body(%d)" % self._idx
-
-
 class NearestNeighborLookup:
     def __init__(self, bodies):
         self._bg_shape = ta.array([curses.LINES, curses.COLS-1])
