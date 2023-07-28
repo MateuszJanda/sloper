@@ -1,5 +1,8 @@
-# sloper 0.9
-Sloper calculate surface shape (normal vectors to the surface) of ASCII figure that later can be used by ASCII physic engine (ascii_engine.py).
+# sloper 0.9.0
+The main goal of this project (sloper.py) was to interpolate ASCII figure surface shape (normal vectors to the surface).
+The other part is simple physic engine (ascii_engine.py), that make use of this data to simulate hail. Engine precalculate
+all simulation steps before running animation. It use Euler method for integration and "Speculative Contacts" for
+collision detection.
 
 ## ascii_engine.py (demos)
 <p align="center">
@@ -51,3 +54,11 @@ Next for each point, where braille dot may appear, sloper calculate normal vecto
 ```
 $ python sloper.py -a ascii_data/umbrella-drilled.txt
 ```
+
+## References/Credits
+- https://en.wikipedia.org/wiki/Collision_response#Impulse-based_reaction_model
+- https://wildbunny.co.uk/blog/2011/03/25/speculative-contacts-an-continuous-collision-engine-approach-part-1/
+- http://twvideo01.ubm-us.net/o1/vault/gdc2013/slides/824737Catto_Erin_PhysicsForGame.pdf
+- https://github.com/mattleibow/jitterphysics/wiki/Speculative-Contacts
+- https://github.com/pratik2709/Speculative-Contacts
+- https://codepen.io/kenjiSpecial/pen/bNJQKQ
