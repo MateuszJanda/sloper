@@ -1,7 +1,7 @@
 # sloper 0.9.0
 The main goal of this project (sloper.py) was to interpolate ASCII figure surface shape (normal vectors to the surface).
-In addition it also contains simple physic engine (ascii_engine.py), that make use of this surface data to simulate hail
-(multi rigid bodies). Engine precalculate all simulation steps before running animation. It use Euler method for integration
+In addition it also contains simple physic engine (ascii_engine.py), that make use of surface data to simulate hail
+(multi rigid bodies). All steps are precalculate before running animation. It use Euler method for integration
 and "Speculative Contacts" for collision detection.
 
 ## ascii_engine.py (demos)
@@ -23,7 +23,7 @@ Tested with:
 
 ## Description
 Sloper use very simple method to find surface shape (at least in this version), that's why any input data must be
-pre-processed by user. First of all each figure must contain marker at the top-left corner in 3x3 area, that help sloper
+pre-processed by user. First of all each figure must contain "marker" at the top-left corner in 3x3 area, that help sloper
 calculate cell and grid size.
 ```
 _^
